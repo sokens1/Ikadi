@@ -20,7 +20,8 @@ import {
   Users,
   PieChart,
   FileSpreadsheet,
-  FileText
+  FileText,
+  AlertTriangle
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Cell } from 'recharts';
 
