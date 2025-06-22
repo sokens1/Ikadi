@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,12 +10,28 @@ import {
   MapPin, 
   BarChart3,
   Eye,
-  ArrowRight
+  ArrowRight,
+  Plus
 } from 'lucide-react';
+import ElectionDetailModal from '@/components/elections/ElectionDetailModal';
+
+interface Election {
+  id: number;
+  title: string;
+  date: string;
+  status: string;
+  statusColor: string;
+  description: string;
+  voters: number;
+  candidates: number;
+  centers: number;
+}
 
 const ElectionManagement = () => {
+  const [selectedElection, setSelectedElection] = useState<Election | null>(null);
+
   // Mock data for elections
-  const elections = [
+  const elections: Election[] = [
     {
       id: 1,
       title: "Élections Législatives 2024",
@@ -60,6 +76,10 @@ const ElectionManagement = () => {
     }
   };
 
+  const handleElectionClick = (election: Election) => {
+    setSelectedElection(election);
+  };
+
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
@@ -72,7 +92,7 @@ const ElectionManagement = () => {
             </p>
           </div>
           <Button className="gov-bg-primary hover:bg-gov-blue-dark">
-            <Calendar className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-2" />
             Nouvelle Élection
           </Button>
         </div>
@@ -80,7 +100,11 @@ const ElectionManagement = () => {
         {/* Elections Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {elections.map((election) => (
-            <Card key={election.id} className="gov-card hover:shadow-md transition-shadow cursor-pointer">
+            <Card 
+              key={election.id} 
+              className="gov-card hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => handleElectionClick(election)}
+            >
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-lg font-semibold text-gov-gray">
@@ -136,6 +160,10 @@ const ElectionManagement = () => {
                   <Button 
                     variant="outline" 
                     className="w-full mt-4 group"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleElectionClick(election);
+                    }}
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Voir Détails
@@ -197,6 +225,14 @@ const ElectionManagement = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Modal de détail d'élection */}
+        {selectedElection && (
+          <ElectionDetailModal
+            election={selectedElection}
+            onClose={() => setSelectedElection(null)}
+          />
+        )}
       </div>
     </Layout>
   );
