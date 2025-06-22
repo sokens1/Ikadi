@@ -7,11 +7,11 @@ import {
   Calendar, 
   Users, 
   MapPin, 
-  BarChart3,
+  TrendingUp, 
   Clock,
   AlertTriangle,
   CheckCircle,
-  Bell
+  BarChart3
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -20,24 +20,22 @@ const Dashboard = () => {
   // Mock data for dashboard
   const dashboardData = {
     nextElection: {
-      title: "Élection Présidentielle 2024",
+      title: "Élections Législatives 2024",
       date: "2024-12-15T08:00:00Z",
-      status: "Phase de préparation",
-      schedule: "15 Décembre 2024 • 08h00 - 18h00"
+      status: "À venir"
     },
     votersRegistered: {
-      total: 6210457,
-      trend: "+2.3% sur 30 jours"
+      total: 145780,
+      trend: "+2.3% vs dernière élection"
     },
     infrastructure: {
-      centers: 1847,
-      bureaux: 2847,
-      provinces: 9,
-      avgBureauxPerCenter: "1.5/centre"
+      centers: 45,
+      bureaux: 182
     },
-    pendingPV: {
-      count: 37,
-      status: "À valider"
+    liveProgress: {
+      participation: 67.8,
+      pvsEntered: 85.2,
+      pvsValidated: 78.9
     },
     notifications: [
       {
@@ -74,15 +72,14 @@ const Dashboard = () => {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        setTimeToElection(`${days}j ${hours}h ${minutes}m ${seconds}s`);
+        setTimeToElection(`${days}j ${hours}h ${minutes}m`);
       } else {
         setTimeToElection("En cours");
       }
     };
 
     updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
+    const interval = setInterval(updateCountdown, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -99,134 +96,117 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="space-y-4 sm:space-y-6 animate-fade-in">
-        {/* Page Header with notification */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gov-gray">Tableau de Bord</h1>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <Bell className="w-6 h-6 text-gray-400" />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                59
-              </span>
-            </div>
-            <Badge variant="outline" className="text-sm font-medium">
-              Super-Administrateur
-            </Badge>
-          </div>
+      <div className="space-y-6 animate-fade-in">
+        {/* Page Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gov-gray">Tableau de Bord</h1>
+          <p className="text-gray-600 mt-2">
+            Vue d'ensemble de la situation électorale en temps réel
+          </p>
         </div>
 
-        {/* Main Election Banner */}
-        <Card className="gov-gradient text-white border-0 overflow-hidden">
-          <CardContent className="responsive-padding">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2 text-blue-100">
-                  <Calendar className="w-5 h-5" />
-                  <span className="text-sm font-medium">Prochaine Élection</span>
-                </div>
-                
-                <div>
-                  <h2 className="text-2xl lg:text-3xl font-bold mb-2">
-                    {dashboardData.nextElection.title}
-                  </h2>
-                  <p className="text-blue-100 text-sm lg:text-base mb-3">
-                    {dashboardData.nextElection.schedule}
-                  </p>
-                  <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                    {dashboardData.nextElection.status}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="text-center lg:text-right">
-                <div className="text-3xl lg:text-5xl font-bold mb-1">
-                  {timeToElection}
-                </div>
-                <p className="text-blue-200 text-sm">Temps restant</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-          {/* Électeurs Inscrits */}
-          <Card className="gov-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gov-gray flex items-center">
-                <Users className="w-5 h-5 mr-2 text-blue-600" />
-                <span className="hidden sm:inline">Électeurs Inscrits</span>
-                <span className="sm:hidden">Électeurs</span>
+        {/* Main Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Next Election Card */}
+          <Card className="gov-card border-l-4 border-l-gov-blue">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gov-gray">
+                Prochaine Élection
               </CardTitle>
+              <Calendar className="h-4 w-4 text-gov-blue" />
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl lg:text-3xl font-bold text-blue-600 mb-1">
+            <CardContent>
+              <div className="text-2xl font-bold text-gov-blue mb-1">
+                {timeToElection}
+              </div>
+              <p className="text-sm font-medium text-gray-900 mb-1">
+                {dashboardData.nextElection.title}
+              </p>
+              <p className="text-xs text-gray-500">
+                {new Date(dashboardData.nextElection.date).toLocaleDateString('fr-FR')}
+              </p>
+              <Badge variant="secondary" className="mt-2">
+                {dashboardData.nextElection.status}
+              </Badge>
+            </CardContent>
+          </Card>
+
+          {/* Registered Voters Card */}
+          <Card className="gov-card border-l-4 border-l-green-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gov-gray">
+                Électeurs Inscrits
+              </CardTitle>
+              <Users className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900 mb-1">
                 {dashboardData.votersRegistered.total.toLocaleString('fr-FR')}
               </div>
-              <div className="flex items-center text-xs text-green-600 font-medium">
-                <span className="text-green-500 mr-1">↗</span>
+              <p className="text-xs text-green-600 font-medium">
                 {dashboardData.votersRegistered.trend}
+              </p>
+              <div className="mt-2 h-1 bg-gray-200 rounded">
+                <div className="h-1 bg-green-500 rounded w-3/4"></div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Centres de Vote */}
-          <Card className="gov-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gov-gray flex items-center">
-                <MapPin className="w-5 h-5 mr-2 text-blue-600" />
-                <span className="hidden sm:inline">Centres de Vote</span>
-                <span className="sm:hidden">Centres</span>
+          {/* Infrastructure Card */}
+          <Card className="gov-card border-l-4 border-l-orange-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gov-gray">
+                Infrastructure
               </CardTitle>
+              <MapPin className="h-4 w-4 text-orange-500" />
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl lg:text-3xl font-bold text-blue-600 mb-1">
-                {dashboardData.infrastructure.centers.toLocaleString('fr-FR')}
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Centres</span>
+                  <span className="text-lg font-bold text-gray-900">
+                    {dashboardData.infrastructure.centers}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Bureaux</span>
+                  <span className="text-lg font-bold text-gray-900">
+                    {dashboardData.infrastructure.bureaux}
+                  </span>
+                </div>
               </div>
-              <p className="text-xs text-gray-500">
-                Dans {dashboardData.infrastructure.provinces} provinces
-              </p>
             </CardContent>
           </Card>
 
-          {/* Bureaux de Vote */}
-          <Card className="gov-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gov-gray flex items-center">
-                <BarChart3 className="w-5 h-5 mr-2 text-blue-600" />
-                <span className="hidden sm:inline">Bureaux de Vote</span>
-                <span className="sm:hidden">Bureaux</span>
+          {/* Live Progress Card */}
+          <Card className="gov-card border-l-4 border-l-purple-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gov-gray">
+                Progression Live
               </CardTitle>
+              <BarChart3 className="h-4 w-4 text-purple-500" />
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl lg:text-3xl font-bold text-blue-600 mb-1">
-                {dashboardData.infrastructure.bureaux.toLocaleString('fr-FR')}
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">Participation</span>
+                  <span className="text-sm font-bold text-green-600">
+                    {dashboardData.liveProgress.participation}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">PV Saisis</span>
+                  <span className="text-sm font-bold text-blue-600">
+                    {dashboardData.liveProgress.pvsEntered}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">PV Validés</span>
+                  <span className="text-sm font-bold text-purple-600">
+                    {dashboardData.liveProgress.pvsValidated}%
+                  </span>
+                </div>
               </div>
-              <p className="text-xs text-gray-500">
-                Moyenne: {dashboardData.infrastructure.avgBureauxPerCenter}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* PV en Attente */}
-          <Card className="gov-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gov-gray flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-orange-500" />
-                <span className="hidden sm:inline">PV en Attente</span>
-                <span className="sm:hidden">PV</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl lg:text-3xl font-bold text-orange-500 mb-1">
-                {dashboardData.pendingPV.count}
-              </div>
-              <p className="text-xs text-gray-500">
-                {dashboardData.pendingPV.status}
-              </p>
             </CardContent>
           </Card>
         </div>
@@ -234,28 +214,28 @@ const Dashboard = () => {
         {/* Notifications Panel */}
         <Card className="gov-card">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gov-gray responsive-text">
+            <CardTitle className="flex items-center space-x-2 text-gov-gray">
               <AlertTriangle className="w-5 h-5" />
               <span>Notifications Système</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-4">
               {dashboardData.notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg mobile-card"
+                  className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg"
                 >
                   {getNotificationIcon(notification.type)}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-gray-900">
                       {notification.title}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1 break-words">
+                    <p className="text-sm text-gray-600 mt-1">
                       {notification.message}
                     </p>
                     <p className="text-xs text-gray-400 mt-1 flex items-center">
-                      <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <Clock className="w-3 h-3 mr-1" />
                       {notification.time}
                     </p>
                   </div>
