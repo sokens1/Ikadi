@@ -100,4 +100,104 @@
   .gov-bg-light {
     background-color: hsl(var(--gov-gray-light));
   }
+
+  /* Améliorations de responsivité */
+  .responsive-text {
+    @apply text-sm sm:text-base;
+  }
+
+  .responsive-padding {
+    @apply p-2 sm:p-4 lg:p-6;
+  }
+
+  .responsive-margin {
+    @apply m-2 sm:m-4 lg:m-6;
+  }
+
+  /* Prévention du débordement */
+  .prevent-overflow {
+    @apply overflow-hidden;
+  }
+
+  .text-truncate {
+    @apply truncate;
+  }
+
+  /* Amélioration des tables sur mobile */
+  @media (max-width: 640px) {
+    .mobile-table {
+      font-size: 0.75rem;
+    }
+    
+    .mobile-table th,
+    .mobile-table td {
+      padding: 0.5rem 0.25rem;
+    }
+  }
+
+  /* Amélioration des cartes sur mobile */
+  .mobile-card {
+    @apply rounded-lg overflow-hidden;
+  }
+
+  /* Gestion des modales sur mobile */
+  @media (max-width: 640px) {
+    .mobile-modal {
+      margin: 1rem;
+      max-height: calc(100vh - 2rem);
+      overflow-y: auto;
+    }
+  }
+
+  /* Amélioration des formulaires sur mobile */
+  .mobile-form {
+    @apply space-y-3;
+  }
+
+  .mobile-form input,
+  .mobile-form select,
+  .mobile-form textarea {
+    @apply text-base; /* Évite le zoom sur iOS */
+  }
+
+  /* Amélioration des boutons sur mobile */
+  .mobile-button {
+    @apply min-h-[44px] px-4; /* Taille recommandée pour le touch */
+  }
+
+  /* Animation responsive */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in {
+      animation: none;
+    }
+  }
+
+  /* Scrollbar personnalisée */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  /* Fix pour les hauteurs sur mobile */
+  .mobile-full-height {
+    min-height: calc(100vh - 120px);
+  }
+
+  @media (max-width: 640px) {
+    .mobile-full-height {
+      min-height: calc(100vh - 100px);
+    }
+  }
 }
