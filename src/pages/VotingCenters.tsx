@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -398,7 +397,6 @@ const VotingCenters = () => {
                     <SelectValue placeholder="Toutes les provinces" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Toutes les provinces</SelectItem>
                     {provinces.map(province => (
                       <SelectItem key={province} value={province}>{province}</SelectItem>
                     ))}
@@ -413,7 +411,6 @@ const VotingCenters = () => {
                     <SelectValue placeholder="Toutes les villes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Toutes les villes</SelectItem>
                     {cities.map(city => (
                       <SelectItem key={city} value={city}>{city}</SelectItem>
                     ))}
