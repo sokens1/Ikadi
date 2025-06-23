@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,11 +13,11 @@ import {
 const Dashboard = () => {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
-  // Mock data for dashboard
+  // Mock data for dashboard - Date mise à jour pour être dans le futur
   const dashboardData = {
     nextElection: {
-      title: "Élection Présidentielle 2024",
-      date: "2024-12-15T08:00:00Z",
+      title: "Élection Présidentielle 2025",
+      date: "2025-03-15T08:00:00Z", // Date mise dans le futur
       endTime: "18h00",
       status: "Phase de préparation"
     },
@@ -44,6 +43,10 @@ const Dashboard = () => {
       const electionDate = new Date(dashboardData.nextElection.date);
       const diff = electionDate.getTime() - now.getTime();
 
+      console.log('Current time:', now);
+      console.log('Election date:', electionDate);
+      console.log('Time difference:', diff);
+
       if (diff > 0) {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -55,10 +58,14 @@ const Dashboard = () => {
       }
     };
 
+    // Mise à jour immédiate
     updateCountdown();
+    // Mise à jour chaque seconde
     const interval = setInterval(updateCountdown, 1000);
+    
+    // Nettoyage de l'intervalle
     return () => clearInterval(interval);
-  }, []);
+  }, [dashboardData.nextElection.date]);
 
   return (
     <Layout>
@@ -75,7 +82,7 @@ const Dashboard = () => {
                 {dashboardData.nextElection.title}
               </h1>
               <p className="text-blue-100 text-sm sm:text-base">
-                15 Décembre 2024 • 08h00 - {dashboardData.nextElection.endTime}
+                15 Mars 2025 • 08h00 - {dashboardData.nextElection.endTime}
               </p>
               <Badge variant="secondary" className="bg-white text-gov-blue font-medium">
                 {dashboardData.nextElection.status}
