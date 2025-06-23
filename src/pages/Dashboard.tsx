@@ -13,11 +13,11 @@ import {
 const Dashboard = () => {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
-  // Mock data for dashboard - Date mise à jour pour être dans le futur
+  // Mock data for dashboard - Date mise à jour pour le 16 septembre 2025
   const dashboardData = {
     nextElection: {
       title: "Élection Présidentielle 2025",
-      date: "2025-03-15T08:00:00Z", // Date mise dans le futur
+      date: "2025-09-16T08:00:00Z", // Date mise au 16 septembre 2025
       endTime: "18h00",
       status: "Phase de préparation"
     },
@@ -82,7 +82,7 @@ const Dashboard = () => {
                 {dashboardData.nextElection.title}
               </h1>
               <p className="text-blue-100 text-sm sm:text-base">
-                15 Mars 2025 • 08h00 - {dashboardData.nextElection.endTime}
+                16 Septembre 2025 • 08h00 - {dashboardData.nextElection.endTime}
               </p>
               <Badge variant="secondary" className="bg-white text-gov-blue font-medium">
                 {dashboardData.nextElection.status}
