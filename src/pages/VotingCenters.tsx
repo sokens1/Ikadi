@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { 
   MapPin, 
   Search, 
@@ -17,7 +20,8 @@ import {
   Building,
   ArrowLeft,
   Star,
-  Eye
+  Eye,
+  Plus
 } from 'lucide-react';
 
 // Types pour les données
@@ -55,11 +59,41 @@ interface Candidate {
   isPriority: boolean; // Candidat du directeur
 }
 
+interface NewCenterForm {
+  name: string;
+  address: string;
+  province: string;
+  city: string;
+  district: string;
+  latitude: string;
+  longitude: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  totalVoters: string;
+  totalBureaux: string;
+}
+
 const VotingCenters = () => {
   const [selectedCenter, setSelectedCenter] = useState<VotingCenter | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newCenterForm, setNewCenterForm] = useState<NewCenterForm>({
+    name: '',
+    address: '',
+    province: '',
+    city: '',
+    district: '',
+    latitude: '',
+    longitude: '',
+    contactName: '',
+    contactPhone: '',
+    contactEmail: '',
+    totalVoters: '',
+    totalBureaux: ''
+  });
 
   // Données mock pour les centres de vote
   const votingCenters: VotingCenter[] = [
@@ -125,6 +159,35 @@ const VotingCenters = () => {
     const matchesCity = !selectedCity || center.city === selectedCity;
     return matchesSearch && matchesProvince && matchesCity;
   });
+
+  const handleFormChange = (field: keyof NewCenterForm, value: string) => {
+    setNewCenterForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmitNewCenter = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Logique pour ajouter le nouveau centre
+    console.log('Nouveau centre à ajouter:', newCenterForm);
+    setIsAddModalOpen(false);
+    // Réinitialiser le formulaire
+    setNewCenterForm({
+      name: '',
+      address: '',
+      province: '',
+      city: '',
+      district: '',
+      latitude: '',
+      longitude: '',
+      contactName: '',
+      contactPhone: '',
+      contactEmail: '',
+      totalVoters: '',
+      totalBureaux: ''
+    });
+  };
 
   if (selectedCenter) {
     return (
@@ -360,11 +423,221 @@ const VotingCenters = () => {
     <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* En-tête */}
-        <div>
-          <h1 className="text-3xl font-bold text-gov-gray">Centres et Bureaux de Vote</h1>
-          <p className="text-gray-600 mt-2">
-            Annuaire détaillé de tous les lieux de vote physiques
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gov-gray">Centres et Bureaux de Vote</h1>
+            <p className="text-gray-600 mt-2">
+              Annuaire détaillé de tous les lieux de vote physiques
+            </p>
+          </div>
+          
+          <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center space-x-2 bg-gov-blue hover:bg-gov-blue/90">
+                <Plus className="w-4 h-4" />
+                <span>Ajouter un centre</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Ajouter un nouveau centre de vote</DialogTitle>
+              </DialogHeader>
+              
+              <form onSubmit={handleSubmitNewCenter} className="space-y-6">
+                {/* Informations générales */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gov-gray">Informations générales</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nom du centre *</Label>
+                      <Input
+                        id="name"
+                        value={newCenterForm.name}
+                        onChange={(e) => handleFormChange('name', e.target.value)}
+                        placeholder="Ex: École Primaire de..."
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="district">District</Label>
+                      <Input
+                        id="district"
+                        value={newCenterForm.district}
+                        onChange={(e) => handleFormChange('district', e.target.value)}
+                        placeholder="Ex: Centre, Batterie IV..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Adresse complète *</Label>
+                    <Input
+                      id="address"
+                      value={newCenterForm.address}
+                      onChange={(e) => handleFormChange('address', e.target.value)}
+                      placeholder="Ex: 15 Avenue de la République, Libreville"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="province">Province *</Label>
+                      <Select 
+                        value={newCenterForm.province} 
+                        onValueChange={(value) => handleFormChange('province', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une province" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {provinces.map(province => (
+                            <SelectItem key={province} value={province}>{province}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="city">Ville *</Label>
+                      <Select 
+                        value={newCenterForm.city} 
+                        onValueChange={(value) => handleFormChange('city', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une ville" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cities.map(city => (
+                            <SelectItem key={city} value={city}>{city}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Coordonnées GPS */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gov-gray">Coordonnées GPS</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="latitude">Latitude</Label>
+                      <Input
+                        id="latitude"
+                        value={newCenterForm.latitude}
+                        onChange={(e) => handleFormChange('latitude', e.target.value)}
+                        placeholder="Ex: 0.3936"
+                        type="number"
+                        step="any"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="longitude">Longitude</Label>
+                      <Input
+                        id="longitude"
+                        value={newCenterForm.longitude}
+                        onChange={(e) => handleFormChange('longitude', e.target.value)}
+                        placeholder="Ex: 9.4573"
+                        type="number"
+                        step="any"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informations de contact */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gov-gray">Contact du responsable</h3>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="contactName">Nom du responsable *</Label>
+                    <Input
+                      id="contactName"
+                      value={newCenterForm.contactName}
+                      onChange={(e) => handleFormChange('contactName', e.target.value)}
+                      placeholder="Ex: Marie Ngoua"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="contactPhone">Téléphone *</Label>
+                      <Input
+                        id="contactPhone"
+                        value={newCenterForm.contactPhone}
+                        onChange={(e) => handleFormChange('contactPhone', e.target.value)}
+                        placeholder="Ex: +241 01 23 45 67"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="contactEmail">Email *</Label>
+                      <Input
+                        id="contactEmail"
+                        type="email"
+                        value={newCenterForm.contactEmail}
+                        onChange={(e) => handleFormChange('contactEmail', e.target.value)}
+                        placeholder="Ex: marie.ngoua@education.ga"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Statistiques */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gov-gray">Statistiques</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="totalVoters">Nombre total d'électeurs</Label>
+                      <Input
+                        id="totalVoters"
+                        type="number"
+                        value={newCenterForm.totalVoters}
+                        onChange={(e) => handleFormChange('totalVoters', e.target.value)}
+                        placeholder="Ex: 2450"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="totalBureaux">Nombre de bureaux de vote</Label>
+                      <Input
+                        id="totalBureaux"
+                        type="number"
+                        value={newCenterForm.totalBureaux}
+                        onChange={(e) => handleFormChange('totalBureaux', e.target.value)}
+                        placeholder="Ex: 8"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Boutons d'action */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:justify-end pt-4 border-t">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="sm:order-1"
+                  >
+                    Annuler
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-gov-blue hover:bg-gov-blue/90 sm:order-2"
+                  >
+                    Ajouter le centre
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Filtres et recherche */}
