@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const [timeToElection, setTimeToElection] = useState('');
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   // Mock data for dashboard
   const dashboardData = {
@@ -49,9 +49,9 @@ const Dashboard = () => {
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        setTimeToElection(`${days}j ${hours}h ${minutes}m ${seconds}s`);
+        setCountdown({ days, hours, minutes, seconds });
       } else {
-        setTimeToElection("En cours");
+        setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
       }
     };
 
@@ -82,11 +82,35 @@ const Dashboard = () => {
               </Badge>
             </div>
             
-            <div className="text-right">
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-1">
-                {timeToElection}
+            {/* Countdown Display */}
+            <div className="flex items-center space-x-2 text-white">
+              <div className="text-center">
+                <div className="bg-white/20 rounded-lg p-2 min-w-[60px]">
+                  <div className="text-2xl font-bold">{countdown.days.toString().padStart(2, '0')}</div>
+                  <div className="text-xs text-blue-100">Jours</div>
+                </div>
               </div>
-              <p className="text-blue-100 text-sm">Temps restant</p>
+              <div className="text-2xl font-bold">:</div>
+              <div className="text-center">
+                <div className="bg-white/20 rounded-lg p-2 min-w-[60px]">
+                  <div className="text-2xl font-bold">{countdown.hours.toString().padStart(2, '0')}</div>
+                  <div className="text-xs text-blue-100">Heures</div>
+                </div>
+              </div>
+              <div className="text-2xl font-bold">:</div>
+              <div className="text-center">
+                <div className="bg-white/20 rounded-lg p-2 min-w-[60px]">
+                  <div className="text-2xl font-bold">{countdown.minutes.toString().padStart(2, '0')}</div>
+                  <div className="text-xs text-blue-100">Min</div>
+                </div>
+              </div>
+              <div className="text-2xl font-bold">:</div>
+              <div className="text-center">
+                <div className="bg-white/20 rounded-lg p-2 min-w-[60px]">
+                  <div className="text-2xl font-bold">{countdown.seconds.toString().padStart(2, '0')}</div>
+                  <div className="text-xs text-blue-100">Sec</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
