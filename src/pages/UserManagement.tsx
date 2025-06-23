@@ -1,140 +1,116 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Plus, Edit, Search, Shield, Users, Eye, UserCheck } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { 
+  Users, 
+  Plus, 
+  Search, 
+  Filter,
+  Edit,
+  Shield,
+  Eye,
+  FileText,
+  CheckCircle
+} from 'lucide-react';
 
-// Types pour RBAC
-export type UserRole = 'super-admin' | 'agent-saisie' | 'validateur' | 'observateur';
+// Type definitions
+type UserRole = 'super-admin' | 'agent-saisie' | 'validateur' | 'observateur';
 
 interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  isActive: boolean;
   assignedCenter?: string;
+  isActive: boolean;
   createdAt: string;
-  lastLogin?: string;
 }
 
-// Schéma de validation
-const userSchema = z.object({
-  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
-  email: z.string().email('Email invalide'),
-  role: z.enum(['super-admin', 'agent-saisie', 'validateur', 'observateur']),
-  assignedCenter: z.string().optional(),
-  isActive: z.boolean().default(true),
-});
-
-type UserFormData = z.infer<typeof userSchema>;
-
 const UserManagement = () => {
-  const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-
-  // Données mock des utilisateurs
   const [users, setUsers] = useState<User[]>([
     {
       id: '1',
-      name: 'Directeur de Campagne',
-      email: 'directeur@ewana.ga',
+      name: 'Jean Dupont',
+      email: 'jean.dupont@email.com',
       role: 'super-admin',
       isActive: true,
-      createdAt: '2024-01-15',
-      lastLogin: '2024-06-22'
+      createdAt: '2024-01-15'
     },
     {
       id: '2',
-      name: 'Marie Dubois',
-      email: 'marie.dubois@ewana.ga',
+      name: 'Marie Martin',
+      email: 'marie.martin@email.com',
       role: 'agent-saisie',
+      assignedCenter: 'Centre Libreville Nord',
       isActive: true,
-      assignedCenter: 'Centre Nord',
-      createdAt: '2024-02-10',
-      lastLogin: '2024-06-21'
+      createdAt: '2024-02-10'
     },
     {
       id: '3',
-      name: 'Jean Martin',
-      email: 'jean.martin@ewana.ga',
+      name: 'Paul Bernard',
+      email: 'paul.bernard@email.com',
       role: 'validateur',
-      isActive: true,
-      assignedCenter: 'Centre Sud',
-      createdAt: '2024-02-15',
-      lastLogin: '2024-06-20'
+      assignedCenter: 'Centre Owendo',
+      isActive: false,
+      createdAt: '2024-03-05'
     },
     {
       id: '4',
-      name: 'Sophie Laurent',
-      email: 'sophie.laurent@ewana.ga',
+      name: 'Sophie Moreau',
+      email: 'sophie.moreau@email.com',
       role: 'observateur',
-      isActive: false,
-      createdAt: '2024-03-01',
-      lastLogin: '2024-06-18'
+      isActive: true,
+      createdAt: '2024-03-20'
     }
   ]);
 
-  const form = useForm<UserFormData>({
-    resolver: zodResolver(userSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      role: 'observateur',
-      isActive: true,
-    },
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    role: 'agent-saisie' as UserRole,
+    assignedCenter: '',
+    isActive: true
   });
 
-  // Configuration des rôles avec permissions
-  const roleConfig = {
-    'super-admin': {
-      label: 'Super-Admin',
-      icon: Shield,
-      color: 'bg-red-500',
-      description: 'Accès total à la plateforme',
-      permissions: ['all']
-    },
-    'agent-saisie': {
-      label: 'Agent de Saisie',
-      icon: UserCheck,
-      color: 'bg-blue-500',
-      description: 'Accès au flux de saisie des PV',
-      permissions: ['pv_entry']
-    },
-    'validateur': {
-      label: 'Validateur',
-      icon: Users,
-      color: 'bg-green-500',
-      description: 'Accès à la validation des PV de son centre',
-      permissions: ['pv_validation']
-    },
-    'observateur': {
-      label: 'Observateur',
-      icon: Eye,
-      color: 'bg-gray-500',
-      description: 'Accès en lecture seule aux tableaux de bord',
-      permissions: ['read_only']
+  const roleLabels = {
+    'super-admin': 'Super-Admin',
+    'agent-saisie': 'Agent de Saisie',
+    'validateur': 'Validateur',
+    'observateur': 'Observateur'
+  };
+
+  const roleDescriptions = {
+    'super-admin': 'Accès total à la plateforme',
+    'agent-saisie': 'Saisie des PV uniquement',
+    'validateur': 'Validation des PV de son centre',
+    'observateur': 'Lecture seule des résultats'
+  };
+
+  const getRoleIcon = (role: UserRole) => {
+    switch (role) {
+      case 'super-admin':
+        return <Shield className="w-4 h-4 text-red-500" />;
+      case 'agent-saisie':
+        return <Edit className="w-4 h-4 text-blue-500" />;
+      case 'validateur':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'observateur':
+        return <Eye className="w-4 h-4 text-gray-500" />;
     }
   };
 
-  // Filtrage des utilisateurs
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -146,359 +122,395 @@ const UserManagement = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const handleSubmit = (data: UserFormData) => {
-    if (editingUser) {
-      // Modifier utilisateur existant
-      setUsers(prev => prev.map(user => 
-        user.id === editingUser.id 
-          ? { ...user, ...data }
-          : user
-      ));
-      toast({
-        title: "Utilisateur modifié",
-        description: "Les informations ont été mises à jour avec succès.",
-      });
-    } else {
-      // Créer nouvel utilisateur
-      const newUser: User = {
-        id: Date.now().toString(),
-        ...data,
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-      setUsers(prev => [...prev, newUser]);
-      toast({
-        title: "Utilisateur créé",
-        description: "Le nouvel utilisateur a été ajouté avec succès.",
-      });
-    }
+  const handleCreateUser = () => {
+    const user: User = {
+      id: Date.now().toString(),
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      assignedCenter: newUser.assignedCenter || undefined,
+      isActive: newUser.isActive,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
     
-    setIsDialogOpen(false);
-    setEditingUser(null);
-    form.reset();
-  };
-
-  const toggleUserStatus = (userId: string) => {
-    setUsers(prev => prev.map(user => 
-      user.id === userId 
-        ? { ...user, isActive: !user.isActive }
-        : user
-    ));
-    
-    const user = users.find(u => u.id === userId);
-    toast({
-      title: user?.isActive ? "Utilisateur désactivé" : "Utilisateur activé",
-      description: `Le compte de ${user?.name} a été ${user?.isActive ? 'désactivé' : 'activé'}.`,
+    setUsers([...users, user]);
+    setNewUser({
+      name: '',
+      email: '',
+      role: 'agent-saisie',
+      assignedCenter: '',
+      isActive: true
     });
+    setIsCreateModalOpen(false);
   };
 
-  const openEditDialog = (user: User) => {
+  const handleEditUser = (user: User) => {
     setEditingUser(user);
-    form.reset({
+    setNewUser({
       name: user.name,
       email: user.email,
       role: user.role,
       assignedCenter: user.assignedCenter || '',
-      isActive: user.isActive,
+      isActive: user.isActive
     });
-    setIsDialogOpen(true);
   };
 
-  const openCreateDialog = () => {
-    setEditingUser(null);
-    form.reset();
-    setIsDialogOpen(true);
+  const handleUpdateUser = () => {
+    if (editingUser) {
+      setUsers(users.map(u => 
+        u.id === editingUser.id 
+          ? {
+              ...u,
+              name: newUser.name,
+              email: newUser.email,
+              role: newUser.role,
+              assignedCenter: newUser.assignedCenter || undefined,
+              isActive: newUser.isActive
+            }
+          : u
+      ));
+      setEditingUser(null);
+      setNewUser({
+        name: '',
+        email: '',
+        role: 'agent-saisie',
+        assignedCenter: '',
+        isActive: true
+      });
+    }
   };
+
+  const toggleUserStatus = (userId: string) => {
+    setUsers(users.map(u => 
+      u.id === userId 
+        ? { ...u, isActive: !u.isActive }
+        : u
+    ));
+  };
+
+  const getRoleStats = () => {
+    const stats = {
+      'super-admin': 0,
+      'agent-saisie': 0,
+      'validateur': 0,
+      'observateur': 0,
+      active: 0,
+      inactive: 0
+    };
+
+    users.forEach(user => {
+      stats[user.role]++;
+      if (user.isActive) {
+        stats.active++;
+      } else {
+        stats.inactive++;
+      }
+    });
+
+    return stats;
+  };
+
+  const stats = getRoleStats();
 
   return (
     <Layout>
-      <div className="space-y-4 sm:space-y-6 animate-fade-in p-2 sm:p-0">
+      <div className="space-y-4 sm:space-y-6 animate-fade-in">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gov-gray">Gestion des Utilisateurs</h1>
-            <p className="text-gray-600 mt-2 text-sm sm:text-base">
-              Gérez les accès et permissions des utilisateurs de la plateforme
+            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
+              Gérez les accès et les rôles des utilisateurs de la plateforme
             </p>
           </div>
           
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
             <DialogTrigger asChild>
-              <Button onClick={openCreateDialog} className="w-full sm:w-auto">
+              <Button className="gov-bg-primary text-white mobile-button">
                 <Plus className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Nouvel Utilisateur</span>
-                <span className="sm:hidden">Nouveau</span>
+                <span className="hidden sm:inline">Ajouter un utilisateur</span>
+                <span className="sm:hidden">Ajouter</span>
               </Button>
             </DialogTrigger>
-            
-            <DialogContent className="w-[95vw] max-w-md mx-auto">
+            <DialogContent className="w-[95vw] max-w-md mx-auto mobile-modal">
               <DialogHeader>
                 <DialogTitle>
-                  {editingUser ? 'Modifier l\'utilisateur' : 'Créer un utilisateur'}
+                  {editingUser ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}
                 </DialogTitle>
               </DialogHeader>
-              
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nom complet</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Jean Dupont" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+              <div className="space-y-4 mobile-form">
+                <div>
+                  <Label htmlFor="name">Nom complet</Label>
+                  <Input
+                    id="name"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                    placeholder="Nom complet"
                   />
-                  
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="jean.dupont@ewana.ga" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                    placeholder="email@example.com"
                   />
-                  
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Rôle</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.entries(roleConfig).map(([key, config]) => (
-                              <SelectItem key={key} value={key}>
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full ${config.color}`} />
-                                  {config.label}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {(form.watch('role') === 'validateur' || form.watch('role') === 'agent-saisie') && (
-                    <FormField
-                      control={form.control}
-                      name="assignedCenter"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Centre assigné</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ex: Centre Nord" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                </div>
+                <div>
+                  <Label htmlFor="role">Rôle</Label>
+                  <Select value={newUser.role} onValueChange={(value: UserRole) => setNewUser({...newUser, role: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="super-admin">Super-Admin</SelectItem>
+                      <SelectItem value="agent-saisie">Agent de Saisie</SelectItem>
+                      <SelectItem value="validateur">Validateur</SelectItem>
+                      <SelectItem value="observateur">Observateur</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {roleDescriptions[newUser.role]}
+                  </p>
+                </div>
+                {(newUser.role === 'validateur' || newUser.role === 'agent-saisie') && (
+                  <div>
+                    <Label htmlFor="center">Centre assigné</Label>
+                    <Input
+                      id="center"
+                      value={newUser.assignedCenter}
+                      onChange={(e) => setNewUser({...newUser, assignedCenter: e.target.value})}
+                      placeholder="Centre de vote assigné"
                     />
-                  )}
-                  
-                  <FormField
-                    control={form.control}
-                    name="isActive"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                        <div className="space-y-0.5">
-                          <FormLabel>Compte actif</FormLabel>
-                          <div className="text-sm text-muted-foreground">
-                            L'utilisateur peut se connecter
-                          </div>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setIsDialogOpen(false)}
-                      className="w-full sm:w-auto"
-                    >
-                      Annuler
-                    </Button>
-                    <Button type="submit" className="w-full sm:w-auto">
-                      {editingUser ? 'Modifier' : 'Créer'}
-                    </Button>
                   </div>
-                </form>
-              </Form>
+                )}
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={newUser.isActive}
+                    onCheckedChange={(checked) => setNewUser({...newUser, isActive: checked})}
+                  />
+                  <Label>Compte actif</Label>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    setEditingUser(null);
+                    setNewUser({
+                      name: '',
+                      email: '',
+                      role: 'agent-saisie',
+                      assignedCenter: '',
+                      isActive: true
+                    });
+                  }}
+                  className="w-full sm:w-auto mobile-button"
+                >
+                  Annuler
+                </Button>
+                <Button 
+                  onClick={editingUser ? handleUpdateUser : handleCreateUser}
+                  disabled={!newUser.name || !newUser.email}
+                  className="w-full sm:w-auto mobile-button"
+                >
+                  {editingUser ? 'Modifier' : 'Créer'}
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Statistiques des rôles */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {Object.entries(roleConfig).map(([key, config]) => {
-            const count = users.filter(u => u.role === key).length;
-            const Icon = config.icon;
-            
-            return (
-              <Card key={key} className="p-3 sm:p-4">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${config.color} flex items-center justify-center`}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-lg sm:text-2xl font-bold">{count}</p>
-                    <p className="text-xs sm:text-sm text-gray-600 truncate">{config.label}</p>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <Card className="gov-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gov-gray">
+                Super-Admins
+              </CardTitle>
+              <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                {stats['super-admin']}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="gov-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gov-gray">
+                Agents Saisie
+              </CardTitle>
+              <Edit className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                {stats['agent-saisie']}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="gov-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gov-gray">
+                Validateurs
+              </CardTitle>
+              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                {stats['validateur']}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="gov-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gov-gray">
+                Observateurs
+              </CardTitle>
+              <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                {stats['observateur']}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Filtres et recherche */}
-        <Card className="p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Rechercher par nom ou email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Filtrer par rôle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les rôles</SelectItem>
-                  {Object.entries(roleConfig).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>{config.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* Filters */}
+        <Card className="gov-card">
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Rechercher un utilisateur..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
               
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-32">
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="active">Actifs</SelectItem>
-                  <SelectItem value="inactive">Inactifs</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2 sm:gap-3">
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Tous les rôles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les rôles</SelectItem>
+                    <SelectItem value="super-admin">Super-Admin</SelectItem>
+                    <SelectItem value="agent-saisie">Agent de Saisie</SelectItem>
+                    <SelectItem value="validateur">Validateur</SelectItem>
+                    <SelectItem value="observateur">Observateur</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[140px]">
+                    <SelectValue placeholder="Statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="active">Actifs</SelectItem>
+                    <SelectItem value="inactive">Inactifs</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
+          </CardContent>
         </Card>
 
-        {/* Table des utilisateurs */}
-        <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl">
-              Utilisateurs ({filteredUsers.length})
+        {/* Users List */}
+        <Card className="gov-card">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-gov-gray">
+              <Users className="w-5 h-5" />
+              <span>Utilisateurs ({filteredUsers.length})</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0 sm:p-6 sm:pt-0">
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px] sm:w-auto">Utilisateur</TableHead>
-                    <TableHead className="hidden sm:table-cell">Rôle</TableHead>
-                    <TableHead className="hidden lg:table-cell">Centre assigné</TableHead>
-                    <TableHead className="hidden md:table-cell">Dernière connexion</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => {
-                    const roleInfo = roleConfig[user.role];
-                    const RoleIcon = roleInfo.icon;
-                    
-                    return (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm sm:text-base truncate">{user.name}</div>
-                            <div className="text-xs sm:text-sm text-gray-500 truncate">{user.email}</div>
-                            <div className="sm:hidden flex items-center gap-1 mt-1">
-                              <div className={`w-2 h-2 rounded-full ${roleInfo.color}`} />
-                              <span className="text-xs text-gray-600">{roleInfo.label}</span>
-                            </div>
+              <table className="w-full mobile-table">
+                <thead className="border-b bg-gray-50">
+                  <tr>
+                    <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Utilisateur</th>
+                    <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell">Rôle</th>
+                    <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm hidden lg:table-cell">Centre</th>
+                    <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Statut</th>
+                    <th className="text-left p-3 sm:p-4 font-medium text-gray-700 text-xs sm:text-sm">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="border-b hover:bg-gray-50">
+                      <td className="p-3 sm:p-4">
+                        <div>
+                          <div className="font-medium text-gray-900 text-xs sm:text-sm truncate">
+                            {user.name}
                           </div>
-                        </TableCell>
-                        
-                        <TableCell className="hidden sm:table-cell">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-lg ${roleInfo.color} flex items-center justify-center`}>
-                              <RoleIcon className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-sm">{roleInfo.label}</div>
-                              <div className="text-xs text-gray-500">{roleInfo.description}</div>
-                            </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {user.email}
                           </div>
-                        </TableCell>
-                        
-                        <TableCell className="hidden lg:table-cell">
-                          {user.assignedCenter || '-'}
-                        </TableCell>
-                        
-                        <TableCell className="hidden md:table-cell">
-                          {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('fr-FR') : 'Jamais'}
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={user.isActive ? 'default' : 'secondary'}>
-                              {user.isActive ? 'Actif' : 'Inactif'}
+                          <div className="sm:hidden mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              {getRoleIcon(user.role)}
+                              <span className="ml-1">{roleLabels[user.role]}</span>
                             </Badge>
-                            <Switch
-                              checked={user.isActive}
-                              onCheckedChange={() => toggleUserStatus(user.id)}
-                              size="sm"
-                            />
                           </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditDialog(user)}
-                            className="w-8 h-8 p-0"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        </div>
+                      </td>
+                      <td className="p-3 sm:p-4 hidden sm:table-cell">
+                        <Badge variant="outline" className="text-xs">
+                          {getRoleIcon(user.role)}
+                          <span className="ml-1">{roleLabels[user.role]}</span>
+                        </Badge>
+                      </td>
+                      <td className="p-3 sm:p-4 hidden lg:table-cell">
+                        <span className="text-xs sm:text-sm text-gray-600">
+                          {user.assignedCenter || '-'}
+                        </span>
+                      </td>
+                      <td className="p-3 sm:p-4">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={user.isActive}
+                            onCheckedChange={() => toggleUserStatus(user.id)}
+                          />
+                          <span className="text-xs sm:text-sm">
+                            {user.isActive ? 'Actif' : 'Inactif'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3 sm:p-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                          className="text-xs"
+                        >
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="ml-1 hidden sm:inline">Modifier</span>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">Aucun utilisateur trouvé</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
