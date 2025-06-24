@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,8 @@ import {
   MessageSquare, 
   Calendar,
   LogOut,
-  Menu
+  Menu,
+  Megaphone
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -33,6 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { icon: MapPin, label: 'Centres & Bureaux', path: '/centers' },
     { icon: Users, label: 'Gestion Utilisateurs', path: '/users' },
     { icon: BarChart3, label: 'Centralisation Résultats', path: '/results' },
+    { icon: Megaphone, label: 'Gestion Campagne', path: '/campaign' },
     { icon: MessageSquare, label: 'Conversations', path: '/conversations' },
   ];
 
@@ -61,11 +62,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="p-3 sm:p-4 border-b border-gov-blue-light">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-gov-blue font-bold text-sm">eW</span>
+              <span className="text-gov-blue font-bold text-sm">iK</span>
             </div>
             {(sidebarOpen || isMobile) && (
               <div className="min-w-0">
-                <h1 className="font-bold text-lg truncate">eWana</h1>
+                <h1 className="font-bold text-lg truncate">iKadi</h1>
                 <p className="text-xs text-blue-200 truncate">Gestion Électorale</p>
               </div>
             )}

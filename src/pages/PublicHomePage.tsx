@@ -27,10 +27,10 @@ const PublicHomePage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <span className="text-gov-blue font-bold text-lg">eW</span>
+                <span className="text-gov-blue font-bold text-lg">iK</span>
               </div>
               <div>
-                <h1 className="text-white font-bold text-2xl">eWana</h1>
+                <h1 className="text-white font-bold text-2xl">iKadi</h1>
                 <p className="text-blue-100 text-sm">République Gabonaise - Élections Transparentes</p>
               </div>
             </div>
@@ -152,7 +152,7 @@ const PublicHomePage = () => {
       <footer className="bg-white/10 backdrop-blur-sm border-t border-white/20 mt-12">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-blue-100">
-            <p className="mb-2">© 2024 eWana - République Gabonaise</p>
+            <p className="mb-2">© 2024 iKadi - République Gabonaise</p>
             <p className="text-sm">Système de Gestion Électorale Sécurisé et Transparent</p>
           </div>
         </div>
