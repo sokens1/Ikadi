@@ -1,20 +1,22 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, List, Plus, Filter, Search } from 'lucide-react';
+import { Calendar, List, Plus, Filter, Search, Bell, Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import CreateOperationWizard from '@/components/campaign/CreateOperationWizard';
 import { useNavigate } from 'react-router-dom';
 
 const CampaignManagement = () => {
-  const [activeView, setActiveView] = useState<'calendar' | 'map' | 'list'>('calendar');
+  const [activeView, setActiveView] = useState<'calendar' | 'list' | 'settings'>('calendar');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('tous');
   const [typeFilter, setTypeFilter] = useState('tous');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [notifications, setNotifications] = useState(3); // Mock notification count
   const navigate = useNavigate();
 
   // Mock data pour les opérations de campagne
@@ -152,13 +154,81 @@ const CampaignManagement = () => {
     </div>
   );
 
-  const MapView = () => (
-    <div className="bg-gray-100 rounded-lg h-96 flex items-center justify-center">
-      <div className="text-center text-gray-600">
-        <MapPin size={48} className="mx-auto mb-4" />
-        <p className="text-lg font-medium">Vue Carte Interactive</p>
-        <p className="text-sm mt-2">Carte des opérations de campagne avec pins géolocalisés</p>
-      </div>
+  const SettingsView = () => (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium">Notifications d'opérations</h4>
+              <p className="text-sm text-gray-600">Recevoir des alertes pour les nouvelles opérations</p>
+            </div>
+            <Button variant="outline" size="sm">Activé</Button>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium">Rappels automatiques</h4>
+              <p className="text-sm text-gray-600">Rappels 24h avant chaque opération</p>
+            </div>
+            <Button variant="outline" size="sm">Activé</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Préférences d'affichage</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Vue par défaut</label>
+            <Select defaultValue="calendar">
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="calendar">Calendrier</SelectItem>
+                <SelectItem value="list">Liste</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Nombre d'opérations par page</label>
+            <Select defaultValue="10">
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Gestion des équipes</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium">Auto-assignation</h4>
+              <p className="text-sm text-gray-600">Assigner automatiquement les volontaires disponibles</p>
+            </div>
+            <Button variant="outline" size="sm">Désactivé</Button>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Limite de participants par opération</label>
+            <Input type="number" defaultValue="30" className="mt-1" />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 
@@ -174,15 +244,6 @@ const CampaignManagement = () => {
         <span>Calendrier</span>
       </Button>
       <Button
-        variant={activeView === 'map' ? 'default' : 'ghost'}
-        size="sm"
-        onClick={() => setActiveView('map')}
-        className="flex items-center space-x-2"
-      >
-        <MapPin size={16} />
-        <span>Carte</span>
-      </Button>
-      <Button
         variant={activeView === 'list' ? 'default' : 'ghost'}
         size="sm"
         onClick={() => setActiveView('list')}
@@ -190,6 +251,15 @@ const CampaignManagement = () => {
       >
         <List size={16} />
         <span>Liste</span>
+      </Button>
+      <Button
+        variant={activeView === 'settings' ? 'default' : 'ghost'}
+        size="sm"
+        onClick={() => setActiveView('settings')}
+        className="flex items-center space-x-2"
+      >
+        <Settings size={16} />
+        <span>Paramètres</span>
       </Button>
     </div>
   );
@@ -237,10 +307,10 @@ const CampaignManagement = () => {
     switch (activeView) {
       case 'calendar':
         return <CalendarView />;
-      case 'map':
-        return <MapView />;
       case 'list':
         return <ListView />;
+      case 'settings':
+        return <SettingsView />;
       default:
         return <CalendarView />;
     }
@@ -255,13 +325,26 @@ const CampaignManagement = () => {
             <h1 className="text-3xl font-bold text-gray-900">Gestion des Opérations de Campagne</h1>
             <p className="text-gray-600 mt-2">Planifiez, suivez et analysez vos actions de terrain</p>
           </div>
-          <Button 
-            onClick={() => setIsWizardOpen(true)}
-            className="bg-gov-blue hover:bg-gov-blue-dark text-white flex items-center space-x-2"
-          >
-            <Plus size={20} />
-            <span>Planifier une Opération</span>
-          </Button>
+          <div className="flex items-center space-x-3">
+            {/* Icône de notifications */}
+            <div className="relative">
+              <Button variant="outline" size="icon" className="relative">
+                <Bell size={20} />
+                {notifications > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {notifications}
+                  </span>
+                )}
+              </Button>
+            </div>
+            <Button 
+              onClick={() => setIsWizardOpen(true)}
+              className="bg-gov-blue hover:bg-gov-blue-dark text-white flex items-center space-x-2"
+            >
+              <Plus size={20} />
+              <span>Planifier une Opération</span>
+            </Button>
+          </div>
         </div>
 
         {/* Statistiques rapides */}
@@ -295,14 +378,16 @@ const CampaignManagement = () => {
         {/* Barre de contrôles */}
         <div className="flex justify-between items-center">
           <ViewToggle />
-          <div className="flex items-center space-x-2">
-            <Filter size={16} className="text-gray-500" />
-            <span className="text-sm text-gray-600">Filtres</span>
-          </div>
+          {activeView !== 'settings' && (
+            <div className="flex items-center space-x-2">
+              <Filter size={16} className="text-gray-500" />
+              <span className="text-sm text-gray-600">Filtres</span>
+            </div>
+          )}
         </div>
 
-        {/* Barre de filtres */}
-        <FilterBar />
+        {/* Barre de filtres - seulement pour les vues calendrier et liste */}
+        {activeView !== 'settings' && <FilterBar />}
 
         {/* Vue active */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
