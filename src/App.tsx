@@ -12,6 +12,7 @@ import VotingCenters from "./pages/VotingCenters";
 import UserManagement from "./pages/UserManagement";
 import ResultsCentralization from "./pages/ResultsCentralization";
 import CampaignManagement from "./pages/CampaignManagement";
+import OperationDetail from "./pages/OperationDetail";
 import Conversations from "./pages/Conversations";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
