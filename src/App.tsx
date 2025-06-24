@@ -11,6 +11,7 @@ import ElectionManagement from "./pages/ElectionManagement";
 import VotingCenters from "./pages/VotingCenters";
 import UserManagement from "./pages/UserManagement";
 import ResultsCentralization from "./pages/ResultsCentralization";
+import CampaignManagement from "./pages/CampaignManagement";
 import Conversations from "./pages/Conversations";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/centers" element={<VotingCenters />} />
             <Route path="/users" element={<UserManagement />} />
             <Route path="/results" element={<ResultsCentralization />} />
+            <Route path="/campaign" element={<CampaignManagement />} />
             <Route path="/conversations" element={<Conversations />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
