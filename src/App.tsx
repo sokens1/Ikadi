@@ -41,6 +41,7 @@ const App = () => {
               <Route path="/users" element={<UserManagement />} />
               <Route path="/results" element={<ResultsCentralization />} />
               <Route path="/campaign" element={<CampaignManagement />} />
+              <Route path="/campaign/operation/:id" element={<OperationDetail />} />
               <Route path="/conversations" element={<Conversations />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

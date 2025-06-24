@@ -7,6 +7,7 @@ import { Calendar, MapPin, List, Plus, Filter, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import CreateOperationWizard from '@/components/campaign/CreateOperationWizard';
+import { useNavigate } from 'react-router-dom';
 
 const CampaignManagement = () => {
   const [activeView, setActiveView] = useState<'calendar' | 'map' | 'list'>('calendar');
@@ -14,6 +15,7 @@ const CampaignManagement = () => {
   const [statusFilter, setStatusFilter] = useState('tous');
   const [typeFilter, setTypeFilter] = useState('tous');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Mock data pour les opérations de campagne
   const operations = [
@@ -73,6 +75,92 @@ const CampaignManagement = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const ListView = () => (
+    <div className="space-y-4">
+      {operations.map(operation => (
+        <Card 
+          key={operation.id} 
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => navigate(`/campaign/operation/${operation.id}`)}
+        >
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-semibold text-lg text-gray-900">{operation.title}</h3>
+              <div className="flex space-x-2">
+                <Badge className={getTypeColor(operation.type)}>{operation.type}</Badge>
+                <Badge className={getStatusColor(operation.status)}>{operation.status}</Badge>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+              <div>
+                <span className="font-medium">Date:</span> {operation.date}
+              </div>
+              <div>
+                <span className="font-medium">Heure:</span> {operation.time}
+              </div>
+              <div>
+                <span className="font-medium">Lieu:</span> {operation.location}
+              </div>
+              <div>
+                <span className="font-medium">Responsable:</span> {operation.responsible}
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mt-3">{operation.description}</p>
+            <div className="mt-3 text-sm text-gray-500">
+              {operation.participants} participants assignés
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const CalendarView = () => (
+    <div className="grid grid-cols-7 gap-4">
+      <div className="text-center font-medium text-gray-600 py-2">Lun</div>
+      <div className="text-center font-medium text-gray-600 py-2">Mar</div>
+      <div className="text-center font-medium text-gray-600 py-2">Mer</div>
+      <div className="text-center font-medium text-gray-600 py-2">Jeu</div>
+      <div className="text-center font-medium text-gray-600 py-2">Ven</div>
+      <div className="text-center font-medium text-gray-600 py-2">Sam</div>
+      <div className="text-center font-medium text-gray-600 py-2">Dim</div>
+      
+      {Array.from({ length: 35 }, (_, i) => {
+        const day = i - 2;
+        const hasOperation = operations.some(op => new Date(op.date).getDate() === day);
+        const operation = operations.find(op => new Date(op.date).getDate() === day);
+        
+        return (
+          <div key={i} className="min-h-[100px] border border-gray-200 rounded-lg p-2">
+            {day > 0 && day <= 31 && (
+              <>
+                <div className="text-sm font-medium text-gray-700 mb-1">{day}</div>
+                {hasOperation && operation && (
+                  <div 
+                    className="bg-blue-100 text-blue-800 text-xs p-1 rounded cursor-pointer hover:bg-blue-200"
+                    onClick={() => navigate(`/campaign/operation/${operation.id}`)}
+                  >
+                    {operation.title.substring(0, 20)}...
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const MapView = () => (
+    <div className="bg-gray-100 rounded-lg h-96 flex items-center justify-center">
+      <div className="text-center text-gray-600">
+        <MapPin size={48} className="mx-auto mb-4" />
+        <p className="text-lg font-medium">Vue Carte Interactive</p>
+        <p className="text-sm mt-2">Carte des opérations de campagne avec pins géolocalisés</p>
+      </div>
+    </div>
+  );
 
   const ViewToggle = () => (
     <div className="flex bg-gray-100 rounded-lg p-1">
@@ -142,86 +230,6 @@ const CampaignManagement = () => {
           <SelectItem value="distribution">Distribution</SelectItem>
         </SelectContent>
       </Select>
-    </div>
-  );
-
-  const CalendarView = () => (
-    <div className="grid grid-cols-7 gap-4">
-      <div className="text-center font-medium text-gray-600 py-2">Lun</div>
-      <div className="text-center font-medium text-gray-600 py-2">Mar</div>
-      <div className="text-center font-medium text-gray-600 py-2">Mer</div>
-      <div className="text-center font-medium text-gray-600 py-2">Jeu</div>
-      <div className="text-center font-medium text-gray-600 py-2">Ven</div>
-      <div className="text-center font-medium text-gray-600 py-2">Sam</div>
-      <div className="text-center font-medium text-gray-600 py-2">Dim</div>
-      
-      {/* Exemple de quelques jours du mois */}
-      {Array.from({ length: 35 }, (_, i) => {
-        const day = i - 2; // Commence à partir du 3ème jour pour simulation
-        const hasOperation = operations.some(op => new Date(op.date).getDate() === day);
-        const operation = operations.find(op => new Date(op.date).getDate() === day);
-        
-        return (
-          <div key={i} className="min-h-[100px] border border-gray-200 rounded-lg p-2">
-            {day > 0 && day <= 31 && (
-              <>
-                <div className="text-sm font-medium text-gray-700 mb-1">{day}</div>
-                {hasOperation && operation && (
-                  <div className="bg-blue-100 text-blue-800 text-xs p-1 rounded cursor-pointer hover:bg-blue-200">
-                    {operation.title.substring(0, 20)}...
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-
-  const MapView = () => (
-    <div className="bg-gray-100 rounded-lg h-96 flex items-center justify-center">
-      <div className="text-center text-gray-600">
-        <MapPin size={48} className="mx-auto mb-4" />
-        <p className="text-lg font-medium">Vue Carte Interactive</p>
-        <p className="text-sm mt-2">Carte des opérations de campagne avec pins géolocalisés</p>
-      </div>
-    </div>
-  );
-
-  const ListView = () => (
-    <div className="space-y-4">
-      {operations.map(operation => (
-        <Card key={operation.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start mb-3">
-              <h3 className="font-semibold text-lg text-gray-900">{operation.title}</h3>
-              <div className="flex space-x-2">
-                <Badge className={getTypeColor(operation.type)}>{operation.type}</Badge>
-                <Badge className={getStatusColor(operation.status)}>{operation.status}</Badge>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-              <div>
-                <span className="font-medium">Date:</span> {operation.date}
-              </div>
-              <div>
-                <span className="font-medium">Heure:</span> {operation.time}
-              </div>
-              <div>
-                <span className="font-medium">Lieu:</span> {operation.location}
-              </div>
-              <div>
-                <span className="font-medium">Responsable:</span> {operation.responsible}
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 mt-3">{operation.description}</p>
-            <div className="mt-3 text-sm text-gray-500">
-              {operation.participants} participants assignés
-            </div>
-          </CardContent>
-        </Card>
-      ))}
     </div>
   );
 
