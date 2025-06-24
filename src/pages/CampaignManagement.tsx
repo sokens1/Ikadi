@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, List, Plus, Filter, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import CreateOperationWizard from '@/components/campaign/CreateOperationWizard';
 
 const CampaignManagement = () => {
   const [activeView, setActiveView] = useState<'calendar' | 'map' | 'list'>('calendar');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('tous');
   const [typeFilter, setTypeFilter] = useState('tous');
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   // Mock data pour les opérations de campagne
   const operations = [
@@ -246,7 +247,10 @@ const CampaignManagement = () => {
             <h1 className="text-3xl font-bold text-gray-900">Gestion des Opérations de Campagne</h1>
             <p className="text-gray-600 mt-2">Planifiez, suivez et analysez vos actions de terrain</p>
           </div>
-          <Button className="bg-gov-blue hover:bg-gov-blue-dark text-white flex items-center space-x-2">
+          <Button 
+            onClick={() => setIsWizardOpen(true)}
+            className="bg-gov-blue hover:bg-gov-blue-dark text-white flex items-center space-x-2"
+          >
             <Plus size={20} />
             <span>Planifier une Opération</span>
           </Button>
@@ -296,6 +300,12 @@ const CampaignManagement = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           {renderActiveView()}
         </div>
+
+        {/* Wizard Modal */}
+        <CreateOperationWizard 
+          open={isWizardOpen} 
+          onOpenChange={setIsWizardOpen} 
+        />
       </div>
     </Layout>
   );
