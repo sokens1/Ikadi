@@ -10,15 +10,40 @@ import {
   Calendar,
   LogOut,
   Menu,
-  Megaphone
+  Megaphone,
+  Bell,
+  AlertCircle,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  Check,
+  Trash2
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
 
 interface LayoutProps {
   children: React.ReactNode;
 }
+
+const getNotificationIcon = (type: 'info' | 'success' | 'warning' | 'error') => {
+  switch (type) {
+    case 'error':
+      return <AlertCircle className="h-4 w-4 text-red-500" />;
+    case 'success':
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    case 'warning':
+      return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+    default:
+      return <Info className="h-4 w-4 text-blue-500" />;
+  }
+};
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
@@ -26,6 +51,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+  } = useNotifications();
 
   const menuItems = [
     { icon: Home, label: 'Tableau de Bord', path: '/dashboard' },
@@ -140,6 +172,84 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Button>
             
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+              {/* Icône de notifications */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative text-gov-gray hover:bg-gray-100 rounded-full">
+                    <Bell size={20} />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-80 max-h-[500px] overflow-y-auto" align="end">
+                  <DropdownMenuLabel className="flex items-center justify-between">
+                    <span>Notifications ({unreadCount} non lues)</span>
+                    {unreadCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs text-blue-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAllAsRead();
+                        }}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Tout marquer comme lu
+                      </Button>
+                    )}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {notifications.length === 0 ? (
+                    <div className="text-sm text-gray-500 p-2 text-center">
+                      Aucune notification
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <DropdownMenuItem
+                        key={notification.id}
+                        className={`flex items-start gap-3 p-3 ${!notification.read ? 'bg-blue-50' : ''}`}
+                        onClick={() => markAsRead(notification.id)}
+                      >
+                        <div className="mt-0.5">
+                          {getNotificationIcon(notification.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <p className="font-medium text-sm text-gray-900">
+                              {notification.title}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 ml-2 text-gray-400 hover:text-red-500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeNotification(notification.id);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {formatDistanceToNow(new Date(notification.date), {
+                              addSuffix: true,
+                              locale: fr,
+                            })}
+                          </p>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <div className="text-right min-w-0 hidden sm:block">
                 <p className="font-medium text-gov-gray text-sm truncate">{user?.name}</p>
                 <p className="text-xs text-gray-500 capitalize truncate">

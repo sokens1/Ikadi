@@ -326,17 +326,6 @@ const CampaignManagement = () => {
             <p className="text-gray-600 mt-2">Planifiez, suivez et analysez vos actions de terrain</p>
           </div>
           <div className="flex items-center space-x-3">
-            {/* Icône de notifications */}
-            <div className="relative">
-              <Button variant="outline" size="icon" className="relative">
-                <Bell size={20} />
-                {notifications > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {notifications}
-                  </span>
-                )}
-              </Button>
-            </div>
             <Button 
               onClick={() => setIsWizardOpen(true)}
               className="bg-gov-blue hover:bg-gov-blue-dark text-white flex items-center space-x-2"
