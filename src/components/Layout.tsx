@@ -1,10 +1,10 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
   Home, 
   Users, 
-  MapPin, 
   BarChart3, 
   MessageSquare, 
   Calendar,
@@ -29,8 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const menuItems = [
     { icon: Home, label: 'Tableau de Bord', path: '/dashboard' },
-    { icon: Calendar, label: 'Gestion des Élections', path: '/elections' },
-    { icon: MapPin, label: 'Centres & Bureaux', path: '/centers' },
+    { icon: Calendar, label: 'Élections', path: '/elections' },
     { icon: Users, label: 'Gestion Utilisateurs', path: '/users' },
     { icon: BarChart3, label: 'Centralisation Résultats', path: '/results' },
     { icon: Megaphone, label: 'Gestion Campagne', path: '/campaign' },
@@ -52,14 +51,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [isMobile]);
 
   return (
-    <div className="min-h-screen bg-gov-gray-light flex w-full overflow-hidden">
+    <div className="min-h-screen bg-gov-gray-light flex w-full">
       {/* Sidebar */}
       <div className={`${
         isMobile 
           ? sidebarOpen ? 'fixed inset-y-0 left-0 z-50 w-64' : 'hidden'
-          : sidebarOpen ? 'w-64' : 'w-16'
-      } transition-all duration-300 gov-bg-primary text-white flex flex-col`}>
-        <div className="p-3 sm:p-4 border-b border-gov-blue-light">
+          : sidebarOpen ? 'w-64 flex-shrink-0' : 'w-16 flex-shrink-0'
+      } transition-all duration-300 gov-bg-primary text-white flex flex-col h-screen sticky top-0`}>
+        <div className="flex-shrink-0 p-3 sm:p-4 border-b border-gov-blue-light">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-gov-blue font-bold text-sm">iK</span>
@@ -73,7 +72,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </div>
 
-        <nav className="flex-1 p-2 sm:p-4 min-h-0 overflow-y-auto">
+        <nav className="flex-1 p-2 sm:p-4 overflow-y-auto">
           <ul className="space-y-1 sm:space-y-2">
             {menuItems.map((item) => (
               <li key={item.path}>
@@ -96,7 +95,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </ul>
         </nav>
 
-        <div className="p-2 sm:p-4 border-t border-gov-blue-light">
+        <div className="flex-shrink-0 p-2 sm:p-4 border-t border-gov-blue-light">
           {(sidebarOpen || isMobile) && (
             <div className="mb-3">
               <p className="text-blue-100 text-sm font-medium truncate">{user?.name}</p>
@@ -126,9 +125,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 p-3 sm:p-4">
+        <header className="flex-shrink-0 bg-white border-b border-gray-200 p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <Button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -156,8 +155,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-3 sm:p-6 overflow-auto min-h-0">
-          {children}
+        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
+          <div className="max-w-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>

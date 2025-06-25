@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -124,6 +123,23 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit }) =>
     };
     
     onSubmit(election);
+  };
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.name && formData.type && formData.date;
+      case 2:
+        return formData.province && formData.commune;
+      case 3:
+        return true; // Les candidats sont optionnels
+      case 4:
+        return formData.totalCenters > 0 && formData.averageBureaux > 0 && formData.totalVoters > 0;
+      case 5:
+        return true;
+      default:
+        return false;
+    }
   };
 
   const renderStep = () => {
@@ -466,36 +482,36 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit }) =>
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
           <div>
-            <h2 className="text-2xl font-bold text-gov-gray">Configurer une nouvelle élection</h2>
-            <p className="text-gray-600">Étape {currentStep} sur 5 : {steps[currentStep - 1]}</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gov-gray">Configurer une nouvelle élection</h2>
+            <p className="text-sm sm:text-base text-gray-600">Étape {currentStep} sur 5 : {steps[currentStep - 1]}</p>
           </div>
-          <Button variant="ghost" onClick={onClose}>
-            <X className="w-6 h-6" />
+          <Button variant="ghost" onClick={onClose} className="flex-shrink-0">
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </Button>
         </div>
 
         {/* Progress */}
-        <div className="px-6 py-4 bg-gray-50">
-          <div className="flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50">
+          <div className="flex items-center justify-between overflow-x-auto">
             {steps.map((step, index) => (
-              <div key={index} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              <div key={index} className="flex items-center flex-shrink-0">
+                <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
                   index + 1 <= currentStep ? 'bg-gov-blue text-white' : 'bg-gray-200 text-gray-600'
                 }`}>
                   {index + 1}
                 </div>
-                <span className={`ml-2 text-sm ${
+                <span className={`ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:inline ${
                   index + 1 <= currentStep ? 'text-gov-blue font-medium' : 'text-gray-500'
                 }`}>
                   {step}
                 </span>
                 {index < steps.length - 1 && (
-                  <div className={`w-8 h-0.5 mx-4 ${
+                  <div className={`w-4 sm:w-8 h-0.5 mx-2 sm:mx-4 ${
                     index + 1 < currentStep ? 'bg-gov-blue' : 'bg-gray-200'
                   }`} />
                 )}
@@ -505,40 +521,41 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit }) =>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-auto max-h-[calc(90vh-200px)]">
+        <div className="p-4 sm:p-6 overflow-auto max-h-[calc(95vh-200px)] sm:max-h-[calc(90vh-200px)]">
           {renderStep()}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
           <Button
             variant="outline"
             onClick={handlePrevious}
             disabled={currentStep === 1}
+            className="flex items-center"
           >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            Précédent
+            <ChevronLeft className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Précédent</span>
+            <span className="sm:hidden">Préc.</span>
           </Button>
           
           <div className="flex space-x-2">
             {currentStep < 5 ? (
               <Button
                 onClick={handleNext}
-                disabled={
-                  (currentStep === 1 && (!formData.name || !formData.type || !formData.date)) ||
-                  (currentStep === 2 && (!formData.province || !formData.commune)) ||
-                  (currentStep === 4 && (!formData.totalCenters || !formData.averageBureaux || !formData.totalVoters))
-                }
+                disabled={!canProceed()}
+                className="flex items-center gov-bg-primary hover:bg-gov-blue-dark"
               >
-                Suivant
-                <ChevronRight className="w-4 h-4 ml-2" />
+                <span className="hidden sm:inline">Suivant</span>
+                <span className="sm:hidden">Suiv.</span>
+                <ChevronRight className="w-4 h-4 ml-1 sm:ml-2" />
               </Button>
             ) : (
               <Button
                 onClick={handleSubmit}
                 className="gov-bg-primary hover:bg-gov-blue-dark"
               >
-                Créer l'élection
+                <span className="hidden sm:inline">Créer l'élection</span>
+                <span className="sm:hidden">Créer</span>
               </Button>
             )}
           </div>
