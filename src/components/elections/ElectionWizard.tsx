@@ -423,7 +423,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit }) =>
                   <div>
                     <span className="font-medium">Circonscription :</span>
                     <p className="text-gray-700">
-                      {formData.province} > {formData.department} > {formData.commune} > {formData.arrondissement}
+                      {formData.province} {formData.department ? `→ ${formData.department}` : ''} {formData.commune ? `→ ${formData.commune}` : ''} {formData.arrondissement ? `→ ${formData.arrondissement}` : ''}
                     </p>
                   </div>
                 </div>
