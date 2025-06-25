@@ -539,7 +539,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit }) =>
           </Button>
           
           <div className="flex space-x-2">
-            {currentStep < 5 ? (
+            {currentStep < 5 && (
               <Button
                 onClick={handleNext}
                 disabled={!canProceed()}
@@ -549,7 +549,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit }) =>
                 <span className="sm:hidden">Suiv.</span>
                 <ChevronRight className="w-4 h-4 ml-1 sm:ml-2" />
               </Button>
-            ) : (
+            )}
+            
+            {currentStep === 5 && (
               <Button
                 onClick={handleSubmit}
                 className="gov-bg-primary hover:bg-gov-blue-dark"
