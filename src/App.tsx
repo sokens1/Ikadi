@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +7,6 @@ import { AuthProvider } from "./contexts/AuthContext";
 import PublicHomePage from "./pages/PublicHomePage";
 import Dashboard from "./pages/Dashboard";
 import ElectionManagement from "./pages/ElectionManagement";
-import VotingCenters from "./pages/VotingCenters";
 import UserManagement from "./pages/UserManagement";
 import ResultsCentralization from "./pages/ResultsCentralization";
 import CampaignManagement from "./pages/CampaignManagement";
@@ -38,7 +36,6 @@ const App = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/elections" element={<ElectionManagement />} />
-              <Route path="/centers" element={<VotingCenters />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/results" element={<ResultsCentralization />} />
               <Route path="/campaign" element={<CampaignManagement />} />
