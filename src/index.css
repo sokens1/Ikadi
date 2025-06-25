@@ -101,7 +101,29 @@
     background-color: hsl(var(--gov-gray-light));
   }
 
-  /* Améliorations de responsivité */
+  /* Amélioration de la troncature de texte */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Amélioration du responsive pour les petits écrans */
   .responsive-text {
     @apply text-sm sm:text-base;
   }
@@ -114,13 +136,16 @@
     @apply m-2 sm:m-4 lg:m-6;
   }
 
-  /* Prévention du débordement */
+  /* Prévention du débordement et amélioration de la sidebar */
   .prevent-overflow {
     @apply overflow-hidden;
   }
 
-  .text-truncate {
-    @apply truncate;
+  .sidebar-fixed {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
   }
 
   /* Amélioration des tables sur mobile */
@@ -140,11 +165,11 @@
     @apply rounded-lg overflow-hidden;
   }
 
-  /* Gestion des modales sur mobile */
+  /* Gestion des modales sur mobile - amélioration */
   @media (max-width: 640px) {
     .mobile-modal {
-      margin: 1rem;
-      max-height: calc(100vh - 2rem);
+      margin: 0.5rem;
+      max-height: calc(100vh - 1rem);
       overflow-y: auto;
     }
   }
@@ -190,7 +215,7 @@
     background: hsl(var(--muted-foreground));
   }
 
-  /* Fix pour les hauteurs sur mobile */
+  /* Fix pour les hauteurs sur mobile et stabilité de layout */
   .mobile-full-height {
     min-height: calc(100vh - 120px);
   }
@@ -199,5 +224,44 @@
     .mobile-full-height {
       min-height: calc(100vh - 100px);
     }
+  }
+
+  /* Stabilisation de la sidebar */
+  .sidebar-container {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .main-content-area {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Amélioration des grilles responsive */
+  .responsive-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  @media (max-width: 640px) {
+    .responsive-grid {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+  }
+
+  /* Amélioration des flexbox pour éviter les débordements */
+  .flex-safe {
+    display: flex;
+    min-width: 0;
+  }
+
+  .flex-safe > * {
+    min-width: 0;
   }
 }
