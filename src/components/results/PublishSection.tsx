@@ -26,40 +26,11 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface Candidate {
-  id: string;
-  name: string;
-  party: string;
-  photo?: string;
-}
-
-interface Election {
-  id: string;
-  name: string;
-  date: string;
-  status: string;
-  candidates: Candidate[];
-  totalCenters: number;
-  totalBureaux: number;
-}
-
-interface CandidateResult {
-  candidateId: string;
-  candidateName: string;
-  candidateParty: string;
-  votes: number;
-}
-
-interface PublishSectionProps {
-  election: Election;
-  results: CandidateResult[];
-}
-
-const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) => {
+const PublishSection: React.FC = () => {
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showDetailedView, setShowDetailedView] = useState(false);
 
-  // Calculate final results based on passed results
+  // Mock data pour les résultats finaux
   const finalResults = {
     participation: {
       totalInscrits: 12450,
@@ -68,43 +39,58 @@ const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) =>
       bulletinsNuls: 156,
       suffragesExprimes: 8280
     },
-    candidates: results.map((result, index) => ({
-      id: result.candidateId,
-      name: result.candidateName,
-      party: result.candidateParty,
-      votes: result.votes,
-      percentage: parseFloat(((result.votes / 8280) * 100).toFixed(1)),
-      color: ['#22c55e', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6'][index] || '#6b7280'
-    })),
+    candidates: [
+      { 
+        id: 'C001', 
+        name: 'Notre Candidat', 
+        party: 'Parti Démocratique Gabonais',
+        votes: 3850, 
+        percentage: 46.5,
+        color: '#22c55e'
+      },
+      { 
+        id: 'C002', 
+        name: 'Adversaire Principal', 
+        party: 'Union Nationale',
+        votes: 2700, 
+        percentage: 32.6,
+        color: '#ef4444'
+      },
+      { 
+        id: 'C003', 
+        name: 'Autre Candidat', 
+        party: 'Rassemblement pour la Patrie',
+        votes: 1730, 
+        percentage: 20.9,
+        color: '#3b82f6'
+      }
+    ],
     validatedBureaux: 44,
-    totalBureaux: election.totalBureaux,
+    totalBureaux: 48,
     lastUpdate: '19h45'
   };
 
-  // Mock data détaillé par bureau - using real election data
+  // Mock data détaillé par bureau
   const detailedResults = [
     {
       center: 'EPP de l\'Alliance',
       bureau: 'Bureau 01',
       inscrits: 350,
       votants: 290,
-      ...election.candidates.reduce((acc, candidate, index) => {
-        const baseVotes = [135, 95, 60];
-        acc[candidate.name] = baseVotes[index] || 0;
-        return acc;
-      }, {} as Record<string, number>)
+      notreCandidat: 135,
+      adversaire1: 95,
+      adversaire2: 60
     },
     {
       center: 'EPP de l\'Alliance',
       bureau: 'Bureau 02',
       inscrits: 320,
       votants: 275,
-      ...election.candidates.reduce((acc, candidate, index) => {
-        const baseVotes = [128, 87, 60];
-        acc[candidate.name] = baseVotes[index] || 0;
-        return acc;
-      }, {} as Record<string, number>)
-    }
+      notreCandidat: 128,
+      adversaire1: 87,
+      adversaire2: 60
+    },
+    // ... autres bureaux
   ];
 
   const pieChartData = finalResults.candidates.map(candidate => ({
@@ -115,7 +101,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) =>
   }));
 
   const barChartData = finalResults.candidates.map(candidate => ({
-    name: candidate.name.split(' ').slice(0, 2).join(' '),
+    name: candidate.name.split(' ')[0] + ' ' + candidate.name.split(' ')[1],
     votes: candidate.votes
   }));
 
@@ -163,6 +149,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) =>
 
       {/* Résultats globaux */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* KPIs de participation */}
         <Card className="gov-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-gov-gray">
@@ -209,6 +196,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) =>
           </CardContent>
         </Card>
 
+        {/* Graphique camembert */}
         <Card className="gov-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-gov-gray">
@@ -293,6 +281,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) =>
 
       {/* Actions principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Publication */}
         <Card className="gov-card border-l-4 border-l-blue-500">
           <CardContent className="p-6">
             <div className="text-center space-y-4">
@@ -316,6 +305,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) =>
           </CardContent>
         </Card>
 
+        {/* Vue détaillée et export */}
         <Card className="gov-card border-l-4 border-l-purple-500">
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -381,7 +371,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) =>
                 <li>• {finalResults.validatedBureaux} bureaux validés</li>
                 <li>• {finalResults.participation.suffragesExprimes.toLocaleString()} suffrages exprimés</li>
                 <li>• Taux de participation : {finalResults.participation.tauxParticipation}%</li>
-                <li>• Candidat en tête : {finalResults.candidates[0]?.name} ({finalResults.candidates[0]?.percentage}%)</li>
+                <li>• Candidat en tête : {finalResults.candidates[0].name} ({finalResults.candidates[0].percentage}%)</li>
               </ul>
             </div>
             
@@ -422,9 +412,9 @@ const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) =>
                   <TableHead>Bureau</TableHead>
                   <TableHead>Inscrits</TableHead>
                   <TableHead>Votants</TableHead>
-                  {election.candidates.map((candidate) => (
-                    <TableHead key={candidate.id}>{candidate.name}</TableHead>
-                  ))}
+                  <TableHead>Notre Candidat</TableHead>
+                  <TableHead>Adversaire 1</TableHead>
+                  <TableHead>Adversaire 2</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -434,11 +424,11 @@ const PublishSection: React.FC<PublishSectionProps> = ({ election, results }) =>
                     <TableCell>{result.bureau}</TableCell>
                     <TableCell>{result.inscrits}</TableCell>
                     <TableCell>{result.votants}</TableCell>
-                    {election.candidates.map((candidate) => (
-                      <TableCell key={candidate.id} className="font-medium text-green-600">
-                        {result[candidate.name] || 0}
-                      </TableCell>
-                    ))}
+                    <TableCell className="font-medium text-green-600">
+                      {result.notreCandidat}
+                    </TableCell>
+                    <TableCell>{result.adversaire1}</TableCell>
+                    <TableCell>{result.adversaire2}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
