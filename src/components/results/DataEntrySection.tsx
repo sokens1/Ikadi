@@ -18,48 +18,23 @@ import {
 } from 'lucide-react';
 import PVEntrySection from './PVEntrySection';
 
-interface Candidate {
-  id: string;
-  name: string;
-  party: string;
-  photo?: string;
-}
-
-interface Election {
-  id: string;
-  name: string;
-  date: string;
-  status: string;
-  candidates: Candidate[];
-  totalCenters: number;
-  totalBureaux: number;
-}
-
-interface CandidateResult {
-  candidateId: string;
-  candidateName: string;
-  candidateParty: string;
-  votes: number;
-}
-
 interface DataEntrySectionProps {
   stats: {
     tauxSaisie: number;
     bureauxSaisis: number;
     totalBureaux: number;
-    candidateResults: CandidateResult[];
-    ecartPremier: number;
+    voixNotreCanidat: number;
+    ecartDeuxieme: number;
     anomaliesDetectees: number;
   };
-  election: Election;
 }
 
-const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, election }) => {
+const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats }) => {
   const [expandedCenters, setExpandedCenters] = useState<string[]>([]);
   const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false);
   const [showPVEntry, setShowPVEntry] = useState(false);
 
-  // Mock data pour les centres de vote - en production, ceci viendrait d'une API
+  // Mock data pour les centres de vote
   const votingCenters = [
     {
       id: 'C001',
@@ -108,7 +83,6 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, election }) 
     }
   ];
 
-  // Helper functions
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'validated':
@@ -165,11 +139,8 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, election }) 
     : votingCenters;
 
   if (showPVEntry) {
-    return <PVEntrySection onClose={() => setShowPVEntry(false)} election={election} />;
+    return <PVEntrySection onClose={() => setShowPVEntry(false)} />;
   }
-
-  // Trouver le candidat en tête
-  const leadingCandidate = stats.candidateResults.length > 0 ? stats.candidateResults[0] : null;
 
   return (
     <div className="space-y-6">
@@ -208,16 +179,12 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, election }) 
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
                 <Users className="h-5 w-5 text-green-500" />
-                <span className="text-sm font-medium text-gray-600">
-                  {leadingCandidate ? leadingCandidate.candidateName.split(' ')[0] : 'En attente'}
-                </span>
+                <span className="text-sm font-medium text-gray-600">Voix Notre Candidat</span>
               </div>
-              <span className="text-2xl font-bold text-green-600">
-                {leadingCandidate ? leadingCandidate.votes.toLocaleString() : '0'}
-              </span>
+              <span className="text-2xl font-bold text-green-600">{stats.voixNotreCanidat.toLocaleString()}</span>
             </div>
             <p className="text-xs text-gray-500">
-              {leadingCandidate ? `${leadingCandidate.candidateParty}` : 'Aucun résultat'}
+              Basé sur les PV déjà saisis
             </p>
           </CardContent>
         </Card>
@@ -229,7 +196,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, election }) 
                 <Flag className="h-5 w-5 text-purple-500" />
                 <span className="text-sm font-medium text-gray-600">Écart avec le 2ème</span>
               </div>
-              <span className="text-2xl font-bold text-purple-600">+{stats.ecartPremier.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-purple-600">+{stats.ecartDeuxieme}</span>
             </div>
             <p className="text-xs text-gray-500">
               voix d'avance
