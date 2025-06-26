@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,7 +10,7 @@ import PublicHomePage from "./pages/PublicHomePage";
 import Dashboard from "./pages/Dashboard";
 import ElectionManagement from "./pages/ElectionManagement";
 import UserManagement from "./pages/UserManagement";
-import ResultsCentralization from "./pages/ResultsCentralization";
+import Results from "./pages/Results";
 import CampaignManagement from "./pages/CampaignManagement";
 import OperationDetail from "./pages/OperationDetail";
 import Conversations from "./pages/Conversations";
@@ -41,7 +42,7 @@ const App = () => {
                 <Route path="/elections" element={<ElectionManagement />} />
                 <Route path="/centers" element={<VotingCenters />} />
                 <Route path="/users" element={<UserManagement />} />
-                <Route path="/results" element={<ResultsCentralization />} />
+                <Route path="/results" element={<Results />} />
                 <Route path="/campaign" element={<CampaignManagement />} />
                 <Route path="/campaign/operation/:id" element={<OperationDetail />} />
                 <Route path="/conversations" element={<Conversations />} />
