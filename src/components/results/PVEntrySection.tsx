@@ -22,11 +22,29 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-interface PVEntrySectionProps {
-  onClose: () => void;
+interface Candidate {
+  id: string;
+  name: string;
+  party: string;
+  photo?: string;
 }
 
-const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
+interface Election {
+  id: string;
+  name: string;
+  date: string;
+  status: string;
+  candidates: Candidate[];
+  totalCenters: number;
+  totalBureaux: number;
+}
+
+interface PVEntrySectionProps {
+  onClose: () => void;
+  election: Election;
+}
+
+const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, election }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     province: '',
@@ -41,7 +59,7 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // Mock data
+  // Mock data pour la hiérarchie géographique
   const hierarchyData = {
     provinces: ['Estuaire', 'Ogooué-Maritime', 'Haut-Ogooué'],
     villes: {
@@ -59,12 +77,6 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
       'Centre Owendo Principal': ['Bureau 001', 'Bureau 002', 'Bureau 003', 'Bureau 004']
     }
   };
-
-  const candidatesData = [
-    { id: 'C001', name: 'ALLOGHO-OBIANG Marie', party: 'Parti Démocratique Gabonais' },
-    { id: 'C002', name: 'NDONG Jean-Baptiste', party: 'Union Nationale' },
-    { id: 'C003', name: 'OVONO-EBANG Claire', party: 'Rassemblement pour la Patrie' }
-  ];
 
   // Validation en temps réel
   const validateParticipation = () => {
@@ -308,7 +320,7 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Saisie des Résultats par Candidat</h3>
             
             <div className="space-y-4">
-              {candidatesData.map((candidate) => (
+              {election.candidates.map((candidate) => (
                 <div key={candidate.id} className="p-4 border border-gray-200 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div>
@@ -401,7 +413,6 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Vérification et Soumission</h3>
             
             <div className="space-y-6">
-              {/* Résumé des données */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Résumé des Données Saisies</CardTitle>
@@ -435,7 +446,7 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Résultats par Candidat</h4>
                     <div className="space-y-2">
-                      {candidatesData.map((candidate) => (
+                      {election.candidates.map((candidate) => (
                         <div key={candidate.id} className="flex justify-between text-sm">
                           <span>{candidate.name}</span>
                           <span className="font-semibold">{formData.candidateVotes[candidate.id] || 0} voix</span>
