@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,8 +13,10 @@ import {
   MapPin,
   TrendingUp,
   Users,
-  Flag
+  Flag,
+  Plus
 } from 'lucide-react';
+import PVEntrySection from './PVEntrySection';
 
 interface DataEntrySectionProps {
   stats: {
@@ -31,6 +32,7 @@ interface DataEntrySectionProps {
 const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats }) => {
   const [expandedCenters, setExpandedCenters] = useState<string[]>([]);
   const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false);
+  const [showPVEntry, setShowPVEntry] = useState(false);
 
   // Mock data pour les centres de vote
   const votingCenters = [
@@ -136,8 +138,24 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats }) => {
       )
     : votingCenters;
 
+  if (showPVEntry) {
+    return <PVEntrySection onClose={() => setShowPVEntry(false)} />;
+  }
+
   return (
     <div className="space-y-6">
+      {/* Bouton d'action principal */}
+      <div className="flex justify-center">
+        <Button 
+          onClick={() => setShowPVEntry(true)}
+          size="lg"
+          className="bg-gov-blue hover:bg-gov-blue-dark text-white px-8 py-3"
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          Saisir un PV
+        </Button>
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="gov-card border-l-4 border-l-blue-500">

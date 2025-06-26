@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,18 +13,20 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
-  Plus, 
   ChevronRight, 
   AlertCircle, 
   CheckCircle, 
   Upload,
   FileText,
-  User,
-  Calculator
+  Calculator,
+  ArrowLeft
 } from 'lucide-react';
 
-const PVEntrySection = () => {
-  const [showWizard, setShowWizard] = useState(false);
+interface PVEntrySectionProps {
+  onClose: () => void;
+}
+
+const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     province: '',
@@ -63,23 +64,6 @@ const PVEntrySection = () => {
     { id: 'C001', name: 'ALLOGHO-OBIANG Marie', party: 'Parti Démocratique Gabonais' },
     { id: 'C002', name: 'NDONG Jean-Baptiste', party: 'Union Nationale' },
     { id: 'C003', name: 'OVONO-EBANG Claire', party: 'Rassemblement pour la Patrie' }
-  ];
-
-  const recentEntries = [
-    {
-      id: 'PV001',
-      bureau: 'Centre Libreville Nord - Bureau 001',
-      agent: 'MOUNGUENGUI Paul',
-      timestamp: '14:30',
-      status: 'validated'
-    },
-    {
-      id: 'PV002',
-      bureau: 'Centre Owendo - Bureau 002',
-      agent: 'NZAME Marie',
-      timestamp: '14:25',
-      status: 'pending'
-    }
   ];
 
   // Validation en temps réel
@@ -483,67 +467,24 @@ const PVEntrySection = () => {
     }
   };
 
-  if (!showWizard) {
-    return (
-      <div className="space-y-6">
-        {/* Bouton principal d'action */}
-        <div className="text-center">
-          <Button 
-            onClick={() => setShowWizard(true)}
-            size="lg"
-            className="bg-gov-blue hover:bg-gov-blue-dark text-white px-8 py-3"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Saisir un nouveau PV
-          </Button>
-        </div>
-
-        {/* Liste des saisies récentes */}
-        <Card className="gov-card">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gov-gray">
-              <FileText className="w-5 h-5" />
-              <span>Saisies Récentes</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentEntries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <User className="w-5 h-5 text-gray-500" />
-                    <div>
-                      <h3 className="font-medium text-gray-900">{entry.bureau}</h3>
-                      <p className="text-sm text-gray-600">Par {entry.agent} à {entry.timestamp}</p>
-                    </div>
-                  </div>
-                  <Badge className={entry.status === 'validated' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                    {entry.status === 'validated' ? 'Validé' : 'En attente'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      {/* En-tête avec bouton retour */}
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="outline" 
+          onClick={onClose}
+          className="flex items-center space-x-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Retour</span>
+        </Button>
+        <h2 className="text-xl font-bold text-gray-900">Assistant de Saisie PV</h2>
+      </div>
+
       {/* Progress bar */}
       <Card className="gov-card">
         <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Assistant de Saisie PV</h2>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowWizard(false)}
-            >
-              Annuler
-            </Button>
-          </div>
-          
           <div className="flex items-center space-x-4 mb-6">
             {[1, 2, 3, 4, 5].map((step) => (
               <div key={step} className="flex items-center">
@@ -588,19 +529,7 @@ const PVEntrySection = () => {
               <Button 
                 onClick={() => {
                   // Handle form submission
-                  setShowWizard(false);
-                  setCurrentStep(1);
-                  setFormData({
-                    province: '',
-                    ville: '',
-                    centre: '',
-                    bureau: '',
-                    votants: '',
-                    bulletinsNuls: '',
-                    suffragesExprimes: '',
-                    candidateVotes: {},
-                    uploadedFile: null
-                  });
+                  onClose();
                 }}
                 disabled={!canSubmit()}
                 className="bg-green-600 hover:bg-green-700"
