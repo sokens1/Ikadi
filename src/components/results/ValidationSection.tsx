@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,17 +19,35 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
-interface ValidationSectionProps {
-  pendingCount: number;
+interface Election {
+  id: string;
+  name: string;
+  date: string;
+  status: string;
+  candidates: Array<{
+    id: string;
+    name: string;
+    party: string;
+    photo?: string;
+  }>;
+  totalCenters: number;
+  totalBureaux: number;
 }
 
-const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) => {
+interface ValidationSectionProps {
+  pendingCount: number;
+  election?: Election;
+}
+
+const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount, election }) => {
   const [filter, setFilter] = useState('all');
   const [selectedPV, setSelectedPV] = useState<string | null>(null);
   const [validationComment, setValidationComment] = useState('');
   const [showValidationModal, setShowValidationModal] = useState(false);
 
-  // Mock data pour les PV en attente
+  // Mock data pour les PV en attente - utilise les candidats de l'élection si disponible
+  const candidateNames = election?.candidates?.map(c => c.name) || ['Notre Candidat', 'Adversaire A', 'Adversaire B'];
+  
   const pendingPVs = [
     {
       id: 'PV001',
@@ -44,9 +61,9 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
         votants: 290,
         bulletinsNuls: 5,
         candidateVotes: {
-          'Notre Candidat': 185,
-          'Adversaire A': 80,
-          'Adversaire B': 20
+          [candidateNames[0]]: 185,
+          [candidateNames[1]]: 80,
+          [candidateNames[2]]: 20
         }
       },
       imageUrl: '/placeholder-pv.jpg'
@@ -64,9 +81,9 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
         votants: 250,
         bulletinsNuls: 8,
         candidateVotes: {
-          'Notre Candidat': 120,
-          'Adversaire A': 95,
-          'Adversaire B': 35
+          [candidateNames[0]]: 120,
+          [candidateNames[1]]: 95,
+          [candidateNames[2]]: 35
         }
       },
       imageUrl: '/placeholder-pv.jpg'
@@ -84,9 +101,9 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
         votants: 275,
         bulletinsNuls: 12,
         candidateVotes: {
-          'Notre Candidat': 140,
-          'Adversaire A': 78,
-          'Adversaire B': 45
+          [candidateNames[0]]: 140,
+          [candidateNames[1]]: 78,
+          [candidateNames[2]]: 45
         }
       },
       imageUrl: '/placeholder-pv.jpg'
@@ -126,6 +143,23 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
 
   return (
     <div className="space-y-6">
+      {/* Affichage de l'élection courante */}
+      {election && (
+        <Card className="gov-card bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-blue-900">{election.name}</h3>
+                <p className="text-sm text-blue-700">{election.candidates.length} candidats • {election.totalBureaux} bureaux</p>
+              </div>
+              <Badge className="bg-blue-100 text-blue-800">
+                {election.status}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filtres */}
       <Card className="gov-card">
         <CardHeader>
@@ -199,7 +233,7 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
                 {/* Résultats rapides */}
                 <div>
                   <div className="text-sm font-medium text-gray-900 mb-1">
-                    Notre Candidat : {pv.data.candidateVotes['Notre Candidat']} voix
+                    {candidateNames[0]} : {pv.data.candidateVotes[candidateNames[0]]} voix
                   </div>
                   <div className="text-xs text-gray-500">
                     Soumis à {pv.submittedAt}

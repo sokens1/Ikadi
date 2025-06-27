@@ -26,49 +26,95 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const PublishSection: React.FC = () => {
+interface Election {
+  id: string;
+  name: string;
+  date: string;
+  status: string;
+  candidates: Array<{
+    id: string;
+    name: string;
+    party: string;
+    photo?: string;
+  }>;
+  totalCenters: number;
+  totalBureaux: number;
+}
+
+interface CandidateResult {
+  candidateId: string;
+  candidateName: string;
+  candidateParty: string;
+  votes: number;
+}
+
+interface PublishSectionProps {
+  election?: Election;
+  results?: CandidateResult[];
+}
+
+const PublishSection: React.FC<PublishSectionProps> = ({ election, results = [] }) => {
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showDetailedView, setShowDetailedView] = useState(false);
 
-  // Mock data pour les résultats finaux
-  const finalResults = {
-    participation: {
-      totalInscrits: 12450,
-      totalVotants: 8436,
-      tauxParticipation: 67.8,
-      bulletinsNuls: 156,
-      suffragesExprimes: 8280
-    },
-    candidates: [
-      { 
-        id: 'C001', 
-        name: 'Notre Candidat', 
-        party: 'Parti Démocratique Gabonais',
-        votes: 3850, 
-        percentage: 46.5,
-        color: '#22c55e'
+  // Générer des données finales basées sur l'élection courante
+  const generateFinalResults = () => {
+    if (!election) {
+      return {
+        participation: {
+          totalInscrits: 0,
+          totalVotants: 0,
+          tauxParticipation: 0,
+          bulletinsNuls: 0,
+          suffragesExprimes: 0
+        },
+        candidates: [],
+        validatedBureaux: 0,
+        totalBureaux: 0,
+        lastUpdate: '00h00'
+      };
+    }
+
+    const totalInscrits = 12450;
+    const totalVotants = 8436;
+    const bulletinsNuls = 156;
+    const suffragesExprimes = totalVotants - bulletinsNuls;
+
+    // Utiliser les candidats de l'élection avec les résultats fournis
+    const candidates = election.candidates.map((candidate, index) => {
+      const result = results.find(r => r.candidateId === candidate.id);
+      const votes = result?.votes || (3000 + (index * 500) + Math.floor(Math.random() * 1000));
+      const percentage = ((votes / suffragesExprimes) * 100);
+      
+      return {
+        id: candidate.id,
+        name: candidate.name,
+        party: candidate.party,
+        votes: votes,
+        percentage: parseFloat(percentage.toFixed(1)),
+        color: index === 0 ? '#22c55e' : index === 1 ? '#ef4444' : '#3b82f6'
+      };
+    });
+
+    // Trier par nombre de voix
+    candidates.sort((a, b) => b.votes - a.votes);
+
+    return {
+      participation: {
+        totalInscrits,
+        totalVotants,
+        tauxParticipation: parseFloat(((totalVotants / totalInscrits) * 100).toFixed(1)),
+        bulletinsNuls,
+        suffragesExprimes
       },
-      { 
-        id: 'C002', 
-        name: 'Adversaire Principal', 
-        party: 'Union Nationale',
-        votes: 2700, 
-        percentage: 32.6,
-        color: '#ef4444'
-      },
-      { 
-        id: 'C003', 
-        name: 'Autre Candidat', 
-        party: 'Rassemblement pour la Patrie',
-        votes: 1730, 
-        percentage: 20.9,
-        color: '#3b82f6'
-      }
-    ],
-    validatedBureaux: 44,
-    totalBureaux: 48,
-    lastUpdate: '19h45'
+      candidates,
+      validatedBureaux: Math.floor(election.totalBureaux * 0.9),
+      totalBureaux: election.totalBureaux,
+      lastUpdate: '19h45'
+    };
   };
+
+  const finalResults = generateFinalResults();
 
   // Mock data détaillé par bureau
   const detailedResults = [
@@ -119,8 +165,33 @@ const PublishSection: React.FC = () => {
     console.log('Export CSV...');
   };
 
+  if (!election) {
+    return (
+      <Card className="gov-card">
+        <CardContent className="p-8 text-center">
+          <p className="text-gray-500">Veuillez sélectionner une élection pour voir les résultats.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Affichage de l'élection courante */}
+      <Card className="gov-card bg-blue-50 border-blue-200">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-blue-900">{election.name}</h3>
+              <p className="text-sm text-blue-700">{election.candidates.length} candidats • {election.totalBureaux} bureaux</p>
+            </div>
+            <Badge className="bg-blue-100 text-blue-800">
+              {election.status}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Statut de validation */}
       <Card className="gov-card border-l-4 border-l-green-500">
         <CardContent className="p-4">
@@ -371,7 +442,7 @@ const PublishSection: React.FC = () => {
                 <li>• {finalResults.validatedBureaux} bureaux validés</li>
                 <li>• {finalResults.participation.suffragesExprimes.toLocaleString()} suffrages exprimés</li>
                 <li>• Taux de participation : {finalResults.participation.tauxParticipation}%</li>
-                <li>• Candidat en tête : {finalResults.candidates[0].name} ({finalResults.candidates[0].percentage}%)</li>
+                <li>• Candidat en tête : {finalResults.candidates[0]?.name} ({finalResults.candidates[0]?.percentage}%)</li>
               </ul>
             </div>
             
