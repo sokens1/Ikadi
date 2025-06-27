@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,19 +38,10 @@ interface Election {
   arrondissement: string;
 }
 
-// Fonction pour charger les élections depuis localStorage
-const loadElectionsFromStorage = (): Election[] => {
-  try {
-    const storedElections = localStorage.getItem('elections');
-    if (storedElections) {
-      return JSON.parse(storedElections);
-    }
-  } catch (error) {
-    console.error('Erreur lors du chargement des élections:', error);
-  }
-  
-  // Retourner les élections par défaut si aucune n'est stockée
-  return [
+const ElectionManagement = () => {
+  const [showWizard, setShowWizard] = useState(false);
+  const [selectedElection, setSelectedElection] = useState<Election | null>(null);
+  const [elections, setElections] = useState<Election[]>([
     {
       id: 1,
       title: "Législatives 2024 - Moanda",
@@ -92,37 +84,7 @@ const loadElectionsFromStorage = (): Election[] => {
       commune: "Libreville",
       arrondissement: "Centre"
     }
-  ];
-};
-
-// Fonction pour sauvegarder les élections dans localStorage
-const saveElectionsToStorage = (elections: Election[]) => {
-  try {
-    localStorage.setItem('elections', JSON.stringify(elections));
-    console.log('Élections sauvegardées:', elections);
-  } catch (error) {
-    console.error('Erreur lors de la sauvegarde des élections:', error);
-  }
-};
-
-const ElectionManagement = () => {
-  const [showWizard, setShowWizard] = useState(false);
-  const [selectedElection, setSelectedElection] = useState<Election | null>(null);
-  const [elections, setElections] = useState<Election[]>([]);
-
-  // Charger les élections au montage du composant
-  useEffect(() => {
-    const loadedElections = loadElectionsFromStorage();
-    setElections(loadedElections);
-    console.log('Élections chargées:', loadedElections);
-  }, []);
-
-  // Sauvegarder les élections chaque fois qu'elles changent
-  useEffect(() => {
-    if (elections.length > 0) {
-      saveElectionsToStorage(elections);
-    }
-  }, [elections]);
+  ]);
 
   const getStatusVariant = (color: string) => {
     switch (color) {
@@ -155,12 +117,10 @@ const ElectionManagement = () => {
   const handleAddElection = (newElection: Omit<Election, 'id'>) => {
     const election: Election = {
       ...newElection,
-      id: Math.max(...elections.map(e => e.id), 0) + 1,
+      id: elections.length + 1,
     };
-    const updatedElections = [...elections, election];
-    setElections(updatedElections);
+    setElections([...elections, election]);
     setShowWizard(false);
-    console.log('Nouvelle élection ajoutée:', election);
   };
 
   if (selectedElection) {
