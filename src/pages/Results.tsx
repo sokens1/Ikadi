@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,7 +71,7 @@ const Results = () => {
 
   // Générer des statistiques dynamiques basées sur l'élection courante
   const generateStats = () => {
-    if (!currentElection) {
+    if (!currentElection || !currentElection.candidates || !Array.isArray(currentElection.candidates)) {
       return {
         tauxSaisie: 0,
         bureauxSaisis: 0,
