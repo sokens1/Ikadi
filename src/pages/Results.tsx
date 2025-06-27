@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,116 +21,27 @@ import DataEntrySection from '@/components/results/DataEntrySection';
 import ValidationSection from '@/components/results/ValidationSection';
 import PublishSection from '@/components/results/PublishSection';
 
-interface Candidate {
-  id: string;
-  name: string;
-  party: string;
-  photo?: string;
-}
-
-interface Election {
-  id: string;
-  name: string;
-  date: string;
-  status: string;
-  candidates: Candidate[];
-  totalCenters: number;
-  totalBureaux: number;
-}
-
 const Results = () => {
   const [activeTab, setActiveTab] = useState('entry');
   const [selectedElection, setSelectedElection] = useState('legislatives-2023-moanda');
-  const [elections, setElections] = useState<Election[]>([]);
-  const [currentElection, setCurrentElection] = useState<Election | null>(null);
 
-  // Charger les élections depuis localStorage
-  useEffect(() => {
-    const savedElections = localStorage.getItem('elections');
-    if (savedElections) {
-      const parsedElections = JSON.parse(savedElections);
-      setElections(parsedElections);
-      
-      // Sélectionner la première élection par défaut
-      if (parsedElections.length > 0) {
-        const firstElection = parsedElections[0];
-        setSelectedElection(firstElection.id);
-        setCurrentElection(firstElection);
-      }
-    }
-  }, []);
+  // Mock data pour les élections disponibles
+  const availableElections = [
+    { id: 'legislatives-2023-moanda', name: 'Législatives 2023 - Moanda' },
+    { id: 'municipales-2023-libreville', name: 'Municipales 2023 - Libreville' },
+    { id: 'presidentielles-2023', name: 'Présidentielles 2023' }
+  ];
 
-  // Mettre à jour l'élection courante quand la sélection change
-  useEffect(() => {
-    if (selectedElection && elections.length > 0) {
-      const election = elections.find(e => e.id === selectedElection);
-      setCurrentElection(election || null);
-    }
-  }, [selectedElection, elections]);
-
-  // Générer des statistiques dynamiques basées sur l'élection courante
-  const generateStats = () => {
-    if (!currentElection) {
-      return {
-        tauxSaisie: 0,
-        bureauxSaisis: 0,
-        totalBureaux: 0,
-        candidateResults: [],
-        ecartPremier: 0,
-        anomaliesDetectees: 0,
-        pvsEnAttente: 0
-      };
-    }
-
-    // Mock data pour la démonstration - en production, ces données viendraient d'une API
-    const bureauxSaisis = Math.floor(currentElection.totalBureaux * 0.85);
-    const tauxSaisie = Math.round((bureauxSaisis / currentElection.totalBureaux) * 100);
-    
-    // Générer des résultats pour chaque candidat
-    const candidateResults = currentElection.candidates.map((candidate, index) => {
-      const baseVotes = 5000 + (index * 1000);
-      const variation = Math.floor(Math.random() * 2000);
-      return {
-        candidateId: candidate.id,
-        candidateName: candidate.name,
-        candidateParty: candidate.party,
-        votes: baseVotes + variation
-      };
-    });
-
-    // Trier par nombre de voix décroissant
-    candidateResults.sort((a, b) => b.votes - a.votes);
-    
-    const ecartPremier = candidateResults.length > 1 ? 
-      candidateResults[0].votes - candidateResults[1].votes : 0;
-
-    return {
-      tauxSaisie,
-      bureauxSaisis,
-      totalBureaux: currentElection.totalBureaux,
-      candidateResults,
-      ecartPremier,
-      anomaliesDetectees: 3,
-      pvsEnAttente: 12
-    };
+  // Mock data pour les statistiques globales
+  const globalStats = {
+    tauxSaisie: 85,
+    bureauxSaisis: 41,
+    totalBureaux: 48,
+    voixNotreCanidat: 7230,
+    ecartDeuxieme: 1150,
+    anomaliesDetectees: 3,
+    pvsEnAttente: 12
   };
-
-  const globalStats = generateStats();
-
-  if (!currentElection) {
-    return (
-      <Layout>
-        <div className="space-y-6 animate-fade-in">
-          <h1 className="text-3xl font-bold text-gov-gray">Résultats</h1>
-          <Card className="gov-card">
-            <CardContent className="p-8 text-center">
-              <p className="text-gray-500">Aucune élection disponible. Veuillez créer une élection d'abord.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
@@ -151,7 +62,7 @@ const Results = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {elections.map((election) => (
+                    {availableElections.map((election) => (
                       <SelectItem key={election.id} value={election.id}>
                         {election.name}
                       </SelectItem>
@@ -200,24 +111,15 @@ const Results = () => {
 
               <div className="p-6">
                 <TabsContent value="entry" className="space-y-6 mt-0">
-                  <DataEntrySection 
-                    stats={globalStats} 
-                    election={currentElection}
-                  />
+                  <DataEntrySection stats={globalStats} />
                 </TabsContent>
 
                 <TabsContent value="validation" className="space-y-6 mt-0">
-                  <ValidationSection 
-                    pendingCount={globalStats.pvsEnAttente} 
-                    election={currentElection}
-                  />
+                  <ValidationSection pendingCount={globalStats.pvsEnAttente} />
                 </TabsContent>
 
                 <TabsContent value="publish" className="space-y-6 mt-0">
-                  <PublishSection 
-                    election={currentElection}
-                    results={globalStats.candidateResults}
-                  />
+                  <PublishSection />
                 </TabsContent>
               </div>
             </Tabs>
@@ -229,4 +131,3 @@ const Results = () => {
 };
 
 export default Results;
-
