@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +15,7 @@ import {
 import ElectionWizard from '@/components/elections/ElectionWizard';
 import ElectionDetailView from '@/components/elections/ElectionDetailView';
 
-interface Election {
+interface ElectionData {
   id: string;
   name: string;
   title: string;
@@ -48,8 +47,8 @@ interface Election {
 
 const ElectionManagement = () => {
   const [showWizard, setShowWizard] = useState(false);
-  const [selectedElection, setSelectedElection] = useState<Election | null>(null);
-  const [elections, setElections] = useState<Election[]>([]);
+  const [selectedElection, setSelectedElection] = useState<ElectionData | null>(null);
+  const [elections, setElections] = useState<ElectionData[]>([]);
 
   // Charger les élections depuis localStorage au démarrage
   useEffect(() => {
@@ -141,12 +140,12 @@ const ElectionManagement = () => {
     }
   };
 
-  const handleElectionClick = (election: Election) => {
+  const handleElectionClick = (election: ElectionData) => {
     setSelectedElection(election);
   };
 
   const handleAddElection = (newElectionData: any) => {
-    const newElection: Election = {
+    const newElection: ElectionData = {
       ...newElectionData,
       id: `election-${Date.now()}`,
       candidates: newElectionData.candidates || [],
