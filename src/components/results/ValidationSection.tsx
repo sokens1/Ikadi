@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,17 +19,35 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
-interface ValidationSectionProps {
-  pendingCount: number;
+interface Candidate {
+  id: string;
+  name: string;
+  party: string;
+  photo?: string;
 }
 
-const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) => {
+interface Election {
+  id: string;
+  name: string;
+  date: string;
+  status: string;
+  candidates: Candidate[];
+  totalCenters: number;
+  totalBureaux: number;
+}
+
+interface ValidationSectionProps {
+  pendingCount: number;
+  election: Election;
+}
+
+const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount, election }) => {
   const [filter, setFilter] = useState('all');
   const [selectedPV, setSelectedPV] = useState<string | null>(null);
   const [validationComment, setValidationComment] = useState('');
   const [showValidationModal, setShowValidationModal] = useState(false);
 
-  // Mock data pour les PV en attente
+  // Mock data pour les PV en attente - using real candidate names
   const pendingPVs = [
     {
       id: 'PV001',
@@ -43,11 +60,11 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
         inscrits: 350,
         votants: 290,
         bulletinsNuls: 5,
-        candidateVotes: {
-          'Notre Candidat': 185,
-          'Adversaire A': 80,
-          'Adversaire B': 20
-        }
+        candidateVotes: election.candidates.reduce((acc, candidate, index) => {
+          const baseVotes = [185, 80, 20];
+          acc[candidate.name] = baseVotes[index] || 0;
+          return acc;
+        }, {} as Record<string, number>)
       },
       imageUrl: '/placeholder-pv.jpg'
     },
@@ -63,11 +80,11 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
         inscrits: 280,
         votants: 250,
         bulletinsNuls: 8,
-        candidateVotes: {
-          'Notre Candidat': 120,
-          'Adversaire A': 95,
-          'Adversaire B': 35
-        }
+        candidateVotes: election.candidates.reduce((acc, candidate, index) => {
+          const baseVotes = [120, 95, 35];
+          acc[candidate.name] = baseVotes[index] || 0;
+          return acc;
+        }, {} as Record<string, number>)
       },
       imageUrl: '/placeholder-pv.jpg'
     },
@@ -83,11 +100,11 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
         inscrits: 320,
         votants: 275,
         bulletinsNuls: 12,
-        candidateVotes: {
-          'Notre Candidat': 140,
-          'Adversaire A': 78,
-          'Adversaire B': 45
-        }
+        candidateVotes: election.candidates.reduce((acc, candidate, index) => {
+          const baseVotes = [140, 78, 45];
+          acc[candidate.name] = baseVotes[index] || 0;
+          return acc;
+        }, {} as Record<string, number>)
       },
       imageUrl: '/placeholder-pv.jpg'
     }
@@ -166,75 +183,80 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
 
       {/* Liste des PV */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredPVs.map((pv) => (
-          <Card key={pv.id} className="gov-card hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                {/* En-tête */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-4 h-4 text-gray-500" />
-                    <div>
-                      <h3 className="font-semibold text-sm text-gray-900">
-                        {pv.center} - {pv.bureau}
-                      </h3>
-                      <div className="flex items-center space-x-1 text-xs text-gray-500">
-                        <User className="w-3 h-3" />
-                        <span>{pv.agent}</span>
+        {filteredPVs.map((pv) => {
+          const leadingCandidate = Object.entries(pv.data.candidateVotes)
+            .sort(([,a], [,b]) => b - a)[0];
+          
+          return (
+            <Card key={pv.id} className="gov-card hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  {/* En-tête */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <h3 className="font-semibold text-sm text-gray-900">
+                          {pv.center} - {pv.bureau}
+                        </h3>
+                        <div className="flex items-center space-x-1 text-xs text-gray-500">
+                          <User className="w-3 h-3" />
+                          <span>{pv.agent}</span>
+                        </div>
                       </div>
                     </div>
+                    {pv.hasAnomaly && (
+                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                    )}
                   </div>
+
+                  {/* Anomalie */}
                   {pv.hasAnomaly && (
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                      🚩 {pv.anomalyReason}
+                    </div>
                   )}
-                </div>
 
-                {/* Anomalie */}
-                {pv.hasAnomaly && (
-                  <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                    🚩 {pv.anomalyReason}
+                  {/* Résultats rapides */}
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 mb-1">
+                      {leadingCandidate?.[0]} : {leadingCandidate?.[1]} voix
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Soumis à {pv.submittedAt}
+                    </div>
                   </div>
-                )}
 
-                {/* Résultats rapides */}
-                <div>
-                  <div className="text-sm font-medium text-gray-900 mb-1">
-                    Notre Candidat : {pv.data.candidateVotes['Notre Candidat']} voix
+                  {/* Vérification de cohérence */}
+                  <div className="flex items-center space-x-2 text-xs">
+                    {isDataConsistent(pv) ? (
+                      <>
+                        <CheckCircle className="w-3 h-3 text-green-600" />
+                        <span className="text-green-700">Données cohérentes</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="w-3 h-3 text-red-600" />
+                        <span className="text-red-700">Incohérence détectée</span>
+                      </>
+                    )}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    Soumis à {pv.submittedAt}
-                  </div>
-                </div>
 
-                {/* Vérification de cohérence */}
-                <div className="flex items-center space-x-2 text-xs">
-                  {isDataConsistent(pv) ? (
-                    <>
-                      <CheckCircle className="w-3 h-3 text-green-600" />
-                      <span className="text-green-700">Données cohérentes</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertTriangle className="w-3 h-3 text-red-600" />
-                      <span className="text-red-700">Incohérence détectée</span>
-                    </>
-                  )}
+                  {/* Action */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => openValidationModal(pv.id)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Examiner le PV
+                  </Button>
                 </div>
-
-                {/* Action */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => openValidationModal(pv.id)}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Examiner le PV
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Modal de validation */}
