@@ -398,7 +398,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         {showAddCandidate && (
           <AddCandidateModal
             onClose={() => setShowAddCandidate(false)}
-            onAdd={(candidate) => {
+            onSubmit={(candidate) => {
               console.log('Nouveau candidat:', candidate);
               setShowAddCandidate(false);
             }}
@@ -408,7 +408,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         {showAddCenter && (
           <AddCenterModal
             onClose={() => setShowAddCenter(false)}
-            onAdd={(center) => {
+            onSubmit={(center) => {
               console.log('Nouveau centre:', center);
               setShowAddCenter(false);
             }}
