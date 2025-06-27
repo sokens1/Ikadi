@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -229,10 +228,7 @@ const Results = () => {
                 </TabsContent>
 
                 <TabsContent value="consolidation" className="space-y-6 mt-0">
-                  <ConsolidationSection 
-                    election={currentElection}
-                    results={globalStats.candidateResults}
-                  />
+                  <ConsolidationSection />
                 </TabsContent>
 
                 <TabsContent value="publish" className="space-y-6 mt-0">
