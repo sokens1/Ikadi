@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,24 +16,16 @@ import {
 import ElectionWizard from '@/components/elections/ElectionWizard';
 import ElectionDetailView from '@/components/elections/ElectionDetailView';
 
-interface ElectionData {
-  id: string;
-  name: string;
+interface Election {
+  id: number;
   title: string;
   date: string;
   status: string;
   statusColor: string;
   description: string;
   voters: number;
-  candidates: Array<{
-    id: string;
-    name: string;
-    party: string;
-    photo?: string;
-  }>;
+  candidates: number;
   centers: number;
-  totalBureaux: number;
-  totalCenters: number;
   bureaux: number;
   location: string;
   type: string;
@@ -47,74 +40,51 @@ interface ElectionData {
 
 const ElectionManagement = () => {
   const [showWizard, setShowWizard] = useState(false);
-  const [selectedElection, setSelectedElection] = useState<ElectionData | null>(null);
-  const [elections, setElections] = useState<ElectionData[]>([]);
-
-  // Charger les élections depuis localStorage au démarrage
-  useEffect(() => {
-    const savedElections = localStorage.getItem('elections');
-    if (savedElections) {
-      try {
-        const parsedElections = JSON.parse(savedElections);
-        setElections(parsedElections);
-      } catch (error) {
-        console.error('Erreur lors du chargement des élections:', error);
-      }
-    } else {
-      // Données par défaut si aucune élection sauvegardée
-      const defaultElections = [
-        {
-          id: 'legislatives-2024-moanda',
-          name: "Législatives 2024 - Moanda",
-          title: "Législatives 2024 - Moanda",
-          date: "2024-12-15",
-          status: "À venir",
-          statusColor: "blue",
-          description: "Circonscription de la Commune de Moanda, 1er Arrondissement",
-          voters: 15240,
-          candidates: [
-            {
-              id: 'cand-001',
-              name: 'Jean-Marie OGANDAGA',
-              party: 'Parti Démocratique Gabonais'
-            },
-            {
-              id: 'cand-002',
-              name: 'Marie MOUITY',
-              party: 'Union Nationale'
-            },
-            {
-              id: 'cand-003',
-              name: 'Pierre KOMBILA',
-              party: 'Rassemblement pour la Patrie'
-            }
-          ],
-          centers: 12,
-          totalCenters: 12,
-          bureaux: 48,
-          totalBureaux: 48,
-          location: "Commune de Moanda, 1er Arrondissement",
-          type: "Législatives",
-          seatsAvailable: 1,
-          budget: 50000000,
-          voteGoal: 8000,
-          province: "Haut-Ogooué",
-          department: "Lemboumbi-Leyou",
-          commune: "Commune de Moanda",
-          arrondissement: "1er Arrondissement"
-        }
-      ];
-      setElections(defaultElections);
-      localStorage.setItem('elections', JSON.stringify(defaultElections));
+  const [selectedElection, setSelectedElection] = useState<Election | null>(null);
+  const [elections, setElections] = useState<Election[]>([
+    {
+      id: 1,
+      title: "Législatives 2024 - Moanda",
+      date: "2024-12-15",
+      status: "À venir",
+      statusColor: "blue",
+      description: "Circonscription de la Commune de Moanda, 1er Arrondissement",
+      voters: 15240,
+      candidates: 5,
+      centers: 12,
+      bureaux: 48,
+      location: "Commune de Moanda, 1er Arrondissement",
+      type: "Législatives",
+      seatsAvailable: 1,
+      budget: 50000000,
+      voteGoal: 8000,
+      province: "Haut-Ogooué",
+      department: "Lemboumbi-Leyou",
+      commune: "Commune de Moanda",
+      arrondissement: "1er Arrondissement"
+    },
+    {
+      id: 2,
+      title: "Municipales 2024 - Libreville",
+      date: "2024-10-20",
+      status: "En cours",
+      statusColor: "green",
+      description: "Circonscription de Libreville Centre",
+      voters: 89456,
+      candidates: 8,
+      centers: 28,
+      bureaux: 112,
+      location: "Libreville Centre",
+      type: "Locales",
+      seatsAvailable: 3,
+      budget: 75000000,
+      voteGoal: 45000,
+      province: "Estuaire",
+      department: "Libreville",
+      commune: "Libreville",
+      arrondissement: "Centre"
     }
-  }, []);
-
-  // Sauvegarder les élections à chaque modification
-  useEffect(() => {
-    if (elections.length > 0) {
-      localStorage.setItem('elections', JSON.stringify(elections));
-    }
-  }, [elections]);
+  ]);
 
   const getStatusVariant = (color: string) => {
     switch (color) {
@@ -140,24 +110,17 @@ const ElectionManagement = () => {
     }
   };
 
-  const handleElectionClick = (election: ElectionData) => {
+  const handleElectionClick = (election: Election) => {
     setSelectedElection(election);
   };
 
-  const handleAddElection = (newElectionData: any) => {
-    const newElection: ElectionData = {
-      ...newElectionData,
-      id: `election-${Date.now()}`,
-      candidates: newElectionData.candidates || [],
-      totalCenters: newElectionData.centers || 0,
-      totalBureaux: newElectionData.bureaux || 0,
+  const handleAddElection = (newElection: Omit<Election, 'id'>) => {
+    const election: Election = {
+      ...newElection,
+      id: elections.length + 1,
     };
-    
-    const updatedElections = [...elections, newElection];
-    setElections(updatedElections);
+    setElections([...elections, election]);
     setShowWizard(false);
-    
-    console.log('Nouvelle élection ajoutée:', newElection);
   };
 
   if (selectedElection) {
@@ -245,7 +208,7 @@ const ElectionManagement = () => {
                       <div className="text-center">
                         <Users className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500 mx-auto mb-1" />
                         <div className="text-sm sm:text-lg font-bold text-gray-900">
-                          {election.candidates.length}
+                          {election.candidates}
                         </div>
                         <div className="text-xs text-gray-500">Candidats</div>
                       </div>

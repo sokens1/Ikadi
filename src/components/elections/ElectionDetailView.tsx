@@ -1,42 +1,34 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  ArrowLeft, 
-  Calendar, 
-  Users, 
-  MapPin, 
+  ArrowLeft,
+  MapPin,
+  Users,
   Building,
   Plus,
-  Settings,
+  Star,
   Eye,
-  CheckCircle
+  Edit,
+  Trash2
 } from 'lucide-react';
-import AddCandidateModal from './AddCandidateModal';
 import AddCenterModal from './AddCenterModal';
+import AddCandidateModal from './AddCandidateModal';
 import CenterDetailModal from './CenterDetailModal';
 
-interface ElectionData {
-  id: string;
-  name: string;
+interface Election {
+  id: number;
   title: string;
   date: string;
   status: string;
-  statusColor: string;
   description: string;
   voters: number;
-  candidates: Array<{
-    id: string;
-    name: string;
-    party: string;
-    photo?: string;
-  }>;
+  candidates: number;
   centers: number;
-  totalBureaux: number;
-  totalCenters: number;
   bureaux: number;
   location: string;
   type: string;
@@ -49,42 +41,139 @@ interface ElectionData {
   arrondissement: string;
 }
 
+interface Center {
+  id: string;
+  name: string;
+  address: string;
+  responsable: string;
+  contact: string;
+  bureaux: number;
+  voters: number;
+}
+
+interface Candidate {
+  id: string;
+  name: string;
+  party: string;
+  isOurCandidate: boolean;
+  photo?: string;
+  votes?: number;
+  percentage?: number;
+}
+
 interface ElectionDetailViewProps {
-  election: ElectionData;
+  election: Election;
   onBack: () => void;
 }
 
 const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBack }) => {
-  const [showAddCandidate, setShowAddCandidate] = useState(false);
   const [showAddCenter, setShowAddCenter] = useState(false);
-  const [selectedCenter, setSelectedCenter] = useState<any>(null);
+  const [showAddCandidate, setShowAddCandidate] = useState(false);
+  const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
+  
+  const [centers, setCenters] = useState<Center[]>([
+    {
+      id: '1',
+      name: 'EPP de l\'Alliance',
+      address: 'Quartier Alliance, Moanda',
+      responsable: 'Jean-Pierre NZENG',
+      contact: '+241 07 XX XX XX',
+      bureaux: 4,
+      voters: 1420
+    },
+    {
+      id: '2',
+      name: 'Lycée Technique de Moanda',
+      address: 'Centre-ville, Moanda',
+      responsable: 'Marie OBIANG',
+      contact: '+241 07 XX XX XX',
+      bureaux: 6,
+      voters: 2180
+    },
+    {
+      id: '3',
+      name: 'Centre Culturel Municipal',
+      address: 'Place de l\'Indépendance, Moanda',
+      responsable: 'Paul EDOU',
+      contact: '+241 07 XX XX XX',
+      bureaux: 3,
+      voters: 1050
+    }
+  ]);
 
-  const getElectionStatus = (date: string) => {
-    const today = new Date();
-    const electionDate = new Date(date);
-    
-    if (today < electionDate) {
-      const diffTime = electionDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return { status: 'À venir', color: 'blue', countdown: `J-${diffDays}` };
-    } else if (today.toDateString() === electionDate.toDateString()) {
-      return { status: 'En cours', color: 'green', countdown: null };
-    } else {
-      return { status: 'Terminée', color: 'gray', countdown: null };
+  const [candidates, setCandidates] = useState<Candidate[]>([
+    {
+      id: '1',
+      name: 'Dr. Antoine MBA',
+      party: 'Parti Démocratique Gabonais',
+      isOurCandidate: true,
+      photo: '/placeholder.svg',
+      votes: 4567,
+      percentage: 35.2
+    },
+    {
+      id: '2',
+      name: 'Marie-Claire ONDO',
+      party: 'Union Nationale',
+      isOurCandidate: false,
+      photo: '/placeholder.svg',
+      votes: 3890,
+      percentage: 30.1
+    },
+    {
+      id: '3',
+      name: 'François ENGONGA',
+      party: 'Rassemblement pour le Gabon',
+      isOurCandidate: false,
+      photo: '/placeholder.svg',
+      votes: 2845,
+      percentage: 22.0
+    },
+    {
+      id: '4',
+      name: 'Sylvie BOUANGA',
+      party: 'Coalition Nouvelle République',
+      isOurCandidate: false,
+      photo: '/placeholder.svg',
+      votes: 1628,
+      percentage: 12.7
+    }
+  ]);
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'À venir': return 'default';
+      case 'En cours': return 'secondary';
+      case 'Terminée': return 'outline';
+      default: return 'default';
     }
   };
 
-  const statusInfo = getElectionStatus(election.date);
+  const handleAddCenter = (centerData: Omit<Center, 'id'>) => {
+    const newCenter: Center = {
+      ...centerData,
+      id: Date.now().toString()
+    };
+    setCenters([...centers, newCenter]);
+    setShowAddCenter(false);
+  };
 
-  // Mock data for voting centers
-  const votingCenters = Array.from({ length: election.centers }, (_, i) => ({
-    id: i + 1,
-    name: `Centre de Vote ${i + 1}`,
-    address: `Adresse du centre ${i + 1}`,
-    bureaux: Math.floor(Math.random() * 5) + 2,
-    voters: Math.floor(Math.random() * 1000) + 200,
-    status: Math.random() > 0.7 ? 'En préparation' : 'Prêt'
-  }));
+  const handleAddCandidate = (candidateData: Omit<Candidate, 'id'>) => {
+    const newCandidate: Candidate = {
+      ...candidateData,
+      id: Date.now().toString()
+    };
+    setCandidates([...candidates, newCandidate]);
+    setShowAddCandidate(false);
+  };
+
+  const handleRemoveCenter = (id: string) => {
+    setCenters(centers.filter(c => c.id !== id));
+  };
+
+  const handleRemoveCandidate = (id: string) => {
+    setCandidates(candidates.filter(c => c.id !== id));
+  };
 
   return (
     <Layout>
@@ -92,326 +181,234 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="outline" 
-              onClick={onBack}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Retour</span>
+            <Button variant="ghost" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Retour
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-gov-gray">{election.title}</h1>
               <p className="text-gray-600 mt-1">{election.description}</p>
+              <div className="flex items-center space-x-4 mt-2">
+                <Badge variant={getStatusVariant(election.status)}>{election.status}</Badge>
+                <span className="text-sm text-gray-500">
+                  {new Date(election.date).toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
+              </div>
             </div>
           </div>
-          <Badge variant={statusInfo.color === 'blue' ? 'default' : statusInfo.color === 'green' ? 'secondary' : 'outline'}>
-            {statusInfo.status}
-          </Badge>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="gov-card">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <Calendar className="w-8 h-8 text-blue-500" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="gov-card border-l-4 border-l-blue-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">
-                    {new Date(election.date).toLocaleDateString('fr-FR')}
-                  </div>
-                  <div className="text-sm text-gray-600">Date d'élection</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="gov-card">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <Users className="w-8 h-8 text-green-500" />
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm text-gray-600">Total Électeurs</p>
+                  <p className="text-2xl font-bold text-blue-600">
                     {election.voters.toLocaleString('fr-FR')}
-                  </div>
-                  <div className="text-sm text-gray-600">Électeurs inscrits</div>
+                  </p>
                 </div>
+                <Users className="h-8 w-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="gov-card">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <MapPin className="w-8 h-8 text-orange-500" />
+          <Card className="gov-card border-l-4 border-l-green-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{election.centers}</div>
-                  <div className="text-sm text-gray-600">Centres de vote</div>
+                  <p className="text-sm text-gray-600">Candidats</p>
+                  <p className="text-2xl font-bold text-green-600">{candidates.length}</p>
                 </div>
+                <Users className="h-8 w-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="gov-card">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <Building className="w-8 h-8 text-purple-500" />
+          <Card className="gov-card border-l-4 border-l-orange-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{election.bureaux}</div>
-                  <div className="text-sm text-gray-600">Bureaux de vote</div>
+                  <p className="text-sm text-gray-600">Centres de Vote</p>
+                  <p className="text-2xl font-bold text-orange-600">{centers.length}</p>
                 </div>
+                <MapPin className="h-8 w-8 text-orange-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="gov-card border-l-4 border-l-purple-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Bureaux de Vote</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {centers.reduce((sum, center) => sum + center.bureaux, 0)}
+                  </p>
+                </div>
+                <Building className="h-8 w-8 text-purple-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
-        <Card className="gov-card">
-          <CardContent className="p-0">
-            <Tabs defaultValue="overview" className="w-full">
-              <div className="border-b">
-                <TabsList className="grid w-full grid-cols-4 bg-transparent h-auto p-0">
-                  <TabsTrigger 
-                    value="overview" 
-                    className="py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-50"
-                  >
-                    Vue d'ensemble
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="candidates" 
-                    className="py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-50"
-                  >
-                    Candidats ({election.candidates.length})
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="centers" 
-                    className="py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-50"
-                  >
-                    Centres de vote ({election.centers})
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="settings" 
-                    className="py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-50"
-                  >
-                    Configuration
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+        {/* Main Content */}
+        <Tabs defaultValue="centers" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="centers" className="flex items-center space-x-2">
+              <MapPin className="w-4 h-4" />
+              <span>Centres et Bureaux de Vote</span>
+            </TabsTrigger>
+            <TabsTrigger value="candidates" className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Candidats Concernés</span>
+            </TabsTrigger>
+          </TabsList>
 
-              <div className="p-6">
-                <TabsContent value="overview" className="space-y-6 mt-0">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card className="gov-card">
-                      <CardHeader>
-                        <CardTitle>Informations générales</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Type d'élection</label>
-                          <p className="text-lg font-semibold">{election.type}</p>
+          {/* Section A: Centres et Bureaux */}
+          <TabsContent value="centers" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Centres de Vote</h3>
+              <Button onClick={() => setShowAddCenter(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter un centre
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {centers.map((center) => (
+                <Card 
+                  key={center.id} 
+                  className="gov-card hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setSelectedCenter(center)}
+                >
+                  <CardHeader>
+                    <CardTitle className="text-lg">{center.name}</CardTitle>
+                    <p className="text-sm text-gray-600">{center.address}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Responsable:</span>
+                        <span className="font-medium">{center.responsable}</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-orange-600">{center.bureaux}</div>
+                          <div className="text-xs text-gray-500">Bureaux</div>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Circonscription</label>
-                          <p className="text-lg font-semibold">{election.location}</p>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-blue-600">{center.voters}</div>
+                          <div className="text-xs text-gray-500">Électeurs</div>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Sièges disponibles</label>
-                          <p className="text-lg font-semibold">{election.seatsAvailable}</p>
+                      </div>
+
+                      <div className="flex space-x-2 pt-2">
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Eye className="w-4 h-4 mr-1" />
+                          Détails
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveCenter(center.id);
+                        }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Section B: Candidats */}
+          <TabsContent value="candidates" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Candidats Validés</h3>
+              <Button onClick={() => setShowAddCandidate(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter un candidat
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {candidates.map((candidate) => (
+                <Card 
+                  key={candidate.id} 
+                  className={`gov-card ${candidate.isOurCandidate ? 'border-2 border-gov-blue bg-blue-50' : ''}`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-4">
+                      <img 
+                        src={candidate.photo || '/placeholder.svg'} 
+                        alt={candidate.name}
+                        className="w-16 h-16 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="font-semibold text-lg">{candidate.name}</h3>
+                          {candidate.isOurCandidate && (
+                            <Badge className="bg-gov-blue text-white">
+                              <Star className="w-3 h-3 mr-1" />
+                              Notre Candidat
+                            </Badge>
+                          )}
                         </div>
-                        {election.budget && (
-                          <div>
-                            <label className="text-sm font-medium text-gray-600">Budget alloué</label>
-                            <p className="text-lg font-semibold">{election.budget.toLocaleString('fr-FR')} FCFA</p>
+                        <p className="text-gray-600 text-sm mb-2">{candidate.party}</p>
+                        
+                        {candidate.votes && (
+                          <div className="text-sm mb-2">
+                            <span className="font-medium">{candidate.votes.toLocaleString('fr-FR')} voix</span>
+                            <span className="text-gray-500 ml-2">({candidate.percentage}%)</span>
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
-
-                    <Card className="gov-card">
-                      <CardHeader>
-                        <CardTitle>Localisation administrative</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Province</label>
-                          <p className="text-lg font-semibold">{election.province}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Département</label>
-                          <p className="text-lg font-semibold">{election.department}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Commune</label>
-                          <p className="text-lg font-semibold">{election.commune}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Arrondissement</label>
-                          <p className="text-lg font-semibold">{election.arrondissement}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="candidates" className="space-y-6 mt-0">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">Liste des candidats</h3>
-                    <Button onClick={() => setShowAddCandidate(true)} className="gov-bg-primary">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Ajouter un candidat
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {election.candidates.map((candidate) => (
-                      <Card key={candidate.id} className="gov-card">
-                        <CardContent className="p-4">
-                          <div className="text-center space-y-3">
-                            <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto flex items-center justify-center">
-                              <Users className="w-8 h-8 text-gray-500" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-lg">{candidate.name}</h4>
-                              <p className="text-sm text-gray-600">{candidate.party}</p>
-                            </div>
-                            <Button variant="outline" size="sm" className="w-full">
-                              <Eye className="w-4 h-4 mr-2" />
-                              Voir le profil
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    
-                    {election.candidates.length === 0 && (
-                      <div className="col-span-full text-center py-8 text-gray-500">
-                        Aucun candidat ajouté pour cette élection
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="centers" className="space-y-6 mt-0">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">Centres de vote</h3>
-                    <Button onClick={() => setShowAddCenter(true)} className="gov-bg-primary">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Ajouter un centre
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {votingCenters.map((center) => (
-                      <Card key={center.id} className="gov-card hover:shadow-md transition-shadow cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h4 className="font-semibold text-lg">{center.name}</h4>
-                              <p className="text-sm text-gray-600">{center.address}</p>
-                            </div>
-                            <Badge variant={center.status === 'Prêt' ? 'secondary' : 'outline'}>
-                              {center.status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="text-center">
-                              <div className="text-lg font-bold text-gray-900">{center.bureaux}</div>
-                              <div className="text-xs text-gray-500">Bureaux</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-lg font-bold text-gray-900">{center.voters}</div>
-                              <div className="text-xs text-gray-500">Électeurs</div>
-                            </div>
-                          </div>
-
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full"
-                            onClick={() => setSelectedCenter(center)}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Voir les détails
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="settings" className="space-y-6 mt-0">
-                  <Card className="gov-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Settings className="w-5 h-5" />
-                        <span>Configuration de l'élection</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <h4 className="font-semibold">Paramètres généraux</h4>
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <span>Votes électroniques</span>
-                              <Badge variant="outline">Désactivé</Badge>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <span>Validation automatique</span>
-                              <Badge variant="secondary">Activé</Badge>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <span>Seuil de participation</span>
-                              <Badge variant="outline">50%</Badge>
-                            </div>
-                          </div>
-                        </div>
                         
-                        <div className="space-y-4">
-                          <h4 className="font-semibold">Sécurité</h4>
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-green-50 rounded">
-                              <span>Chiffrement des données</span>
-                              <CheckCircle className="w-5 h-5 text-green-500" />
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-green-50 rounded">
-                              <span>Audit trail</span>
-                              <CheckCircle className="w-5 h-5 text-green-500" />
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-green-50 rounded">
-                              <span>Vérification d'identité</span>
-                              <CheckCircle className="w-5 h-5 text-green-500" />
-                            </div>
-                          </div>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-4 h-4 mr-1" />
+                            Profil
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="w-4 h-4 mr-1" />
+                            Modifier
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleRemoveCandidate(candidate.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </div>
-            </Tabs>
-          </CardContent>
-        </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Modals */}
-        {showAddCandidate && (
-          <AddCandidateModal
-            onClose={() => setShowAddCandidate(false)}
-            onSubmit={(candidate) => {
-              console.log('Nouveau candidat:', candidate);
-              setShowAddCandidate(false);
-            }}
-          />
-        )}
-
         {showAddCenter && (
           <AddCenterModal
             onClose={() => setShowAddCenter(false)}
-            onSubmit={(center) => {
-              console.log('Nouveau centre:', center);
-              setShowAddCenter(false);
-            }}
+            onSubmit={handleAddCenter}
+          />
+        )}
+
+        {showAddCandidate && (
+          <AddCandidateModal
+            onClose={() => setShowAddCandidate(false)}
+            onSubmit={handleAddCandidate}
           />
         )}
 
