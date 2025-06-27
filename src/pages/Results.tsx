@@ -20,7 +20,6 @@ import {
 import DataEntrySection from '@/components/results/DataEntrySection';
 import ValidationSection from '@/components/results/ValidationSection';
 import PublishSection from '@/components/results/PublishSection';
-import ConsolidationSection from '@/components/results/ConsolidationSection';
 
 interface Candidate {
   id: string;
@@ -71,7 +70,7 @@ const Results = () => {
 
   // Générer des statistiques dynamiques basées sur l'élection courante
   const generateStats = () => {
-    if (!currentElection || !currentElection.candidates || !Array.isArray(currentElection.candidates)) {
+    if (!currentElection) {
       return {
         tauxSaisie: 0,
         bureauxSaisis: 0,
@@ -169,7 +168,7 @@ const Results = () => {
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <div className="border-b">
-                <TabsList className="grid w-full grid-cols-4 bg-transparent h-auto p-0">
+                <TabsList className="grid w-full grid-cols-3 bg-transparent h-auto p-0">
                   <TabsTrigger 
                     value="entry" 
                     className="flex items-center justify-center space-x-2 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-50"
@@ -188,13 +187,6 @@ const Results = () => {
                         {globalStats.pvsEnAttente}
                       </Badge>
                     )}
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="consolidation" 
-                    className="flex items-center justify-center space-x-2 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-50"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    <span>Consolidation</span>
                   </TabsTrigger>
                   <TabsTrigger 
                     value="publish" 
@@ -221,13 +213,6 @@ const Results = () => {
                   />
                 </TabsContent>
 
-                <TabsContent value="consolidation" className="space-y-6 mt-0">
-                  <ConsolidationSection 
-                    election={currentElection}
-                    results={globalStats.candidateResults}
-                  />
-                </TabsContent>
-
                 <TabsContent value="publish" className="space-y-6 mt-0">
                   <PublishSection 
                     election={currentElection}
@@ -244,3 +229,4 @@ const Results = () => {
 };
 
 export default Results;
+
