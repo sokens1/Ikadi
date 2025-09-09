@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -12,58 +13,133 @@ import {
 
 const Dashboard = () => {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
-  // Mock data for dashboard - Date mise à jour pour le 16 septembre 2025
-  const dashboardData = {
+  const [dashboardData, setDashboardData] = useState({
     nextElection: {
-      title: "Élection Présidentielle 2025",
-      date: "2025-09-16T08:00:00Z", // Date mise au 16 septembre 2025
-      endTime: "18h00",
-      status: "Phase de préparation"
+      title: "Aucune élection programmée",
+      date: null,
+      endTime: "",
+      status: "Aucune"
     },
     votersRegistered: {
-      total: 6210457,
-      trend: "+2.3% sur 30 jours"
+      total: 0,
+      trend: "0%"
     },
     infrastructure: {
-      centers: 1847,
-      provinces: 9,
-      bureaux: 2847,
-      average: 1.5
+      centers: 0,
+      provinces: 0,
+      bureaux: 0,
+      average: 0
     },
     pvsWaiting: {
-      count: 37,
-      status: "À valider"
+      count: 0,
+      status: "Aucun"
     }
-  };
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Charger les données depuis Supabase
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+
+        // 1. Récupérer la prochaine élection
+        const { data: nextElection } = await supabase
+          .from('elections')
+          .select('*')
+          .gte('election_date', new Date().toISOString())
+          .order('election_date', { ascending: true })
+          .limit(1)
+          .single();
+
+        // 2. Compter les votants
+        const { count: votersCount } = await supabase
+          .from('voters')
+          .select('*', { count: 'exact', head: true });
+
+        // 3. Compter les centres de vote
+        const { count: centersCount } = await supabase
+          .from('voting_centers')
+          .select('*', { count: 'exact', head: true });
+
+        // 4. Compter les bureaux de vote
+        const { count: bureauxCount } = await supabase
+          .from('voting_bureaux')
+          .select('*', { count: 'exact', head: true });
+
+        // 5. Compter les provinces
+        const { count: provincesCount } = await supabase
+          .from('provinces')
+          .select('*', { count: 'exact', head: true });
+
+        // 6. Compter les PVs en attente
+        const { count: pvsCount } = await supabase
+          .from('procès_verbaux')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+
+        // Mettre à jour les données
+        setDashboardData({
+          nextElection: nextElection ? {
+            title: nextElection.title,
+            date: nextElection.election_date,
+            endTime: nextElection.end_time || "18h00",
+            status: nextElection.status || "Programmée"
+          } : {
+            title: "Aucune élection programmée",
+            date: null,
+            endTime: "",
+            status: "Aucune"
+          },
+          votersRegistered: {
+            total: votersCount || 0,
+            trend: "+0%"
+          },
+          infrastructure: {
+            centers: centersCount || 0,
+            provinces: provincesCount || 0,
+            bureaux: bureauxCount || 0,
+            average: centersCount && bureauxCount ? (bureauxCount / centersCount).toFixed(1) : 0
+          },
+          pvsWaiting: {
+            count: pvsCount || 0,
+            status: pvsCount > 0 ? "À valider" : "Aucun"
+          }
+        });
+
+      } catch (error) {
+        console.error('Erreur lors du chargement des données:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   useEffect(() => {
+    if (!dashboardData.nextElection.date) return;
+
     const updateCountdown = () => {
       const now = new Date();
       const electionDate = new Date(dashboardData.nextElection.date);
       const diff = electionDate.getTime() - now.getTime();
-
-      console.log('Current time:', now);
-      console.log('Election date:', electionDate);
-      console.log('Time difference:', diff);
 
       if (diff > 0) {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
         setCountdown({ days, hours, minutes, seconds });
       } else {
         setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
       }
     };
 
-    // Mise à jour immédiate
     updateCountdown();
-    // Mise à jour chaque seconde
     const interval = setInterval(updateCountdown, 1000);
-    
-    // Nettoyage de l'intervalle
+
     return () => clearInterval(interval);
   }, [dashboardData.nextElection.date]);
 

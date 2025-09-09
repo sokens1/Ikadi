@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,75 +71,99 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
   const [showAddCenter, setShowAddCenter] = useState(false);
   const [showAddCandidate, setShowAddCandidate] = useState(false);
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
-  
-  const [centers, setCenters] = useState<Center[]>([
-    {
-      id: '1',
-      name: 'EPP de l\'Alliance',
-      address: 'Quartier Alliance, Moanda',
-      responsable: 'Jean-Pierre NZENG',
-      contact: '+241 07 XX XX XX',
-      bureaux: 4,
-      voters: 1420
-    },
-    {
-      id: '2',
-      name: 'Lycée Technique de Moanda',
-      address: 'Centre-ville, Moanda',
-      responsable: 'Marie OBIANG',
-      contact: '+241 07 XX XX XX',
-      bureaux: 6,
-      voters: 2180
-    },
-    {
-      id: '3',
-      name: 'Centre Culturel Municipal',
-      address: 'Place de l\'Indépendance, Moanda',
-      responsable: 'Paul EDOU',
-      contact: '+241 07 XX XX XX',
-      bureaux: 3,
-      voters: 1050
-    }
-  ]);
+  const [centers, setCenters] = useState<Center[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [candidates, setCandidates] = useState<Candidate[]>([
-    {
-      id: '1',
-      name: 'Dr. Antoine MBA',
-      party: 'Parti Démocratique Gabonais',
-      isOurCandidate: true,
-      photo: '/placeholder.svg',
-      votes: 4567,
-      percentage: 35.2
-    },
-    {
-      id: '2',
-      name: 'Marie-Claire ONDO',
-      party: 'Union Nationale',
-      isOurCandidate: false,
-      photo: '/placeholder.svg',
-      votes: 3890,
-      percentage: 30.1
-    },
-    {
-      id: '3',
-      name: 'François ENGONGA',
-      party: 'Rassemblement pour le Gabon',
-      isOurCandidate: false,
-      photo: '/placeholder.svg',
-      votes: 2845,
-      percentage: 22.0
-    },
-    {
-      id: '4',
-      name: 'Sylvie BOUANGA',
-      party: 'Coalition Nouvelle République',
-      isOurCandidate: false,
-      photo: '/placeholder.svg',
-      votes: 1628,
-      percentage: 12.7
-    }
-  ]);
+  // Charger les centres de vote pour cette élection
+  useEffect(() => {
+    const fetchCenters = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('voting_centers')
+          .select(`
+            *,
+            voting_bureaux(id, registered_voters)
+          `)
+          .eq('election_id', election.id)
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Erreur lors du chargement des centres:', error);
+          return;
+        }
+
+        // Transformer les données Supabase en format Center
+        const transformedCenters: Center[] = data?.map(center => {
+          const totalVoters = center.voting_bureaux?.reduce((sum: number, bureau: any) => 
+            sum + (bureau.registered_voters || 0), 0) || 0;
+          
+          return {
+            id: center.id.toString(),
+            name: center.name,
+            address: center.address || '',
+            responsable: center.contact_name || '',
+            contact: center.contact_phone || '',
+            bureaux: center.voting_bureaux?.length || 0,
+            voters: totalVoters
+          };
+        }) || [];
+
+        setCenters(transformedCenters);
+      } catch (error) {
+        console.error('Erreur lors du chargement des centres:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCenters();
+  }, [election.id]);
+
+  // Charger les candidats pour cette élection
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('election_candidates')
+          .select(`
+            *,
+            candidates(name, party, photo_url, is_priority),
+            candidate_results(votes_received)
+          `)
+          .eq('election_id', election.id)
+          .order('candidates(name)', { ascending: true });
+
+        if (error) {
+          console.error('Erreur lors du chargement des candidats:', error);
+          return;
+        }
+
+        // Transformer les données Supabase en format Candidate
+        const transformedCandidates: Candidate[] = data?.map(electionCandidate => {
+          const candidate = electionCandidate.candidates;
+          const result = electionCandidate.candidate_results?.[0];
+          
+          return {
+            id: electionCandidate.candidate_id.toString(),
+            name: candidate?.name || '',
+            party: candidate?.party || '',
+            isOurCandidate: candidate?.is_priority || false,
+            photo: candidate?.photo_url || '/placeholder.svg',
+            votes: result?.votes_received || 0,
+            percentage: 0 // Calculé dynamiquement si nécessaire
+          };
+        }) || [];
+
+        setCandidates(transformedCandidates);
+      } catch (error) {
+        console.error('Erreur lors du chargement des candidats:', error);
+      }
+    };
+
+    fetchCandidates();
+  }, [election.id]);
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -149,31 +174,133 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     }
   };
 
-  const handleAddCenter = (centerData: Omit<Center, 'id'>) => {
-    const newCenter: Center = {
-      ...centerData,
-      id: Date.now().toString()
-    };
-    setCenters([...centers, newCenter]);
-    setShowAddCenter(false);
+  const handleAddCenter = async (centerData: Omit<Center, 'id'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('voting_centers')
+        .insert([{
+          name: centerData.name,
+          address: centerData.address,
+          contact_name: centerData.responsable,
+          contact_phone: centerData.contact,
+          election_id: election.id,
+          total_voters: centerData.voters,
+          total_bureaux: centerData.bureaux
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erreur lors de l\'ajout du centre:', error);
+        return;
+      }
+
+      // Ajouter le nouveau centre à la liste locale
+      const newCenter: Center = {
+        ...centerData,
+        id: data.id.toString()
+      };
+      setCenters([...centers, newCenter]);
+      setShowAddCenter(false);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du centre:', error);
+    }
   };
 
-  const handleAddCandidate = (candidateData: Omit<Candidate, 'id'>) => {
-    const newCandidate: Candidate = {
-      ...candidateData,
-      id: Date.now().toString()
-    };
-    setCandidates([...candidates, newCandidate]);
-    setShowAddCandidate(false);
+  const handleAddCandidate = async (candidateData: Omit<Candidate, 'id'>) => {
+    try {
+      // D'abord créer le candidat
+      const { data: candidateResult, error: candidateError } = await supabase
+        .from('candidates')
+        .insert([{
+          name: candidateData.name,
+          party: candidateData.party,
+          photo_url: candidateData.photo,
+          is_priority: candidateData.isOurCandidate
+        }])
+        .select()
+        .single();
+
+      if (candidateError) {
+        console.error('Erreur lors de l\'ajout du candidat:', candidateError);
+        return;
+      }
+
+      // Ensuite l'associer à l'élection
+      const { error: electionCandidateError } = await supabase
+        .from('election_candidates')
+        .insert([{
+          election_id: election.id,
+          candidate_id: candidateResult.id
+        }]);
+
+      if (electionCandidateError) {
+        console.error('Erreur lors de l\'association candidat-élection:', electionCandidateError);
+        return;
+      }
+
+      // Ajouter le nouveau candidat à la liste locale
+      const newCandidate: Candidate = {
+        ...candidateData,
+        id: candidateResult.id.toString()
+      };
+      setCandidates([...candidates, newCandidate]);
+      setShowAddCandidate(false);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du candidat:', error);
+    }
   };
 
-  const handleRemoveCenter = (id: string) => {
-    setCenters(centers.filter(c => c.id !== id));
+  const handleRemoveCenter = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('voting_centers')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur lors de la suppression du centre:', error);
+        return;
+      }
+
+      setCenters(centers.filter(c => c.id !== id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression du centre:', error);
+    }
   };
 
-  const handleRemoveCandidate = (id: string) => {
-    setCandidates(candidates.filter(c => c.id !== id));
+  const handleRemoveCandidate = async (id: string) => {
+    try {
+      // Supprimer l'association candidat-élection
+      const { error: electionCandidateError } = await supabase
+        .from('election_candidates')
+        .delete()
+        .eq('election_id', election.id)
+        .eq('candidate_id', id);
+
+      if (electionCandidateError) {
+        console.error('Erreur lors de la suppression de l\'association:', electionCandidateError);
+        return;
+      }
+
+      setCandidates(candidates.filter(c => c.id !== id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression du candidat:', error);
+    }
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement des détails de l'élection...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -201,61 +328,6 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="gov-card border-l-4 border-l-blue-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Électeurs</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {election.voters.toLocaleString('fr-FR')}
-                  </p>
-                </div>
-                <Users className="h-8 w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="gov-card border-l-4 border-l-green-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Candidats</p>
-                  <p className="text-2xl font-bold text-green-600">{candidates.length}</p>
-                </div>
-                <Users className="h-8 w-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="gov-card border-l-4 border-l-orange-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Centres de Vote</p>
-                  <p className="text-2xl font-bold text-orange-600">{centers.length}</p>
-                </div>
-                <MapPin className="h-8 w-8 text-orange-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="gov-card border-l-4 border-l-purple-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Bureaux de Vote</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {centers.reduce((sum, center) => sum + center.bureaux, 0)}
-                  </p>
-                </div>
-                <Building className="h-8 w-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Main Content */}

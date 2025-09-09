@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -27,70 +28,101 @@ interface DataEntrySectionProps {
     ecartDeuxieme: number;
     anomaliesDetectees: number;
   };
+  selectedElection: string;
 }
 
-const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats }) => {
+const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElection }) => {
   const [expandedCenters, setExpandedCenters] = useState<string[]>([]);
   const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false);
   const [showPVEntry, setShowPVEntry] = useState(false);
+  const [votingCenters, setVotingCenters] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data pour les centres de vote
-  const votingCenters = [
-    {
-      id: 'C001',
-      name: 'EPP de l\'Alliance',
-      totalBureaux: 8,
-      bureauxSaisis: 8,
-      status: 'completed',
-      bureaux: [
-        { id: 'B001', name: 'Bureau 01', status: 'validated', agent: 'A. Nguema', time: '18h05' },
-        { id: 'B002', name: 'Bureau 02', status: 'validated', agent: 'B. Kassa', time: '18h12' },
-        { id: 'B003', name: 'Bureau 03', status: 'validated', agent: 'C. Mboumba', time: '18h20' },
-        { id: 'B004', name: 'Bureau 04', status: 'validated', agent: 'D. Ndong', time: '18h25' },
-        { id: 'B005', name: 'Bureau 05', status: 'validated', agent: 'E. Obiang', time: '18h30' },
-        { id: 'B006', name: 'Bureau 06', status: 'validated', agent: 'F. Ella', time: '18h35' },
-        { id: 'B007', name: 'Bureau 07', status: 'validated', agent: 'G. Mengue', time: '18h40' },
-        { id: 'B008', name: 'Bureau 08', status: 'validated', agent: 'H. Nze', time: '18h45' }
-      ]
-    },
-    {
-      id: 'C002',
-      name: 'Lycée d\'État',
-      totalBureaux: 6,
-      bureauxSaisis: 5,
-      status: 'in-progress',
-      bureaux: [
-        { id: 'B001', name: 'Bureau 01', status: 'entered', agent: 'C. Mboumba', time: '18h20' },
-        { id: 'B002', name: 'Bureau 02', status: 'anomaly', agent: 'I. Koumba', time: '18h15', anomaly: 'Les votes exprimés > nombre de votants' },
-        { id: 'B003', name: 'Bureau 03', status: 'entered', agent: 'J. Okouya', time: '18h30' },
-        { id: 'B004', name: 'Bureau 04', status: 'entered', agent: 'K. Ngoua', time: '18h25' },
-        { id: 'B005', name: 'Bureau 05', status: 'entered', agent: 'L. Bouanga', time: '18h35' },
-        { id: 'B006', name: 'Bureau 06', status: 'pending', agent: '', time: '' }
-      ]
-    },
-    {
-      id: 'C003',
-      name: 'Centre Municipal',
-      totalBureaux: 4,
-      bureauxSaisis: 3,
-      status: 'in-progress',
-      bureaux: [
-        { id: 'B001', name: 'Bureau 01', status: 'anomaly', agent: 'M. Assele', time: '18h10', anomaly: 'Photo du PV illisible' },
-        { id: 'B002', name: 'Bureau 02', status: 'entered', agent: 'N. Mouandza', time: '18h22' },
-        { id: 'B003', name: 'Bureau 03', status: 'anomaly', agent: 'O. Bivigou', time: '18h18', anomaly: 'Signature manquante' },
-        { id: 'B004', name: 'Bureau 04', status: 'pending', agent: '', time: '' }
-      ]
-    }
-  ];
+  // Charger les centres de vote et leurs PV depuis Supabase
+  useEffect(() => {
+    if (!selectedElection) return;
+
+    const fetchVotingCenters = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('voting_centers')
+          .select(`
+            *,
+            voting_bureaux(
+              id,
+              name,
+              procès_verbaux(
+                id,
+                status,
+                entered_by,
+                entered_at,
+                anomalies
+              )
+            )
+          `)
+          .eq('election_id', selectedElection)
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Erreur lors du chargement des centres de vote:', error);
+          return;
+        }
+
+        // Transformer les données Supabase
+        const transformedCenters = data?.map(center => {
+          const bureaux = center.voting_bureaux?.map((bureau: any) => {
+            const pv = bureau.procès_verbaux?.[0]; // Prendre le premier PV
+            return {
+              id: bureau.id.toString(),
+              name: bureau.name,
+              status: pv?.status || 'pending',
+              agent: pv?.entered_by || '',
+              time: pv?.entered_at ? new Date(pv.entered_at).toLocaleTimeString('fr-FR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }) : '',
+              anomaly: pv?.anomalies || null
+            };
+          }) || [];
+
+          const bureauxSaisis = bureaux.filter((b: any) => 
+            b.status === 'saisi' || b.status === 'validé' || b.status === 'anomaly'
+          ).length;
+
+          return {
+            id: center.id.toString(),
+            name: center.name,
+            totalBureaux: center.voting_bureaux?.length || 0,
+            bureauxSaisis,
+            status: bureauxSaisis === center.voting_bureaux?.length ? 'completed' : 
+                   bureauxSaisis > 0 ? 'in-progress' : 'pending',
+            bureaux
+          };
+        }) || [];
+
+        setVotingCenters(transformedCenters);
+      } catch (error) {
+        console.error('Erreur lors du chargement des centres de vote:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVotingCenters();
+  }, [selectedElection]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'validé':
       case 'validated':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'saisi':
       case 'entered':
         return <Clock className="w-4 h-4 text-blue-600" />;
       case 'anomaly':
         return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      case 'en_attente':
       case 'pending':
         return <Clock className="w-4 h-4 text-gray-400" />;
       default:
@@ -237,8 +269,28 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats }) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredCenters.map((center) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Chargement des centres de vote...</p>
+              </div>
+            </div>
+          ) : filteredCenters.length === 0 ? (
+            <div className="text-center py-8">
+              <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Aucun centre de vote trouvé
+              </h3>
+              <p className="text-gray-600">
+                {showAnomaliesOnly 
+                  ? 'Aucune anomalie détectée pour le moment.'
+                  : 'Aucun centre de vote configuré pour cette élection.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredCenters.map((center) => (
               <div key={center.id} className="border border-gray-200 rounded-lg">
                 <div 
                   className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
@@ -303,7 +355,8 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats }) => {
                 )}
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

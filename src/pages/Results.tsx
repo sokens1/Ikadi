@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -23,25 +24,135 @@ import PublishSection from '@/components/results/PublishSection';
 
 const Results = () => {
   const [activeTab, setActiveTab] = useState('entry');
-  const [selectedElection, setSelectedElection] = useState('legislatives-2023-moanda');
+  const [selectedElection, setSelectedElection] = useState<string>('');
+  const [availableElections, setAvailableElections] = useState<Array<{id: string, name: string}>>([]);
+  const [globalStats, setGlobalStats] = useState({
+    tauxSaisie: 0,
+    bureauxSaisis: 0,
+    totalBureaux: 0,
+    voixNotreCanidat: 0,
+    ecartDeuxieme: 0,
+    anomaliesDetectees: 0,
+    pvsEnAttente: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  // Mock data pour les élections disponibles
-  const availableElections = [
-    { id: 'legislatives-2023-moanda', name: 'Législatives 2023 - Moanda' },
-    { id: 'municipales-2023-libreville', name: 'Municipales 2023 - Libreville' },
-    { id: 'presidentielles-2023', name: 'Présidentielles 2023' }
-  ];
+  // Charger les élections disponibles depuis Supabase
+  useEffect(() => {
+    const fetchElections = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('elections')
+          .select('id, title')
+          .order('election_date', { ascending: false });
 
-  // Mock data pour les statistiques globales
-  const globalStats = {
-    tauxSaisie: 85,
-    bureauxSaisis: 41,
-    totalBureaux: 48,
-    voixNotreCanidat: 7230,
-    ecartDeuxieme: 1150,
-    anomaliesDetectees: 3,
-    pvsEnAttente: 12
-  };
+        if (error) {
+          console.error('Erreur lors du chargement des élections:', error);
+          return;
+        }
+
+        const elections = data?.map(election => ({
+          id: election.id.toString(),
+          name: election.title
+        })) || [];
+
+        setAvailableElections(elections);
+        
+        // Sélectionner la première élection par défaut
+        if (elections.length > 0) {
+          setSelectedElection(elections[0].id);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des élections:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchElections();
+  }, []);
+
+  // Charger les statistiques globales pour l'élection sélectionnée
+  useEffect(() => {
+    if (!selectedElection) return;
+
+    const fetchGlobalStats = async () => {
+      try {
+        // Récupérer les statistiques des PV
+        const { data: pvData, error: pvError } = await supabase
+          .from('procès_verbaux')
+          .select('status, election_id')
+          .eq('election_id', selectedElection);
+
+        if (pvError) {
+          console.error('Erreur lors du chargement des PV:', pvError);
+          return;
+        }
+
+        // Récupérer le nombre total de bureaux pour cette élection
+        const { data: bureauxData, error: bureauxError } = await supabase
+          .from('voting_bureaux')
+          .select('id')
+          .eq('election_id', selectedElection);
+
+        if (bureauxError) {
+          console.error('Erreur lors du chargement des bureaux:', bureauxError);
+          return;
+        }
+
+        const totalBureaux = bureauxData?.length || 0;
+        const pvsSaisis = pvData?.filter(pv => pv.status === 'saisi').length || 0;
+        const pvsEnAttente = pvData?.filter(pv => pv.status === 'en_attente').length || 0;
+        const tauxSaisie = totalBureaux > 0 ? Math.round((pvsSaisis / totalBureaux) * 100) : 0;
+
+        // Récupérer les résultats des candidats
+        const { data: resultsData, error: resultsError } = await supabase
+          .from('candidate_results')
+          .select('votes_received, candidate_id, candidates(name)')
+          .eq('election_id', selectedElection)
+          .order('votes_received', { ascending: false });
+
+        if (resultsError) {
+          console.error('Erreur lors du chargement des résultats:', resultsError);
+          return;
+        }
+
+        const sortedResults = resultsData || [];
+        const voixNotreCanidat = sortedResults[0]?.votes_received || 0;
+        const ecartDeuxieme = sortedResults.length > 1 
+          ? voixNotreCanidat - (sortedResults[1]?.votes_received || 0) 
+          : 0;
+
+        setGlobalStats({
+          tauxSaisie,
+          bureauxSaisis: pvsSaisis,
+          totalBureaux,
+          voixNotreCanidat,
+          ecartDeuxieme,
+          anomaliesDetectees: 0, // À implémenter selon la logique métier
+          pvsEnAttente
+        });
+      } catch (error) {
+        console.error('Erreur lors du chargement des statistiques:', error);
+      }
+    };
+
+    fetchGlobalStats();
+  }, [selectedElection]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement des résultats...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -111,7 +222,7 @@ const Results = () => {
 
               <div className="p-6">
                 <TabsContent value="entry" className="space-y-6 mt-0">
-                  <DataEntrySection stats={globalStats} />
+                  <DataEntrySection stats={globalStats} selectedElection={selectedElection} />
                 </TabsContent>
 
                 <TabsContent value="validation" className="space-y-6 mt-0">
