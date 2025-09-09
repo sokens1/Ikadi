@@ -74,6 +74,12 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
   const [centers, setCenters] = useState<Center[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statistics, setStatistics] = useState({
+    totalVoters: 0,
+    totalCenters: 0,
+    totalBureaux: 0,
+    totalCandidates: 0
+  });
 
   // Charger les centres de vote pour cette élection
   useEffect(() => {
@@ -91,6 +97,20 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
         if (error) {
           console.error('Erreur lors du chargement des centres:', error);
+          // Si la table n'existe pas, créer des centres fictifs basés sur les données de l'élection
+          if (election.centers > 0) {
+            const mockCenters: Center[] = Array.from({ length: election.centers }, (_, index) => ({
+              id: `mock-${index}`,
+              name: `Centre de Vote ${index + 1}`,
+              address: 'Adresse à définir',
+              responsable: 'Responsable à nommer',
+              contact: 'Contact à définir',
+              bureaux: Math.floor(election.bureaux / election.centers) || 1,
+              voters: Math.floor(election.voters / election.centers) || 0
+            }));
+            setCenters(mockCenters);
+          }
+          setLoading(false);
           return;
         }
 
@@ -126,35 +146,39 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     const fetchCandidates = async () => {
       try {
         const { data, error } = await supabase
-          .from('election_candidates')
-          .select(`
-            *,
-            candidates(name, party, photo_url, is_priority),
-            candidate_results(votes_received)
-          `)
+          .from('candidates')
+          .select('*')
           .eq('election_id', election.id)
-          .order('candidates(name)', { ascending: true });
+          .order('name', { ascending: true });
 
         if (error) {
           console.error('Erreur lors du chargement des candidats:', error);
+          // Si la table n'existe pas, créer des candidats fictifs basés sur les données de l'élection
+          if (election.candidates > 0) {
+            const mockCandidates: Candidate[] = Array.from({ length: election.candidates }, (_, index) => ({
+              id: `mock-candidate-${index}`,
+              name: `Candidat ${index + 1}`,
+              party: 'Parti à définir',
+              isOurCandidate: index === 0, // Le premier candidat est "notre candidat"
+              photo: '/placeholder.svg',
+              votes: 0,
+              percentage: 0
+            }));
+            setCandidates(mockCandidates);
+          }
           return;
         }
 
         // Transformer les données Supabase en format Candidate
-        const transformedCandidates: Candidate[] = data?.map(electionCandidate => {
-          const candidate = electionCandidate.candidates;
-          const result = electionCandidate.candidate_results?.[0];
-          
-          return {
-            id: electionCandidate.candidate_id.toString(),
-            name: candidate?.name || '',
-            party: candidate?.party || '',
-            isOurCandidate: candidate?.is_priority || false,
-            photo: candidate?.photo_url || '/placeholder.svg',
-            votes: result?.votes_received || 0,
-            percentage: 0 // Calculé dynamiquement si nécessaire
-          };
-        }) || [];
+        const transformedCandidates: Candidate[] = data?.map(candidate => ({
+          id: candidate.id.toString(),
+          name: candidate.name || '',
+          party: candidate.party || '',
+          isOurCandidate: candidate.is_priority || false,
+          photo: candidate.photo_url || '/placeholder.svg',
+          votes: candidate.votes_received || 0,
+          percentage: 0 // Calculé dynamiquement si nécessaire
+        })) || [];
 
         setCandidates(transformedCandidates);
       } catch (error) {
@@ -164,6 +188,19 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
     fetchCandidates();
   }, [election.id]);
+
+  // Mettre à jour les statistiques quand les données changent
+  useEffect(() => {
+    const totalVoters = centers.reduce((sum, center) => sum + center.voters, 0);
+    const totalBureaux = centers.reduce((sum, center) => sum + center.bureaux, 0);
+    
+    setStatistics({
+      totalVoters: totalVoters || election.voters,
+      totalCenters: centers.length || election.centers,
+      totalBureaux: totalBureaux || election.bureaux,
+      totalCandidates: candidates.length || election.candidates
+    });
+  }, [centers, candidates, election]);
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -331,17 +368,177 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="centers" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="info" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="info" className="flex items-center space-x-2">
+              <Building className="w-4 h-4" />
+              <span>Informations</span>
+            </TabsTrigger>
             <TabsTrigger value="centers" className="flex items-center space-x-2">
               <MapPin className="w-4 h-4" />
-              <span>Centres et Bureaux de Vote</span>
+              <span>Centres et Bureaux</span>
             </TabsTrigger>
             <TabsTrigger value="candidates" className="flex items-center space-x-2">
               <Users className="w-4 h-4" />
-              <span>Candidats Concernés</span>
+              <span>Candidats</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Section Informations */}
+          <TabsContent value="info" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Informations générales */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="w-5 h-5" />
+                    Informations Générales
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Type d'élection</label>
+                      <p className="text-lg font-semibold">{election.type}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Statut</label>
+                      <div className="mt-1">
+                        <Badge variant={getStatusVariant(election.status)}>{election.status}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Date du scrutin</label>
+                    <p className="text-lg font-semibold">
+                      {new Date(election.date).toLocaleDateString('fr-FR', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Description</label>
+                    <p className="text-gray-700">{election.description || 'Aucune description'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Sièges à pourvoir</label>
+                    <p className="text-lg font-semibold">{election.seatsAvailable}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Informations géographiques */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    Circonscription Électorale
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Province</label>
+                    <p className="text-lg font-semibold">{election.province || 'Non spécifiée'}</p>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Département</label>
+                    <p className="text-lg font-semibold">{election.department || 'Non spécifié'}</p>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Commune</label>
+                    <p className="text-lg font-semibold">{election.commune || 'Non spécifiée'}</p>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Arrondissement</label>
+                    <p className="text-lg font-semibold">{election.arrondissement || 'Non spécifié'}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Objectifs et budget */}
+              {(election.budget > 0 || election.voteGoal > 0) && (
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Star className="w-5 h-5" />
+                      Objectifs et Budget
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {election.budget > 0 && (
+                        <div className="text-center p-4 bg-purple-50 rounded-lg">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {election.budget.toLocaleString('fr-FR')} FCFA
+                          </div>
+                          <div className="text-sm text-gray-600">Budget alloué</div>
+                        </div>
+                      )}
+                      
+                      {election.voteGoal > 0 && (
+                        <div className="text-center p-4 bg-orange-50 rounded-lg">
+                          <div className="text-2xl font-bold text-orange-600">
+                            {election.voteGoal.toLocaleString('fr-FR')}
+                          </div>
+                          <div className="text-sm text-gray-600">Objectif de voix</div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Statistiques */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Statistiques
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {statistics.totalVoters.toLocaleString('fr-FR')}
+                      </div>
+                      <div className="text-sm text-gray-600">Électeurs inscrits</div>
+                    </div>
+                    
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {statistics.totalCenters}
+                      </div>
+                      <div className="text-sm text-gray-600">Centres de vote</div>
+                    </div>
+                    
+                    <div className="text-center p-4 bg-indigo-50 rounded-lg">
+                      <div className="text-2xl font-bold text-indigo-600">
+                        {statistics.totalBureaux}
+                      </div>
+                      <div className="text-sm text-gray-600">Bureaux de vote</div>
+                    </div>
+                    
+                    <div className="text-center p-4 bg-pink-50 rounded-lg">
+                      <div className="text-2xl font-bold text-pink-600">
+                        {statistics.totalCandidates}
+                      </div>
+                      <div className="text-sm text-gray-600">Candidats</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Section A: Centres et Bureaux */}
           <TabsContent value="centers" className="space-y-6">

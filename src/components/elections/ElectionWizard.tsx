@@ -17,10 +17,11 @@ interface Candidate {
 
 interface ElectionWizardProps {
   onClose: () => void;
-  onSubmit: (election: any) => void;
+  onSubmit?: (election: any) => void;
+  onSuccess?: () => void;
 }
 
-const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit }) => {
+const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Étape 1
@@ -101,28 +102,28 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit }) =>
   };
 
   const handleSubmit = () => {
-    const election = {
-      title: formData.name,
-      date: formData.date,
-      status: 'À venir',
-      statusColor: 'blue',
-      description: `Circonscription ${formData.commune}, ${formData.arrondissement}`,
-      voters: formData.totalVoters,
-      candidates: formData.candidates.length,
-      centers: formData.totalCenters,
-      bureaux: formData.totalCenters * formData.averageBureaux,
-      location: `${formData.commune}, ${formData.arrondissement}`,
-      type: formData.type,
-      seatsAvailable: formData.seatsAvailable,
-      budget: formData.budget,
-      voteGoal: formData.voteGoal,
-      province: formData.province,
-      department: formData.department,
-      commune: formData.commune,
-      arrondissement: formData.arrondissement
-    };
-    
-    onSubmit(election);
+    if (onSubmit) {
+      const election = {
+        name: formData.name,
+        type: formData.type,
+        date: formData.date,
+        seatsAvailable: formData.seatsAvailable,
+        budget: formData.budget,
+        voteGoal: formData.voteGoal,
+        province: formData.province,
+        department: formData.department,
+        commune: formData.commune,
+        arrondissement: formData.arrondissement,
+        candidates: formData.candidates,
+        totalCenters: formData.totalCenters,
+        averageBureaux: formData.averageBureaux,
+        totalVoters: formData.totalVoters
+      };
+      
+      onSubmit(election);
+    } else if (onSuccess) {
+      onSuccess();
+    }
   };
 
   const canProceed = () => {

@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check for existing session
-    const savedUser = localStorage.getItem('ewana-user');
+    const savedUser = localStorage.getItem('ikadi-user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isActive: true
           };
           setUser(defaultUser);
-          localStorage.setItem('ewana-user', JSON.stringify(defaultUser));
+          localStorage.setItem('ikadi-user', JSON.stringify(defaultUser));
           return true;
         }
 
@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         setUser(user);
-        localStorage.setItem('ewana-user', JSON.stringify(user));
+        localStorage.setItem('ikadi-user', JSON.stringify(user));
         return true;
       }
 
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('ewana-user');
+    localStorage.removeItem('ikadi-user');
   };
 
   return (
