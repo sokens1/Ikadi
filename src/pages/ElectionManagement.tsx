@@ -51,13 +51,7 @@ const ElectionManagement = () => {
         setLoading(true);
         const { data, error } = await supabase
           .from('elections')
-          .select(`
-            *,
-            provinces(name),
-            departments(name),
-            communes(name),
-            arrondissements(name)
-          `)
+          .select('*')
           .order('election_date', { ascending: false });
 
         if (error) {
@@ -66,27 +60,51 @@ const ElectionManagement = () => {
         }
 
         // Transformer les données Supabase en format Election
-        const transformedElections: Election[] = data?.map(election => ({
-          id: election.id,
-          title: election.title,
-          date: election.election_date,
-          status: election.status || "Programmée",
-          statusColor: getStatusColor(election.status),
-          description: election.description || "",
-          voters: election.registered_voters || 0,
-          candidates: election.candidates_count || 0,
-          centers: election.voting_centers_count || 0,
-          bureaux: election.voting_bureaux_count || 0,
-          location: `${election.communes?.name || ''}, ${election.departments?.name || ''}`,
-          type: election.election_type || "Générale",
-          seatsAvailable: election.seats_available || 1,
-          budget: election.budget || 0,
-          voteGoal: election.vote_goal || 0,
-          province: election.provinces?.name || "",
-          department: election.departments?.name || "",
-          commune: election.communes?.name || "",
-          arrondissement: election.arrondissements?.name || ""
-        })) || [];
+        const transformedElections: Election[] = data?.map(election => {
+          // Extraire les informations géographiques de la description
+          const description = election.description || "";
+          let commune = "";
+          let arrondissement = "";
+          let department = "";
+          let province = "";
+          
+          if (description.startsWith("Circonscription ")) {
+            const locationText = description.replace("Circonscription ", "");
+            const parts = locationText.split(", ");
+            commune = parts[0] || "";
+            arrondissement = parts[1] || "";
+            
+            // Essayer d'extraire le département et la province si disponibles
+            if (parts.length > 2) {
+              department = parts[2] || "";
+            }
+            if (parts.length > 3) {
+              province = parts[3] || "";
+            }
+          }
+          
+          return {
+            id: election.id,
+            title: election.title,
+            date: election.election_date,
+            status: election.status || "À venir",
+            statusColor: getStatusColor(election.status),
+            description: description,
+            voters: 0, // Sera calculé dynamiquement
+            candidates: 0, // Sera calculé dynamiquement
+            centers: 0, // Sera calculé dynamiquement
+            bureaux: 0, // Sera calculé dynamiquement
+            location: commune && arrondissement ? `${commune}, ${arrondissement}` : commune || "",
+            type: election.type || "Législatives",
+            seatsAvailable: election.seats_available || 1,
+            budget: election.budget || 0,
+            voteGoal: election.vote_goal || 0,
+            province: province,
+            department: department,
+            commune: commune,
+            arrondissement: arrondissement
+          };
+        }) || [];
 
         setElections(transformedElections);
       } catch (error) {
@@ -143,8 +161,8 @@ const ElectionManagement = () => {
 
   if (selectedElection) {
     return (
-      <ElectionDetailView 
-        election={selectedElection} 
+      <ElectionDetailView
+        election={selectedElection}
         onBack={handleCloseDetail}
       />
     );
@@ -208,8 +226,8 @@ const ElectionManagement = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
-                        {election.title}
-                      </CardTitle>
+                      {election.title}
+                    </CardTitle>
                       <Badge 
                         variant={getStatusVariant(election.statusColor)}
                         className="mb-2"
@@ -237,8 +255,13 @@ const ElectionManagement = () => {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <MapPin className="h-4 w-4" />
-                      <span>{election.location}</span>
+                      <span>{election.location || `${election.commune}, ${election.department}`}</span>
                     </div>
+                    {election.description && (
+                      <div className="text-sm text-gray-500">
+                        {election.description}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 pt-2 border-t">
@@ -262,28 +285,113 @@ const ElectionManagement = () => {
                     </div>
                   </div>
 
-                  <Button
-                    variant="outline"
+
+                    <Button 
+                      variant="outline" 
                     className="w-full flex items-center justify-center gap-2"
                     onClick={() => handleViewElection(election)}
                   >
                     Voir les détails
                     <ArrowRight className="h-4 w-4" />
-                  </Button>
+                    </Button>
                 </CardContent>
               </Card>
             ))}
-          </div>
+        </div>
         )}
 
         {/* Election Wizard Modal */}
         {showWizard && (
-          <ElectionWizard 
+          <ElectionWizard
             onClose={() => setShowWizard(false)}
-            onSuccess={() => {
-              setShowWizard(false);
-              // Recharger les élections
-              window.location.reload();
+            onSubmit={async (election) => {
+              try {
+                // Vérifier l'authentification
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                console.log('Utilisateur connecté:', user);
+                console.log('Erreur d\'authentification:', authError);
+
+                if (authError || !user) {
+                  alert('Erreur d\'authentification. Veuillez vous reconnecter.');
+                  return;
+                }
+
+                // Enregistrer l'élection en base de données
+                // Données à insérer (seulement les colonnes qui existent)
+                const electionData = {
+                  title: election.name,
+                  type: election.type,
+                  election_date: election.date,
+                  status: 'À venir',
+                  seats_available: election.seatsAvailable || 1,
+                  budget: election.budget || 0,
+                  vote_goal: election.voteGoal || 0,
+                  description: `Circonscription ${election.commune}, ${election.arrondissement}, ${election.department}, ${election.province}`
+                };
+
+                console.log('Données à insérer:', JSON.stringify(electionData, null, 2));
+
+                const { data, error } = await supabase
+                  .from('elections')
+                  .insert(electionData)
+                  .select();
+
+                if (error) {
+                  console.error('Erreur lors de la création de l\'élection:', error);
+                  console.error('Détails de l\'erreur:', JSON.stringify({
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code
+                  }, null, 2));
+                  
+                  // Afficher plus de détails dans l'alerte
+                  const errorDetails = `
+Erreur: ${error.message}
+Code: ${error.code}
+Détails: ${error.details || 'Aucun'}
+Conseil: ${error.hint || 'Aucun'}
+                  `.trim();
+                  
+                  alert(`Erreur lors de la création de l'élection:\n\n${errorDetails}`);
+                  return;
+                }
+
+                console.log('Élection créée avec succès:', data);
+                
+                // Sauvegarder les candidats si ils existent
+                if (election.candidates && election.candidates.length > 0) {
+                  try {
+                    // Créer les candidats en base de données
+                    const candidatesData = election.candidates.map(candidate => ({
+                      name: candidate.name,
+                      party: candidate.party,
+                      is_priority: candidate.isOurCandidate,
+                      election_id: data.id
+                    }));
+
+                    const { error: candidatesError } = await supabase
+                      .from('candidates')
+                      .insert(candidatesData);
+
+                    if (candidatesError) {
+                      console.error('Erreur lors de la sauvegarde des candidats:', candidatesError);
+                    } else {
+                      console.log('Candidats sauvegardés avec succès');
+                    }
+                  } catch (error) {
+                    console.error('Erreur lors de la sauvegarde des candidats:', error);
+                  }
+                }
+                
+                setShowWizard(false);
+                
+                // Recharger les élections
+                window.location.reload();
+              } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la création de l\'élection');
+              }
             }}
           />
         )}

@@ -147,7 +147,7 @@ const Voters = () => {
   const exportCsv = () => {
     const header = ['Nom', 'Prénom', 'Centre', 'Bureau de vote', 'Quartier', 'Téléphone'];
     const rows = filtered.map(v => [v.lastName, v.firstName, v.center, v.bureau, v.quartier, v.phone]);
-    const csv = [header, ...rows].map(r => r.map(x => `"${x.replaceAll('"', '""')}"`).join(',')).join('\n');
+    const csv = [header, ...rows].map(r => r.map(x => `"${x.replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -631,5 +631,4 @@ const Voters = () => {
 };
 
 export default Voters;
-
 

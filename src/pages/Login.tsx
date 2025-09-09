@@ -26,7 +26,7 @@ const Login = () => {
       if (success) {
         toast({
           title: "Connexion réussie",
-          description: "Bienvenue dans eWana",
+          description: "Bienvenue dans iKadi",
         });
         navigate('/dashboard');
       } else {
@@ -55,11 +55,11 @@ const Login = () => {
           <Link to="/" className="inline-block">
             <div className="flex items-center justify-center space-x-3 mb-4">
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                <span className="text-gov-blue font-bold text-xl">eW</span>
+                <span className="text-gov-blue font-bold text-xl">iK</span>
               </div>
               <div className="text-left">
-                <h1 className="text-white font-bold text-3xl">eWana</h1>
-                <p className="text-blue-100 text-sm">Gestion Électorale</p>
+                <h1 className="text-white font-bold text-3xl">iKadi</h1>
+                <p className="text-blue-100 text-sm">République Gabonaise - Élections Transparentes</p>
               </div>
             </div>
           </Link>
@@ -81,7 +81,7 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="directeur@ewana.ga"
+                  placeholder="votre.email@gabon.ga"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -133,14 +133,6 @@ const Login = () => {
               </Button>
             </form>
 
-            {/* Demo credentials info */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm font-medium text-gov-blue mb-2">Démonstration :</p>
-              <p className="text-xs text-gray-600">
-                Email: directeur@ewana.ga<br />
-                Mot de passe: admin123
-              </p>
-            </div>
 
             <div className="mt-6 text-center">
               <Link 
