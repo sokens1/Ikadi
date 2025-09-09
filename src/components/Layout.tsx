@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   Info,
   Check,
-  Trash2
+  Trash2,
+  IdCard
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -62,10 +63,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const menuItems = [
     { icon: Home, label: 'Tableau de Bord', path: '/dashboard' },
     { icon: Calendar, label: 'Élections', path: '/elections' },
+    { icon: IdCard, label: 'Votants', path: '/voters' },
+    { icon: BarChart3, label: 'Résultats', path: '/results' },
     { icon: Users, label: 'Gestion Utilisateurs', path: '/users' },
-    { icon: BarChart3, label: 'Centralisation Résultats', path: '/results' },
-    { icon: Megaphone, label: 'Gestion Campagne', path: '/campaign' },
-    { icon: MessageSquare, label: 'Conversations', path: '/conversations' },
+    // { icon: Megaphone, label: 'Gestion Campagne', path: '/campaign' }, // Désactivé
+    // { icon: MessageSquare, label: 'Conversations', path: '/conversations' }, // Désactivé
   ];
 
   const handleLogout = () => {

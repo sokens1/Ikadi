@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -95,59 +96,132 @@ const VotingCenters = () => {
     totalBureaux: ''
   });
 
-  // Données mock pour les centres de vote
-  const votingCenters: VotingCenter[] = [
-    {
-      id: 'CV001',
-      name: 'École Primaire de Libreville Centre',
-      address: '15 Avenue de la République, Libreville',
-      province: 'Estuaire',
-      city: 'Libreville',
-      district: 'Centre',
-      coordinates: { lat: 0.3936, lng: 9.4573 },
-      contact: {
-        name: 'Marie Ngoua',
-        phone: '+241 01 23 45 67',
-        email: 'marie.ngoua@education.ga'
-      },
-      photo: '/placeholder.svg',
-      totalVoters: 2450,
-      totalBureaux: 8
-    },
-    {
-      id: 'CV002',
-      name: 'Lycée National Léon Mba',
-      address: '45 Boulevard Triomphal Omar Bongo, Libreville',
-      province: 'Estuaire',
-      city: 'Libreville',
-      district: 'Batterie IV',
-      coordinates: { lat: 0.4162, lng: 9.4673 },
-      contact: {
-        name: 'Paul Obame',
-        phone: '+241 01 34 56 78',
-        email: 'paul.obame@education.ga'
-      },
-      photo: '/placeholder.svg',
-      totalVoters: 3200,
-      totalBureaux: 12
+  const [votingCenters, setVotingCenters] = useState<VotingCenter[]>([]);
+  const [bureaux, setBureaux] = useState<Bureau[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Charger les centres de vote depuis Supabase
+  useEffect(() => {
+    const fetchVotingCenters = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('voting_centers')
+          .select(`
+            *,
+            provinces(name),
+            departments(name),
+            communes(name),
+            arrondissements(name)
+          `)
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Erreur lors du chargement des centres de vote:', error);
+          return;
+        }
+
+        // Transformer les données Supabase en format VotingCenter
+        const transformedCenters: VotingCenter[] = data?.map(center => ({
+          id: center.id.toString(),
+          name: center.name,
+          address: center.address || '',
+          province: center.provinces?.name || '',
+          city: center.communes?.name || '',
+          district: center.arrondissements?.name || '',
+          coordinates: { 
+            lat: center.latitude || 0, 
+            lng: center.longitude || 0 
+          },
+          contact: {
+            name: center.contact_name || '',
+            phone: center.contact_phone || '',
+            email: center.contact_email || ''
+          },
+          photo: '/placeholder.svg',
+          totalVoters: center.total_voters || 0,
+          totalBureaux: center.total_bureaux || 0
+        })) || [];
+
+        setVotingCenters(transformedCenters);
+      } catch (error) {
+        console.error('Erreur lors du chargement des centres de vote:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVotingCenters();
+  }, []);
+
+  // Charger les bureaux pour le centre sélectionné
+  useEffect(() => {
+    if (!selectedCenter) {
+      setBureaux([]);
+      return;
     }
-  ];
 
-  // Données mock pour les bureaux
-  const bureaux: Bureau[] = [
-    { id: 'BV001', name: 'Bureau 1', registeredVoters: 320, urns: 2, president: 'Jean Makaya' },
-    { id: 'BV002', name: 'Bureau 2', registeredVoters: 298, urns: 2, president: 'Sophie Ndong' },
-    { id: 'BV003', name: 'Bureau 3', registeredVoters: 315, urns: 2, president: 'Pierre Mounanga' },
-    { id: 'BV004', name: 'Bureau 4', registeredVoters: 287, urns: 2, president: 'Fatou Diabaté' }
-  ];
+    const fetchBureaux = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('voting_bureaux')
+          .select('*')
+          .eq('voting_center_id', selectedCenter.id)
+          .order('name', { ascending: true });
 
-  // Données mock pour les candidats
-  const candidates: Candidate[] = [
-    { id: 'C001', name: 'Dr. Antoine Mba', party: 'Parti Démocratique Gabonais', photo: '/placeholder.svg', isPriority: true },
-    { id: 'C002', name: 'Marie-Claire Ondo', party: 'Union Nationale', photo: '/placeholder.svg', isPriority: false },
-    { id: 'C003', name: 'François Engonga', party: 'Rassemblement pour le Gabon', photo: '/placeholder.svg', isPriority: false },
-    { id: 'C004', name: 'Sylvie Bouanga', party: 'Coalition pour la Nouvelle République', photo: '/placeholder.svg', isPriority: false }
-  ];
+        if (error) {
+          console.error('Erreur lors du chargement des bureaux:', error);
+          return;
+        }
+
+        const transformedBureaux: Bureau[] = data?.map(bureau => ({
+          id: bureau.id.toString(),
+          name: bureau.name,
+          registeredVoters: bureau.registered_voters || 0,
+          urns: bureau.urns_count || 0,
+          president: bureau.president_name || ''
+        })) || [];
+
+        setBureaux(transformedBureaux);
+      } catch (error) {
+        console.error('Erreur lors du chargement des bureaux:', error);
+      }
+    };
+
+    fetchBureaux();
+  }, [selectedCenter]);
+
+  // Charger les candidats
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('candidates')
+          .select('*')
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Erreur lors du chargement des candidats:', error);
+          return;
+        }
+
+        const transformedCandidates: Candidate[] = data?.map(candidate => ({
+          id: candidate.id.toString(),
+          name: candidate.name,
+          party: candidate.party || '',
+          photo: '/placeholder.svg',
+          isPriority: candidate.is_priority || false
+        })) || [];
+
+        setCandidates(transformedCandidates);
+      } catch (error) {
+        console.error('Erreur lors du chargement des candidats:', error);
+      }
+    };
+
+    fetchCandidates();
+  }, []);
 
   const provinces = ['Estuaire', 'Haut-Ogooué', 'Moyen-Ogooué', 'Ngounié', 'Nyanga'];
   const cities = ['Libreville', 'Port-Gentil', 'Franceville', 'Oyem', 'Mouila'];
@@ -414,6 +488,19 @@ const VotingCenters = () => {
               </Tabs>
             </CardContent>
           </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement des centres de vote...</p>
+          </div>
         </div>
       </Layout>
     );
