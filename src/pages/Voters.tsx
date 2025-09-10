@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Download, Search, Upload, FileSpreadsheet, Plus, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import PhotoUpload from '@/components/ui/PhotoUpload';
 
 type Voter = {
   id: string;
@@ -19,6 +20,7 @@ type Voter = {
   bureau: string;
   quartier: string;
   phone: string;
+  photoUrl?: string;
 };
 
 const mockVoters: Voter[] = [
@@ -42,11 +44,14 @@ const Voters = () => {
   const [newVoter, setNewVoter] = useState({
     firstName: '',
     lastName: '',
-    center: '',
-    bureau: '',
+    centerId: '',
+    bureauId: '',
     quartier: '',
     phone: ''
   });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [availableCenters, setAvailableCenters] = useState<Array<{id: string, name: string}>>([]);
+  const [availableBureaux, setAvailableBureaux] = useState<Array<{id: string, name: string}>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Charger les votants depuis Supabase
@@ -58,8 +63,8 @@ const Voters = () => {
           .from('voters')
           .select(`
             *,
-            voting_centers(name),
-            voting_bureaux(name)
+            voting_centers!center_id(name),
+            voting_bureaux!bureau_id(name)
           `)
           .order('last_name', { ascending: true });
 
@@ -77,7 +82,8 @@ const Voters = () => {
             center: voter.voting_centers?.name || 'Non assigné',
             bureau: voter.voting_bureaux?.name || 'Non assigné',
             quartier: voter.quartier || '',
-            phone: voter.phone || ''
+            phone: voter.phone || '',
+            photoUrl: voter.photo_url || undefined
           })) || [];
           
           setVoters(transformedVoters);
@@ -93,6 +99,55 @@ const Voters = () => {
 
     fetchVoters();
   }, []);
+
+  // Charger les centres disponibles
+  useEffect(() => {
+    const fetchCenters = async () => {
+      try {
+        const { data: centersData } = await supabase
+          .from('voting_centers')
+          .select('id, name')
+          .order('name');
+
+        if (centersData) {
+          setAvailableCenters(centersData);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des centres:', error);
+      }
+    };
+
+    fetchCenters();
+  }, []);
+
+  // Charger les bureaux selon le centre sélectionné
+  useEffect(() => {
+    const fetchBureauxForCenter = async () => {
+      if (!newVoter.centerId) {
+        setAvailableBureaux([]);
+        return;
+      }
+
+      try {
+        const { data: bureauxData } = await supabase
+          .from('voting_bureaux')
+          .select('id, name')
+          .eq('center_id', newVoter.centerId)
+          .order('name');
+
+        if (bureauxData) {
+          setAvailableBureaux(bureauxData);
+        } else {
+          setAvailableBureaux([]);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des bureaux:', error);
+        setAvailableBureaux([]);
+      }
+    };
+
+    fetchBureauxForCenter();
+  }, [newVoter.centerId]);
 
   // Extraire les centres et bureaux uniques pour les filtres
   const centers = useMemo(() => {
@@ -252,12 +307,33 @@ const Voters = () => {
       return;
     }
 
-    if (!newVoter.center.trim() || !newVoter.bureau.trim()) {
+    if (!newVoter.centerId || !newVoter.bureauId) {
       toast.error('Le centre et le bureau de vote sont obligatoires');
       return;
     }
 
     try {
+      let uploadedPhotoUrl: string | undefined = undefined;
+
+      if (photoFile) {
+        const fileExt = photoFile.name.split('.').pop();
+        const filePath = `voter_${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const { error: uploadError } = await supabase
+          .storage
+          .from('voter-photos')
+          .upload(filePath, photoFile, { upsert: false, cacheControl: '3600' });
+        if (uploadError) {
+          console.error('Erreur upload photo:', uploadError);
+          toast.error('Échec de l\'upload de la photo');
+          return;
+        }
+        const { data: publicUrlData } = supabase
+          .storage
+          .from('voter-photos')
+          .getPublicUrl(filePath);
+        uploadedPhotoUrl = publicUrlData.publicUrl;
+      }
+
       // Enregistrer en base de données
       const { data, error } = await supabase
         .from('voters')
@@ -266,10 +342,17 @@ const Voters = () => {
             first_name: newVoter.firstName.trim(),
             last_name: newVoter.lastName.trim(),
             quartier: newVoter.quartier.trim(),
-            phone: newVoter.phone.trim()
+            phone: newVoter.phone.trim(),
+            center_id: newVoter.centerId,
+            bureau_id: newVoter.bureauId,
+            photo_url: uploadedPhotoUrl
           }
         ])
-        .select()
+        .select(`
+          *,
+          voting_centers!center_id(name),
+          voting_bureaux!bureau_id(name)
+        `)
         .single();
 
       if (error) {
@@ -283,10 +366,11 @@ const Voters = () => {
         id: data.id,
         firstName: data.first_name,
         lastName: data.last_name,
-        center: newVoter.center.trim(),
-        bureau: newVoter.bureau.trim(),
+        center: data.voting_centers?.name || 'Non assigné',
+        bureau: data.voting_bureaux?.name || 'Non assigné',
         quartier: data.quartier,
-        phone: data.phone
+        phone: data.phone,
+        photoUrl: data.photo_url || uploadedPhotoUrl
       };
 
       // Ajouter à la liste
@@ -296,11 +380,12 @@ const Voters = () => {
       setNewVoter({
         firstName: '',
         lastName: '',
-        center: '',
-        bureau: '',
+        centerId: '',
+        bureauId: '',
         quartier: '',
         phone: ''
       });
+      setPhotoFile(null);
       
       // Fermer le modal
       setIsAddModalOpen(false);
@@ -316,11 +401,20 @@ const Voters = () => {
     setNewVoter({
       firstName: '',
       lastName: '',
-      center: '',
-      bureau: '',
+      centerId: '',
+      bureauId: '',
       quartier: '',
       phone: ''
     });
+    setPhotoFile(null);
+  };
+
+  const handleCenterChange = (centerId: string) => {
+    setNewVoter(prev => ({
+      ...prev,
+      centerId,
+      bureauId: '' // Réinitialiser le bureau quand le centre change
+    }));
   };
 
   return (
@@ -406,6 +500,9 @@ const Voters = () => {
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Ajouter un nouveau votant</DialogTitle>
+                    <DialogDescription>
+                      Remplissez les informations du votant pour l'ajouter à la base de données.
+                    </DialogDescription>
                   </DialogHeader>
                   
                   <form onSubmit={handleAddVoter} className="space-y-6">
@@ -437,6 +534,12 @@ const Voters = () => {
                         </div>
                       </div>
 
+                      <PhotoUpload
+                        onFileSelect={setPhotoFile}
+                        currentFile={photoFile}
+                        className="w-full"
+                      />
+
                       <div className="space-y-2">
                         <Label htmlFor="phone">Téléphone</Label>
                         <Input
@@ -454,24 +557,52 @@ const Voters = () => {
                       
                       <div className="space-y-2">
                         <Label htmlFor="center">Centre de vote *</Label>
-                        <Input
-                          id="center"
-                          value={newVoter.center}
-                          onChange={(e) => setNewVoter(prev => ({ ...prev, center: e.target.value }))}
-                          placeholder="Ex: Collège Moanda"
-                          required
-                        />
+                        <Select value={newVoter.centerId} onValueChange={handleCenterChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un centre" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableCenters.map(center => (
+                              <SelectItem key={center.id} value={center.id}>
+                                {center.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="bureau">Bureau de vote *</Label>
-                        <Input
-                          id="bureau"
-                          value={newVoter.bureau}
-                          onChange={(e) => setNewVoter(prev => ({ ...prev, bureau: e.target.value }))}
-                          placeholder="Ex: Bureau 01"
-                          required
-                        />
+                        <Select 
+                          value={newVoter.bureauId} 
+                          onValueChange={(value) => setNewVoter(prev => ({ ...prev, bureauId: value }))}
+                          disabled={!newVoter.centerId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue 
+                              placeholder={
+                                !newVoter.centerId 
+                                  ? "Sélectionnez d'abord un centre" 
+                                  : availableBureaux.length === 0 
+                                    ? "Aucun bureau disponible" 
+                                    : "Sélectionner un bureau"
+                              } 
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableBureaux.length === 0 ? (
+                              <div className="px-2 py-1.5 text-sm text-gray-500">
+                                {!newVoter.centerId ? "Sélectionnez d'abord un centre" : "Aucun bureau disponible"}
+                              </div>
+                            ) : (
+                              availableBureaux.map(bureau => (
+                                <SelectItem key={bureau.id} value={bureau.id}>
+                                  {bureau.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="space-y-2">
@@ -526,6 +657,7 @@ const Voters = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Photo</TableHead>
                     <TableHead>Nom</TableHead>
                     <TableHead>Prénom</TableHead>
                     <TableHead>Centre</TableHead>
@@ -537,6 +669,13 @@ const Voters = () => {
                 <TableBody>
                   {paginatedVoters.map((voter) => (
                     <TableRow key={voter.id}>
+                      <TableCell>
+                        {voter.photoUrl ? (
+                          <img src={voter.photoUrl} alt={`${voter.firstName} ${voter.lastName}`} className="h-10 w-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gray-200" />
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{voter.lastName}</TableCell>
                       <TableCell>{voter.firstName}</TableCell>
                       <TableCell>{voter.center}</TableCell>
@@ -547,7 +686,7 @@ const Voters = () => {
                   ))}
                   {paginatedVoters.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-gray-500">Aucun résultat</TableCell>
+                      <TableCell colSpan={7} className="text-center text-gray-500">Aucun résultat</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

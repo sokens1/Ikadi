@@ -439,3 +439,4 @@ supabase logs
 - [ ] Documentation mise à jour
 
 **🎉 Votre base de données Supabase est maintenant prête pour EWANA Elections Central !**
+

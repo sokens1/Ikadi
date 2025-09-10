@@ -21,3 +21,4 @@ SELECT EXISTS (
     WHERE table_schema = 'public' 
     AND table_name = 'elections'
 ) as elections_table_exists;
+

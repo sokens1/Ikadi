@@ -22,3 +22,4 @@ SELECT id, name FROM voting_centers LIMIT 5;
 
 -- 5. Vérifier les bureaux de vote
 SELECT id, name FROM voting_bureaux LIMIT 5;
+
