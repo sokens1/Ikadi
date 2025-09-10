@@ -3,15 +3,26 @@ import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   Calendar, 
   Users, 
   MapPin, 
   BarChart3,
-  Clock
+  Clock,
+  Plus,
+  FileText,
+  UserPlus,
+  Settings,
+  Activity,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [dashboardData, setDashboardData] = useState({
     nextElection: {
@@ -35,6 +46,14 @@ const Dashboard = () => {
       status: "Aucun"
     }
   });
+  const [recentActivities, setRecentActivities] = useState<Array<{
+    id: string;
+    type: 'voter' | 'election' | 'pv' | 'user';
+    action: string;
+    description: string;
+    timestamp: string;
+    icon: React.ReactNode;
+  }>>([]);
   const [loading, setLoading] = useState(true);
 
   // Charger les données depuis Supabase
@@ -77,6 +96,73 @@ const Dashboard = () => {
           .from('procès_verbaux')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending');
+
+        // 7. Récupérer les activités récentes
+        const activities = [];
+        
+        // Derniers votants ajoutés
+        const { data: recentVoters } = await supabase
+          .from('voters')
+          .select('first_name, last_name, created_at')
+          .order('created_at', { ascending: false })
+          .limit(3);
+        
+        if (recentVoters) {
+          recentVoters.forEach((voter, index) => {
+            activities.push({
+              id: `voter_${index}`,
+              type: 'voter' as const,
+              action: 'Nouveau votant',
+              description: `${voter.first_name} ${voter.last_name}`,
+              timestamp: new Date(voter.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+              icon: <UserPlus className="w-4 h-4 text-blue-500" />
+            });
+          });
+        }
+
+        // Dernières élections créées
+        const { data: recentElections } = await supabase
+          .from('elections')
+          .select('title, created_at')
+          .order('created_at', { ascending: false })
+          .limit(2);
+        
+        if (recentElections) {
+          recentElections.forEach((election, index) => {
+            activities.push({
+              id: `election_${index}`,
+              type: 'election' as const,
+              action: 'Élection créée',
+              description: election.title,
+              timestamp: new Date(election.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+              icon: <FileText className="w-4 h-4 text-green-500" />
+            });
+          });
+        }
+
+        // PVs récents
+        const { data: recentPVs } = await supabase
+          .from('procès_verbaux')
+          .select('status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(2);
+        
+        if (recentPVs) {
+          recentPVs.forEach((pv, index) => {
+            activities.push({
+              id: `pv_${index}`,
+              type: 'pv' as const,
+              action: 'PV soumis',
+              description: `Statut: ${pv.status}`,
+              timestamp: new Date(pv.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+              icon: <CheckCircle className="w-4 h-4 text-orange-500" />
+            });
+          });
+        }
+
+        // Trier par timestamp et prendre les 5 plus récents
+        activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setRecentActivities(activities.slice(0, 5));
 
         // Mettre à jour les données
         setDashboardData({
@@ -158,7 +244,8 @@ const Dashboard = () => {
                 {dashboardData.nextElection.title}
               </h1>
               <p className="text-blue-100 text-sm sm:text-base">
-                16 Septembre 2025 • 08h00 - {dashboardData.nextElection.endTime}
+                {dashboardData.nextElection.date ? new Date(dashboardData.nextElection.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
+                {dashboardData.nextElection.endTime ? ` • ${dashboardData.nextElection.endTime}` : ''}
               </p>
               <Badge variant="secondary" className="bg-white text-gov-blue font-medium">
                 {dashboardData.nextElection.status}
@@ -274,48 +361,151 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Additional Content Placeholder */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Actions rapides */}
+        <Card className="gov-card">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-gov-gray">
+              <Activity className="w-5 h-5" />
+              <span>Actions Rapides</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Button
+                onClick={() => navigate('/voters')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-blue-50 hover:bg-blue-100 border-blue-200"
+                variant="outline"
+              >
+                <UserPlus className="w-6 h-6 text-blue-600" />
+                <span className="text-sm font-medium text-blue-800">Ajouter Votant</span>
+              </Button>
+              
+              <Button
+                onClick={() => navigate('/elections')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-green-50 hover:bg-green-100 border-green-200"
+                variant="outline"
+              >
+                <Plus className="w-6 h-6 text-green-600" />
+                <span className="text-sm font-medium text-green-800">Nouvelle Élection</span>
+              </Button>
+              
+              <Button
+                onClick={() => navigate('/results')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-orange-50 hover:bg-orange-100 border-orange-200"
+                variant="outline"
+              >
+                <FileText className="w-6 h-6 text-orange-600" />
+                <span className="text-sm font-medium text-orange-800">Saisir PV</span>
+              </Button>
+              
+              <Button
+                onClick={() => navigate('/users')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-purple-50 hover:bg-purple-100 border-purple-200"
+                variant="outline"
+              >
+                <Settings className="w-6 h-6 text-purple-600" />
+                <span className="text-sm font-medium text-purple-800">Gestion</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Activités récentes et alertes */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="gov-card">
             <CardHeader>
-              <CardTitle className="text-gov-gray">Activité Récente</CardTitle>
+              <CardTitle className="flex items-center justify-between text-gov-gray">
+                <div className="flex items-center space-x-2">
+                  <TrendingUp className="w-5 h-5" />
+                  <span>Activité Récente</span>
+                </div>
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                  {recentActivities.length} activités
+                </Badge>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <span className="text-sm">Nouveau centre ajouté</span>
-                  <span className="text-xs text-gray-500">Il y a 2h</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <span className="text-sm">PV validé - Centre Nord</span>
-                  <span className="text-xs text-gray-500">Il y a 4h</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <span className="text-sm">Utilisateur créé</span>
-                  <span className="text-xs text-gray-500">Il y a 6h</span>
-                </div>
+              <div className="space-y-4">
+                {recentActivities.length > 0 ? (
+                  recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-shrink-0">
+                        {activity.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                        <p className="text-sm text-gray-600 truncate">{activity.description}</p>
+                      </div>
+                      <div className="flex-shrink-0 text-xs text-gray-500">
+                        {activity.timestamp}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Activity className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>Aucune activité récente</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
           <Card className="gov-card">
             <CardHeader>
-              <CardTitle className="text-gov-gray">Alertes Système</CardTitle>
+              <CardTitle className="flex items-center space-x-2 text-gov-gray">
+                <AlertTriangle className="w-5 h-5" />
+                <span>Alertes & Notifications</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Maintenance programmée</p>
-                    <p className="text-xs text-gray-600 mt-1">Le système sera indisponible ce soir de 22h à 23h</p>
+              <div className="space-y-4">
+                {dashboardData.pvsWaiting.count > 0 ? (
+                  <div className="flex items-start space-x-3 p-3 bg-orange-50 border-l-4 border-orange-400 rounded">
+                    <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-orange-800">
+                        {dashboardData.pvsWaiting.count} PV en attente de validation
+                      </p>
+                      <p className="text-xs text-orange-600 mt-1">
+                        Des procès-verbaux nécessitent votre attention
+                      </p>
+                      <Button
+                        size="sm"
+                        className="mt-2 bg-orange-600 hover:bg-orange-700 text-white"
+                        onClick={() => navigate('/results')}
+                      >
+                        Voir les PV
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start space-x-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Mise à jour réussie</p>
-                    <p className="text-xs text-gray-600 mt-1">Toutes les fonctionnalités sont opérationnelles</p>
+                ) : (
+                  <div className="flex items-start space-x-3 p-3 bg-green-50 border-l-4 border-green-400 rounded">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-800">
+                        Aucun PV en attente
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Tous les procès-verbaux sont à jour
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {dashboardData.nextElection.date && (
+                  <div className="flex items-start space-x-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
+                    <Calendar className="w-5 h-5 text-blue-500 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-800">
+                        Prochaine élection programmée
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        {dashboardData.nextElection.title} - {countdown.days} jours restants
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

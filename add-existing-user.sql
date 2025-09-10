@@ -27,3 +27,4 @@ SELECT * FROM users WHERE email = 'sokensdigital@gmail.com';
 SELECT schemaname, tablename, policyname, permissive, roles, cmd 
 FROM pg_policies 
 WHERE tablename = 'users';
+

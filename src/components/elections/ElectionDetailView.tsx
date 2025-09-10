@@ -90,26 +90,13 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
           .from('voting_centers')
           .select(`
             *,
-            voting_bureaux(id, registered_voters)
+            voting_bureaux!center_id(id, name)
           `)
-          .eq('election_id', election.id)
           .order('name', { ascending: true });
 
         if (error) {
           console.error('Erreur lors du chargement des centres:', error);
-          // Si la table n'existe pas, créer des centres fictifs basés sur les données de l'élection
-          if (election.centers > 0) {
-            const mockCenters: Center[] = Array.from({ length: election.centers }, (_, index) => ({
-              id: `mock-${index}`,
-              name: `Centre de Vote ${index + 1}`,
-              address: 'Adresse à définir',
-              responsable: 'Responsable à nommer',
-              contact: 'Contact à définir',
-              bureaux: Math.floor(election.bureaux / election.centers) || 1,
-              voters: Math.floor(election.voters / election.centers) || 0
-            }));
-            setCenters(mockCenters);
-          }
+          setCenters([]);
           setLoading(false);
           return;
         }
@@ -148,24 +135,11 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         const { data, error } = await supabase
           .from('candidates')
           .select('*')
-          .eq('election_id', election.id)
           .order('name', { ascending: true });
 
         if (error) {
           console.error('Erreur lors du chargement des candidats:', error);
-          // Si la table n'existe pas, créer des candidats fictifs basés sur les données de l'élection
-          if (election.candidates > 0) {
-            const mockCandidates: Candidate[] = Array.from({ length: election.candidates }, (_, index) => ({
-              id: `mock-candidate-${index}`,
-              name: `Candidat ${index + 1}`,
-              party: 'Parti à définir',
-              isOurCandidate: index === 0, // Le premier candidat est "notre candidat"
-              photo: '/placeholder.svg',
-              votes: 0,
-              percentage: 0
-            }));
-            setCandidates(mockCandidates);
-          }
+          setCandidates([]);
           return;
         }
 
@@ -213,6 +187,43 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
   const handleAddCenter = async (centerData: Omit<Center, 'id'>) => {
     try {
+      // Récupérer l'ID du 1er arrondissement de Moanda
+      const { data: arrondissementData, error: arrondissementError } = await supabase
+        .from('arrondissements')
+        .select('id, commune_id, department_id, province_id')
+        .eq('name', '1er Arrondissement')
+        .single();
+
+      if (arrondissementError || !arrondissementData) {
+        console.error('Arrondissement non trouvé:', arrondissementError);
+        // Créer le centre sans les relations administratives pour l'instant
+        const { data, error } = await supabase
+          .from('voting_centers')
+          .insert([{
+            name: centerData.name,
+            address: centerData.address,
+            contact_name: centerData.responsable,
+            contact_phone: centerData.contact
+          }])
+          .select(`
+            *,
+            voting_bureaux!center_id(id, name),
+            provinces(name),
+            departments(name),
+            communes(name),
+            arrondissements(name)
+          `)
+          .single();
+
+        if (error) {
+          console.error('Erreur lors de l\'ajout du centre:', error);
+          return;
+        }
+
+        setCenters(prev => [...prev, data]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('voting_centers')
         .insert([{
@@ -220,11 +231,19 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
           address: centerData.address,
           contact_name: centerData.responsable,
           contact_phone: centerData.contact,
-          election_id: election.id,
-          total_voters: centerData.voters,
-          total_bureaux: centerData.bureaux
+          province_id: arrondissementData.province_id,
+          department_id: arrondissementData.department_id,
+          commune_id: arrondissementData.commune_id,
+          arrondissement_id: arrondissementData.id
         }])
-        .select()
+        .select(`
+          *,
+          voting_bureaux!center_id(id, name),
+          provinces(name),
+          departments(name),
+          communes(name),
+          arrondissements(name)
+        `)
         .single();
 
       if (error) {

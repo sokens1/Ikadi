@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { X, Plus, Edit, Trash2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface Center {
   id: string;
@@ -18,9 +20,9 @@ interface Center {
 
 interface Bureau {
   id: string;
-  number: string;
-  voters: number;
-  president: string;
+  name: string;
+  center_id: string;
+  registered_voters?: number;
 }
 
 interface CenterDetailModalProps {
@@ -30,55 +32,95 @@ interface CenterDetailModalProps {
 
 const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }) => {
   const [showAddBureau, setShowAddBureau] = useState(false);
-  const [bureaux, setBureaux] = useState<Bureau[]>([
-    {
-      id: '1',
-      number: 'Bureau 01',
-      voters: 350,
-      president: 'Marie OBAME'
-    },
-    {
-      id: '2',
-      number: 'Bureau 02',
-      voters: 345,
-      president: 'Jean NDONG'
-    },
-    {
-      id: '3',
-      number: 'Bureau 03',
-      voters: 368,
-      president: 'Paul ONDO'
-    },
-    {
-      id: '4',
-      number: 'Bureau 04',
-      voters: 357,
-      president: '(non assigné)'
-    }
-  ]);
+  const [bureaux, setBureaux] = useState<Bureau[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [newBureau, setNewBureau] = useState({
-    number: '',
-    voters: 0,
-    president: ''
+    name: '',
+    registered_voters: 0
   });
 
-  const handleAddBureau = () => {
-    if (newBureau.number) {
-      const bureau: Bureau = {
-        id: Date.now().toString(),
-        number: newBureau.number,
-        voters: newBureau.voters,
-        president: newBureau.president || '(non assigné)'
-      };
-      setBureaux([...bureaux, bureau]);
-      setNewBureau({ number: '', voters: 0, president: '' });
+  // Charger les bureaux depuis Supabase
+  useEffect(() => {
+    const fetchBureaux = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('voting_bureaux')
+          .select('*')
+          .eq('center_id', center.id)
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Erreur lors du chargement des bureaux:', error);
+          toast.error('Erreur lors du chargement des bureaux');
+          return;
+        }
+
+        setBureaux(data || []);
+      } catch (error) {
+        console.error('Erreur lors du chargement des bureaux:', error);
+        toast.error('Erreur lors du chargement des bureaux');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBureaux();
+  }, [center.id]);
+
+  const handleAddBureau = async () => {
+    if (!newBureau.name.trim()) {
+      toast.error('Le nom du bureau est requis');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('voting_bureaux')
+        .insert({
+          name: newBureau.name.trim(),
+          center_id: center.id,
+          registered_voters: newBureau.registered_voters || 0
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erreur lors de l\'ajout du bureau:', error);
+        toast.error(`Erreur lors de l'ajout du bureau: ${error.message}`);
+        return;
+      }
+
+      setBureaux([...bureaux, data]);
+      setNewBureau({ name: '', registered_voters: 0 });
       setShowAddBureau(false);
+      toast.success('Bureau ajouté avec succès');
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du bureau:', error);
+      toast.error('Erreur lors de l\'ajout du bureau');
     }
   };
 
-  const handleRemoveBureau = (id: string) => {
-    setBureaux(bureaux.filter(b => b.id !== id));
+  const handleRemoveBureau = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('voting_bureaux')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur lors de la suppression du bureau:', error);
+        toast.error('Erreur lors de la suppression du bureau');
+        return;
+      }
+
+      setBureaux(bureaux.filter(b => b.id !== id));
+      toast.success('Bureau supprimé avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la suppression du bureau:', error);
+      toast.error('Erreur lors de la suppression du bureau');
+    }
   };
 
   return (
@@ -135,13 +177,13 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
             {showAddBureau && (
               <div className="bg-blue-50 p-4 rounded-lg mb-4">
                 <h4 className="font-medium mb-3">Nouveau Bureau</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="bureauNumber">Numéro/ID du Bureau</Label>
+                    <Label htmlFor="bureauName">Nom du Bureau</Label>
                     <Input
-                      id="bureauNumber"
-                      value={newBureau.number}
-                      onChange={(e) => setNewBureau({ ...newBureau, number: e.target.value })}
+                      id="bureauName"
+                      value={newBureau.name}
+                      onChange={(e) => setNewBureau({ ...newBureau, name: e.target.value })}
                       placeholder="Ex: Bureau 05"
                     />
                   </div>
@@ -150,23 +192,14 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
                     <Input
                       id="bureauVoters"
                       type="number"
-                      value={newBureau.voters}
-                      onChange={(e) => setNewBureau({ ...newBureau, voters: parseInt(e.target.value) || 0 })}
+                      value={newBureau.registered_voters}
+                      onChange={(e) => setNewBureau({ ...newBureau, registered_voters: parseInt(e.target.value) || 0 })}
                       placeholder="350"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="bureauPresident">Président du bureau</Label>
-                    <Input
-                      id="bureauPresident"
-                      value={newBureau.president}
-                      onChange={(e) => setNewBureau({ ...newBureau, president: e.target.value })}
-                      placeholder="Nom du président"
                     />
                   </div>
                 </div>
                 <div className="flex space-x-2 mt-3">
-                  <Button onClick={handleAddBureau} disabled={!newBureau.number}>
+                  <Button onClick={handleAddBureau} disabled={!newBureau.name.trim()}>
                     Ajouter
                   </Button>
                   <Button variant="outline" onClick={() => setShowAddBureau(false)}>
@@ -180,34 +213,47 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID/Numéro du Bureau</TableHead>
+                    <TableHead>Nom du Bureau</TableHead>
                     <TableHead>Nombre d'électeurs</TableHead>
-                    <TableHead>Président du bureau</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bureaux.map((bureau) => (
-                    <TableRow key={bureau.id}>
-                      <TableCell className="font-medium">{bureau.number}</TableCell>
-                      <TableCell>{bureau.voters.toLocaleString('fr-FR')}</TableCell>
-                      <TableCell>{bureau.president}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleRemoveBureau(bureau.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        Chargement des bureaux...
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : bureaux.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                        Aucun bureau de vote configuré pour ce centre
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    bureaux.map((bureau) => (
+                      <TableRow key={bureau.id}>
+                        <TableCell className="font-medium">{bureau.name}</TableCell>
+                        <TableCell>{(bureau.registered_voters || 0).toLocaleString('fr-FR')}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="outline" size="sm">
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleRemoveBureau(bureau.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -216,7 +262,7 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
               <div className="flex justify-between text-sm">
                 <span className="font-medium">Total des électeurs dans les bureaux:</span>
                 <span className="font-bold">
-                  {bureaux.reduce((sum, bureau) => sum + bureau.voters, 0).toLocaleString('fr-FR')}
+                  {bureaux.reduce((sum, bureau) => sum + (bureau.registered_voters || 0), 0).toLocaleString('fr-FR')}
                 </span>
               </div>
             </div>
