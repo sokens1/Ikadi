@@ -424,29 +424,31 @@ const Dashboard = () => {
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivities.length > 0 ? (
-                  recentActivities.map((activity) => (
-                    <div key={activity.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-shrink-0">
-                        {activity.icon}
+            <CardContent className="p-0">
+              <div className="max-h-96 overflow-y-auto">
+                <div className="p-6 space-y-4">
+                  {recentActivities.length > 0 ? (
+                    recentActivities.map((activity) => (
+                      <div key={activity.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-shrink-0">
+                          {activity.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                          <p className="text-sm text-gray-600 truncate">{activity.description}</p>
+                        </div>
+                        <div className="flex-shrink-0 text-xs text-gray-500">
+                          {activity.timestamp}
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                        <p className="text-sm text-gray-600 truncate">{activity.description}</p>
-                      </div>
-                      <div className="flex-shrink-0 text-xs text-gray-500">
-                        {activity.timestamp}
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Activity className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p>Aucune activité récente</p>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Activity className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>Aucune activité récente</p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
