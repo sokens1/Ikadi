@@ -43,3 +43,7 @@ FROM voters v
 LEFT JOIN voting_centers vc ON v.centers_id = vc.id
 LEFT JOIN voting_bureaux vb ON v.bureau_id = vb.id
 LIMIT 5;
+
+
+
+

@@ -10,3 +10,7 @@ ADD COLUMN IF NOT EXISTS bureau text;
 UPDATE public.voters 
 SET center = 'Non assigné', bureau = 'Non assigné' 
 WHERE center IS NULL OR bureau IS NULL;
+
+
+
+

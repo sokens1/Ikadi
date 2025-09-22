@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,76 +23,67 @@ import {
 
 interface ValidationSectionProps {
   pendingCount: number;
+  selectedElection: string;
 }
 
-const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) => {
+const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount, selectedElection }) => {
   const [filter, setFilter] = useState('all');
   const [selectedPV, setSelectedPV] = useState<string | null>(null);
   const [validationComment, setValidationComment] = useState('');
   const [showValidationModal, setShowValidationModal] = useState(false);
+  const [pendingPVs, setPendingPVs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Mock data pour les PV en attente
-  const pendingPVs = [
-    {
-      id: 'PV001',
-      center: 'EPP de l\'Alliance',
-      bureau: 'Bureau 02',
-      agent: 'B. Kassa',
-      submittedAt: '18h12',
-      hasAnomaly: false,
-      data: {
-        inscrits: 350,
-        votants: 290,
-        bulletinsNuls: 5,
-        candidateVotes: {
-          'Notre Candidat': 185,
-          'Adversaire A': 80,
-          'Adversaire B': 20
+  // Charger les PV en attente pour l'élection sélectionnée
+  useEffect(() => {
+    const loadPendingPVs = async () => {
+      if (!selectedElection) return;
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('procès_verbaux')
+          .select(`
+            id,
+            status,
+            anomalies,
+            entered_by,
+            entered_at,
+            voting_bureaux!bureau_id(id, name, voting_centers!center_id(name))
+          `)
+          .eq('election_id', selectedElection)
+          .in('status', ['saisi', 'en_attente', 'anomaly']);
+
+        if (error) {
+          console.error('Erreur chargement PVs:', error);
+          setPendingPVs([]);
+          return;
         }
-      },
-      imageUrl: '/placeholder-pv.jpg'
-    },
-    {
-      id: 'PV002',
-      center: 'Lycée d\'État',
-      bureau: 'Bureau 02',
-      agent: 'I. Koumba',
-      submittedAt: '18h15',
-      hasAnomaly: true,
-      anomalyReason: 'Les votes exprimés > nombre de votants',
-      data: {
-        inscrits: 280,
-        votants: 250,
-        bulletinsNuls: 8,
-        candidateVotes: {
-          'Notre Candidat': 120,
-          'Adversaire A': 95,
-          'Adversaire B': 35
-        }
-      },
-      imageUrl: '/placeholder-pv.jpg'
-    },
-    {
-      id: 'PV003',
-      center: 'Centre Municipal',
-      bureau: 'Bureau 01',
-      agent: 'M. Assele',
-      submittedAt: '18h10',
-      hasAnomaly: true,
-      anomalyReason: 'Photo du PV illisible',
-      data: {
-        inscrits: 320,
-        votants: 275,
-        bulletinsNuls: 12,
-        candidateVotes: {
-          'Notre Candidat': 140,
-          'Adversaire A': 78,
-          'Adversaire B': 45
-        }
-      },
-      imageUrl: '/placeholder-pv.jpg'
-    }
-  ];
+
+        const mapped = (data || []).map((pv: any) => ({
+          id: pv.id,
+          center: pv.voting_bureaux?.voting_centers?.name || 'Centre inconnu',
+          bureau: pv.voting_bureaux?.name || 'Bureau',
+          agent: pv.entered_by || '',
+          submittedAt: pv.entered_at ? new Date(pv.entered_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
+          hasAnomaly: !!pv.anomalies,
+          anomalyReason: pv.anomalies || undefined,
+          data: {
+            inscrits: 0,
+            votants: 0,
+            bulletinsNuls: 0,
+            candidateVotes: {}
+          }
+        }));
+
+        setPendingPVs(mapped);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPendingPVs();
+  }, [selectedElection]);
 
   const filteredPVs = pendingPVs.filter(pv => {
     if (filter === 'all') return true;
@@ -112,11 +104,27 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
     return totalVotes === expectedVotes;
   };
 
-  const handleValidation = (action: 'approve' | 'reject' | 'correct') => {
-    console.log(`Action: ${action}, PV: ${selectedPV}, Comment: ${validationComment}`);
-    setShowValidationModal(false);
-    setSelectedPV(null);
-    setValidationComment('');
+  const handleValidation = async (action: 'approve' | 'reject' | 'correct') => {
+    if (!selectedPV) return;
+    try {
+      const newStatus = action === 'approve' ? 'validé' : action === 'reject' ? 'rejeté' : 'corrigé';
+      const { error } = await supabase
+        .from('procès_verbaux')
+        .update({ status: newStatus, validation_comment: validationComment })
+        .eq('id', selectedPV)
+        .eq('election_id', selectedElection);
+      if (error) {
+        console.error('Erreur validation PV:', error);
+      }
+      setShowValidationModal(false);
+      setSelectedPV(null);
+      setValidationComment('');
+      // rafraîchir
+      const refreshed = pendingPVs.filter(pv => pv.id !== selectedPV);
+      setPendingPVs(refreshed);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const openValidationModal = (pvId: string) => {
@@ -166,7 +174,7 @@ const ValidationSection: React.FC<ValidationSectionProps> = ({ pendingCount }) =
 
       {/* Liste des PV */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredPVs.map((pv) => (
+        {(loading ? [] : filteredPVs).map((pv) => (
           <Card key={pv.id} className="gov-card hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4">
               <div className="space-y-3">

@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,89 +27,134 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const PublishSection: React.FC = () => {
+interface PublishSectionProps {
+  selectedElection: string;
+}
+
+const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => {
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showDetailedView, setShowDetailedView] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [finalResults, setFinalResults] = useState<any | null>(null);
+  const [detailedResults, setDetailedResults] = useState<any[]>([]);
 
-  // Mock data pour les résultats finaux
-  const finalResults = {
-    participation: {
-      totalInscrits: 12450,
-      totalVotants: 8436,
-      tauxParticipation: 67.8,
-      bulletinsNuls: 156,
-      suffragesExprimes: 8280
-    },
-    candidates: [
-      { 
-        id: 'C001', 
-        name: 'Notre Candidat', 
-        party: 'Parti Démocratique Gabonais',
-        votes: 3850, 
-        percentage: 46.5,
-        color: '#22c55e'
-      },
-      { 
-        id: 'C002', 
-        name: 'Adversaire Principal', 
-        party: 'Union Nationale',
-        votes: 2700, 
-        percentage: 32.6,
-        color: '#ef4444'
-      },
-      { 
-        id: 'C003', 
-        name: 'Autre Candidat', 
-        party: 'Rassemblement pour la Patrie',
-        votes: 1730, 
-        percentage: 20.9,
-        color: '#3b82f6'
+  // Charger les résultats validés et calculer les agrégats
+  useEffect(() => {
+    const loadFinalResults = async () => {
+      if (!selectedElection) return;
+      try {
+        setLoading(true);
+        // Récupérer PV validés
+        const { data: pvs, error: pvError } = await supabase
+          .from('procès_verbaux')
+          .select(`
+            id, status, entered_at,
+            voting_bureaux!bureau_id(id, name, voting_centers!center_id(name)),
+            results:candidate_results(votes, candidate_id, candidates(name, party))
+          `)
+          .eq('election_id', selectedElection)
+          .eq('status', 'validé');
+        if (pvError) throw pvError;
+
+        // Nombre total de bureaux pour cette élection
+        const { data: bureauxAll, error: bureauxErr } = await supabase
+          .from('voting_bureaux')
+          .select('id')
+          .eq('election_id', selectedElection);
+        if (bureauxErr) throw bureauxErr;
+
+        const validatedBureaux = pvs?.length || 0;
+        const totalBureaux = bureauxAll?.length || 0;
+
+        // Agréger les voix par candidat
+        const votesByCandidate: Record<string, { id: string; name: string; party: string; votes: number }> = {};
+        let totalInscrits = 0; // si disponible dans PV; sinon laisser 0
+        let totalVotants = 0;  // idem
+        let bulletinsNuls = 0; // idem
+
+        (pvs || []).forEach((pv: any) => {
+          (pv.results || []).forEach((r: any) => {
+            const cid = r.candidates?.id || r.candidate_id;
+            const cname = r.candidates?.name || 'Candidat';
+            const cparty = r.candidates?.party || 'Indépendant';
+            if (!votesByCandidate[cid]) {
+              votesByCandidate[cid] = { id: cid, name: cname, party: cparty, votes: 0 };
+            }
+            votesByCandidate[cid].votes += r.votes || 0;
+          });
+        });
+
+        const candidates = Object.values(votesByCandidate).sort((a, b) => b.votes - a.votes);
+        const totalVotes = candidates.reduce((s, c) => s + c.votes, 0);
+        const candidatesWithPct = candidates.map((c, idx) => ({
+          ...c,
+          percentage: totalVotes > 0 ? +(100 * c.votes / totalVotes).toFixed(1) : 0,
+          color: ['#22c55e','#ef4444','#3b82f6','#a855f7','#f59e0b','#06b6d4'][idx % 6]
+        }));
+
+        setFinalResults({
+          participation: {
+            totalInscrits,
+            totalVotants,
+            tauxParticipation: totalBureaux > 0 ? Math.round((validatedBureaux / totalBureaux) * 1000)/10 : 0,
+            bulletinsNuls,
+            suffragesExprimes: totalVotes
+          },
+          candidates: candidatesWithPct,
+          validatedBureaux,
+          totalBureaux,
+          lastUpdate: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+        });
+
+        // Résultats détaillés par bureau
+        const detailed = (pvs || []).map((pv: any) => ({
+          center: pv.voting_bureaux?.voting_centers?.name || 'Centre',
+          bureau: pv.voting_bureaux?.name || 'Bureau',
+          inscrits: 0,
+          votants: 0,
+          notreCandidat: 0,
+          adversaire1: 0,
+          adversaire2: 0
+        }));
+        setDetailedResults(detailed);
+      } catch (e) {
+        console.error('Erreur chargement résultats finaux:', e);
+        setFinalResults(null);
+        setDetailedResults([]);
+      } finally {
+        setLoading(false);
       }
-    ],
-    validatedBureaux: 44,
-    totalBureaux: 48,
-    lastUpdate: '19h45'
-  };
+    };
+    loadFinalResults();
+  }, [selectedElection]);
 
-  // Mock data détaillé par bureau
-  const detailedResults = [
-    {
-      center: 'EPP de l\'Alliance',
-      bureau: 'Bureau 01',
-      inscrits: 350,
-      votants: 290,
-      notreCandidat: 135,
-      adversaire1: 95,
-      adversaire2: 60
-    },
-    {
-      center: 'EPP de l\'Alliance',
-      bureau: 'Bureau 02',
-      inscrits: 320,
-      votants: 275,
-      notreCandidat: 128,
-      adversaire1: 87,
-      adversaire2: 60
-    },
-    // ... autres bureaux
-  ];
-
-  const pieChartData = finalResults.candidates.map(candidate => ({
+  const pieChartData = useMemo(() => (finalResults ? finalResults.candidates.map((candidate: any) => ({
     name: candidate.name,
     value: candidate.votes,
     percentage: candidate.percentage,
     color: candidate.color
-  }));
+  })) : []), [finalResults]);
 
-  const barChartData = finalResults.candidates.map(candidate => ({
-    name: candidate.name.split(' ')[0] + ' ' + candidate.name.split(' ')[1],
+  const barChartData = useMemo(() => (finalResults ? finalResults.candidates.map((candidate: any) => ({
+    name: candidate.name.split(' ')[0] + (candidate.name.split(' ')[1] ? (' ' + candidate.name.split(' ')[1]) : ''),
     votes: candidate.votes
-  }));
+  })) : []), [finalResults]);
 
-  const handlePublish = () => {
-    console.log('Publication des résultats...');
-    setShowPublishConfirm(false);
-    // Logique de publication
+  const handlePublish = async () => {
+    try {
+      // Marquer l'élection comme publiée
+      const { error } = await supabase
+        .from('elections')
+        .update({ is_published: true, published_at: new Date().toISOString() })
+        .eq('id', selectedElection);
+      if (error) {
+        console.error('Erreur publication:', error);
+        return;
+      }
+      setShowPublishConfirm(false);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const exportToPDF = () => {
@@ -130,18 +176,22 @@ const PublishSection: React.FC = () => {
               <div>
                 <h3 className="font-semibold text-gray-900">Résultats Validés Prêts</h3>
                 <p className="text-sm text-gray-600">
-                  {finalResults.validatedBureaux} bureaux validés sur {finalResults.totalBureaux} 
-                  ({((finalResults.validatedBureaux / finalResults.totalBureaux) * 100).toFixed(1)}%)
+                  {finalResults ? (
+                    <>
+                      {finalResults.validatedBureaux} bureaux validés sur {finalResults.totalBureaux}
+                      {' '}({finalResults.totalBureaux > 0 ? ((finalResults.validatedBureaux / finalResults.totalBureaux) * 100).toFixed(1) : 0}%)
+                    </>
+                  ) : '—'}
                 </p>
               </div>
             </div>
             <div className="text-right">
               <div className="text-sm text-gray-500">Dernière mise à jour</div>
-              <div className="font-medium">{finalResults.lastUpdate}</div>
+              <div className="font-medium">{finalResults?.lastUpdate || '—'}</div>
             </div>
           </div>
           <Progress 
-            value={(finalResults.validatedBureaux / finalResults.totalBureaux) * 100} 
+            value={finalResults && finalResults.totalBureaux > 0 ? (finalResults.validatedBureaux / finalResults.totalBureaux) * 100 : 0} 
             className="mt-3"
           />
         </CardContent>
@@ -160,8 +210,8 @@ const PublishSection: React.FC = () => {
           <CardContent>
             <div className="space-y-4">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-2">
-                  {finalResults.participation.tauxParticipation}%
+              <div className="text-3xl font-bold text-blue-600 mb-2">
+                  {finalResults ? finalResults.participation.tauxParticipation : 0}%
                 </div>
                 <div className="text-sm text-gray-600">Taux de participation</div>
               </div>
@@ -169,25 +219,25 @@ const PublishSection: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <div className="font-medium text-gray-900">
-                    {finalResults.participation.totalVotants.toLocaleString()}
+                    {finalResults ? finalResults.participation.totalVotants.toLocaleString() : 0}
                   </div>
                   <div className="text-gray-600">Votants</div>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {finalResults.participation.totalInscrits.toLocaleString()}
+                    {finalResults ? finalResults.participation.totalInscrits.toLocaleString() : 0}
                   </div>
                   <div className="text-gray-600">Inscrits</div>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {finalResults.participation.suffragesExprimes.toLocaleString()}
+                    {finalResults ? finalResults.participation.suffragesExprimes.toLocaleString() : 0}
                   </div>
                   <div className="text-gray-600">Exprimés</div>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {finalResults.participation.bulletinsNuls}
+                  {finalResults ? finalResults.participation.bulletinsNuls : 0}
                   </div>
                   <div className="text-gray-600">Bulletins nuls</div>
                 </div>
@@ -241,7 +291,7 @@ const PublishSection: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {finalResults.candidates.map((candidate, index) => (
+            {(finalResults ? finalResults.candidates : []).map((candidate: any, index: number) => (
               <div key={candidate.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
                   <div className="text-2xl font-bold text-gray-600">
@@ -368,10 +418,10 @@ const PublishSection: React.FC = () => {
             <div className="p-4 bg-blue-50 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Résumé de la publication :</h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• {finalResults.validatedBureaux} bureaux validés</li>
-                <li>• {finalResults.participation.suffragesExprimes.toLocaleString()} suffrages exprimés</li>
-                <li>• Taux de participation : {finalResults.participation.tauxParticipation}%</li>
-                <li>• Candidat en tête : {finalResults.candidates[0].name} ({finalResults.candidates[0].percentage}%)</li>
+                <li>• {finalResults ? finalResults.validatedBureaux : 0} bureaux validés</li>
+                <li>• {finalResults ? finalResults.participation.suffragesExprimes.toLocaleString() : 0} suffrages exprimés</li>
+                <li>• Taux de participation : {finalResults ? finalResults.participation.tauxParticipation : 0}%</li>
+                <li>• Candidat en tête : {finalResults && finalResults.candidates[0] ? `${finalResults.candidates[0].name} (${finalResults.candidates[0].percentage}%)` : '—'}</li>
               </ul>
             </div>
             

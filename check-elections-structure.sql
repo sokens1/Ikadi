@@ -22,3 +22,7 @@ SELECT EXISTS (
     AND table_name = 'elections'
 ) as elections_table_exists;
 
+
+
+
+
