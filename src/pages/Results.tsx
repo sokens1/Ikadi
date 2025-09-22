@@ -19,7 +19,7 @@ import {
   Upload
 } from 'lucide-react';
 import DataEntrySection from '@/components/results/DataEntrySection';
-import ValidationSection from '@/components/results/ValidationSection';
+import PVValidationSection from '@/components/results/PVValidationSection';
 import PublishSection from '@/components/results/PublishSection';
 
 const Results = () => {
@@ -245,7 +245,7 @@ const Results = () => {
                 </TabsContent>
 
                 <TabsContent value="validation" className="space-y-6 mt-0">
-                  <ValidationSection pendingCount={globalStats.pvsEnAttente} selectedElection={selectedElection} />
+                  <PVValidationSection />
                 </TabsContent>
 
                 <TabsContent value="publish" className="space-y-6 mt-0">

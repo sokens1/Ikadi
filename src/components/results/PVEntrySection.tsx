@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ import {
   Users
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface PVEntrySectionProps {
   onClose: () => void;
@@ -37,6 +38,8 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
   const [votingCenters, setVotingCenters] = useState<any[]>([]);
   const [votingBureaux, setVotingBureaux] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [formData, setFormData] = useState({
     province: '',
     ville: '',
@@ -224,6 +227,103 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     const file = event.target.files?.[0];
     if (file) {
       setFormData({ ...formData, uploadedFile: file });
+    }
+  };
+
+  const ensureBucketExists = async (bucket: string) => {
+    // Supabase Storage n'a pas d'API REST directe listant les buckets via client JS v2,
+    // on tente createBucket (idempotent côté serveur si même nom), sinon on ignore si déjà existant.
+    try {
+      // @ts-ignore: createBucket disponible sur supabase.storage via admin policies si autorisé
+      await supabase.storage.createBucket(bucket, { public: true });
+    } catch (err: any) {
+      // Si existe déjà, on continue
+      if (!(`${err?.message || ''}`.toLowerCase().includes('already exists'))) {
+        // On ignore l'erreur, l'upload échouera s'il n'existe vraiment pas
+      }
+    }
+  };
+
+  const uploadPVFile = async (file: File, electionId: string, centerId: string, bureauId: string) => {
+    const bucket = 'pv-uploads';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
+    const relPath = `${electionId}/${centerId || 'center'}/${bureauId || 'bureau'}/${timestamp}_${safeName}`;
+
+    // Première tentative
+    let { data: uploadData, error: uploadErr } = await supabase.storage
+      .from(bucket)
+      .upload(relPath, file, { cacheControl: '3600', upsert: false });
+
+    // Si bucket introuvable, tenter de le créer puis réessayer
+    if (uploadErr && (`${uploadErr?.message || ''}`.toLowerCase().includes('bucket not found') || `${uploadErr?.error || ''}`.toLowerCase().includes('bucket'))) {
+      await ensureBucketExists(bucket);
+      ({ data: uploadData, error: uploadErr } = await supabase.storage
+        .from(bucket)
+        .upload(relPath, file, { cacheControl: '3600', upsert: false }));
+    }
+
+    if (uploadErr) throw uploadErr;
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(uploadData!.path);
+    return publicUrlData.publicUrl;
+  };
+
+  const handleSubmitPV = async () => {
+    if (!canSubmit() || !selectedElection) return;
+    try {
+      setSubmitting(true);
+      const bureauId = formData.bureau;
+      const centerId = formData.centre;
+
+      let pvPhotoUrl: string | null = null;
+      if (formData.uploadedFile) {
+        try {
+          pvPhotoUrl = await uploadPVFile(formData.uploadedFile, selectedElection, centerId, bureauId);
+        } catch (uploadErr: any) {
+          console.error('Upload PV échoué:', uploadErr);
+          toast.warning(`Upload du PV échoué: ${uploadErr?.message || 'erreur inconnue'}. Enregistrement sans fichier.`);
+        }
+      }
+
+      const total_voters = parseInt(formData.votants) || 0;
+      const null_votes = parseInt(formData.bulletinsNuls) || 0;
+      const votes_expressed = parseInt(formData.suffragesExprimes) || 0;
+
+      const { data: pv, error: pvErr } = await supabase
+        .from('procès_verbaux')
+        .insert({
+          election_id: selectedElection,
+          bureau_id: bureauId,
+          total_registered: 0,
+          total_voters,
+          null_votes,
+          votes_expressed,
+          status: 'entered',
+          entered_at: new Date().toISOString(),
+          pv_photo_url: pvPhotoUrl
+        })
+        .select()
+        .single();
+      if (pvErr) throw pvErr;
+
+      const candidateEntries = Object.entries(formData.candidateVotes)
+        .map(([candidateId, votes]) => ({
+          pv_id: pv.id,
+          candidate_id: candidateId,
+          votes: parseInt(votes) || 0
+        }));
+      if (candidateEntries.length > 0) {
+        const { error: crErr } = await supabase.from('candidate_results').insert(candidateEntries);
+        if (crErr) throw crErr;
+      }
+
+      toast.success('PV enregistré avec succès.');
+      onClose();
+    } catch (err) {
+      console.error('Erreur soumission PV:', err);
+      toast.error('Échec enregistrement PV');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -485,17 +585,19 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
               <p className="text-sm text-gray-600 mb-4">Formats acceptés: PDF, JPG, PNG (max. 10MB)</p>
               
               <input
+                ref={fileInputRef}
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
                 onChange={handleFileUpload}
                 className="hidden"
-                id="file-upload"
               />
-              <label htmlFor="file-upload">
-                <Button variant="outline" className="cursor-pointer">
-                  Choisir un fichier
-                </Button>
-              </label>
+              <Button
+                variant="outline"
+                className="cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Choisir un fichier
+              </Button>
               
               {formData.uploadedFile && (
                 <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -684,15 +786,12 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
               </Button>
             ) : (
               <Button 
-                onClick={() => {
-                  // Handle form submission
-                  onClose();
-                }}
-                disabled={!canSubmit()}
+                onClick={handleSubmitPV}
+                disabled={!canSubmit() || submitting}
                 className="bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Soumettre le PV
+                {submitting ? 'Soumission...' : 'Soumettre le PV'}
               </Button>
             )}
           </div>

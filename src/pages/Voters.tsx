@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Download, Search, Upload, FileSpreadsheet, Plus, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Search, Upload, FileSpreadsheet, Plus, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Voter = {
@@ -37,6 +37,9 @@ const Voters = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null);
   const [newVoter, setNewVoter] = useState({
     province: '',
     department: '',
@@ -54,60 +57,37 @@ const Voters = () => {
   });
 
   // Charger les centres et bureaux depuis Supabase
-  useEffect(() => {
-    async function fetchVotingData() {
+  const fetchVotingData = useCallback(async () => {
       try {
         setLoading(true);
         const { data, error } = await supabase
-          .from('voting_centers')
-          .select(`
-            id,
-            name as center,
-            contact_name as responsableCentre,
-            contact_phone as contactRespoCentre,
-            provinces(name),
-            departments(name),
-            communes(name),
-            arrondissements(name),
-            voting_bureaux(
-              id,
-              name as bureau,
-              registered_voters,
-              president as responsableBureau
-            )
-          `)
-          .order('name', { ascending: true });
+          .from('inscrits')
+          .select('*')
+          .order('center', { ascending: true })
+          .limit(10000);
 
         if (error) {
-          console.error('Erreur lors du chargement des centres:', error);
-          toast.error('Erreur lors du chargement des centres');
+          console.error('Erreur chargement inscrits:', error);
+          toast.error('Erreur lors du chargement des inscrits');
           setVoters([]);
         } else {
-          // Transformer les données en format voter
-          const transformedVoters: Voter[] = [];
-          
-          data?.forEach(center => {
-            center.voting_bureaux?.forEach((bureau: any) => {
-              transformedVoters.push({
-                id: `${center.id}-${bureau.id}`,
-                province: center.provinces?.name || '',
-                department: center.departments?.name || '',
-                commune: center.communes?.name || '',
-                arrondissement: center.arrondissements?.name || '',
-                center: center.center,
-                bureau: bureau.bureau,
-                inscrits: bureau.registered_voters || 0,
-                responsableCentre: center.responsableCentre || '',
-                contactRespoCentre: center.contactRespoCentre || '',
-                responsableBureau: bureau.responsableBureau || '',
-                contactRespoBureau: '', // À ajouter si nécessaire
-                representantBureau: '', // À ajouter si nécessaire
-                contactReprCentre: '' // À ajouter si nécessaire
-              });
-            });
-          });
-          
-          setVoters(transformedVoters);
+          const transformed: Voter[] = (data || []).map((row: any) => ({
+            id: row.id,
+            province: row.province || '',
+            department: row.departement || '',
+            commune: row.commune || '',
+            arrondissement: row.arrondissement || '',
+            center: row.center || '',
+            bureau: row.bureau || '',
+            inscrits: row.inscrits || 0,
+            responsableCentre: row.responsable_centre || '',
+            contactRespoCentre: row.contact_respo_centre || '',
+            responsableBureau: row.responsable_bureau || '',
+            contactRespoBureau: row.contact_respo_bureau || '',
+            representantBureau: row.representant_bureau || '',
+            contactReprCentre: row.contact_repr_centre || ''
+          }));
+          setVoters(transformed);
         }
       } catch (error) {
         console.error('Erreur:', error);
@@ -116,10 +96,11 @@ const Voters = () => {
       } finally {
         setLoading(false);
       }
-    }
-
-    fetchVotingData();
   }, []);
+
+  useEffect(() => {
+    fetchVotingData();
+  }, [fetchVotingData]);
 
   // Filtrage des données
   const filteredVoters = useMemo(() => {
@@ -250,6 +231,150 @@ const Voters = () => {
     document.body.removeChild(link);
   };
 
+  // Parsing CSV simple support des champs entre guillemets
+  const parseCSV = (text: string): string[][] => {
+    const rows: string[][] = [];
+    let current: string[] = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"') {
+        if (inQuotes && text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        current.push(field);
+        field = '';
+      } else if ((char === '\n' || char === '\r') && !inQuotes) {
+        if (field.length > 0 || current.length > 0) {
+          current.push(field);
+          rows.push(current);
+        }
+        current = [];
+        field = '';
+      } else {
+        field += char;
+      }
+    }
+    if (field.length > 0 || current.length > 0) {
+      current.push(field);
+      rows.push(current);
+    }
+    return rows.map(r => r.map(cell => cell.replace(/^"|"$/g, '')));
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const findOrCreateByName = async (table: string, name: string, extra: any = {}) => {
+    if (!name) return null;
+    const { data: found, error: findErr } = await supabase.from(table).select('*').eq('name', name).limit(1).maybeSingle();
+    if (findErr) throw findErr;
+    if (found) return found;
+    const { data: created, error: createErr } = await supabase.from(table).insert({ name, ...extra }).select().single();
+    if (createErr) throw createErr;
+    return created;
+  };
+
+  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setLoading(true);
+      const text = await file.text();
+      const rows = parseCSV(text).filter(r => r.length > 0);
+      if (rows.length < 2) {
+        toast.error('CSV vide ou entêtes manquantes');
+        return;
+      }
+      // En-têtes attendus
+      // Province, Département, Commune, Arrondissement, Centre, Bureau, Inscrits, Responsable Centre, Contact Respo Centre, Responsable Bureau, Contact Respo Bureau, Représentant Bureau (Candidat), Contact Repr Centre
+      const dataRows = rows.slice(1).filter(r => r.some(c => c && c.trim() !== ''));
+      for (const r of dataRows) {
+        const [province, department, commune, arrondissement, centerName, bureauName, inscritsStr, responsableCentre, contactRespoCentre, responsableBureau, contactRespoBureau, representantBureau, contactReprCentre] = r;
+        // Insérer/mettre à jour directement dans la table inscrits
+        const registered_voters = parseInt(inscritsStr || '0', 10) || 0;
+        // Rechercher une ligne existante par combinaison center+bureau (si contrainte unique activée, ce sera géré côté DB)
+        const { data: existing, error: findErr } = await supabase
+          .from('inscrits')
+          .select('id')
+          .eq('center', centerName)
+          .eq('bureau', bureauName)
+          .limit(1)
+          .maybeSingle();
+        if (findErr) throw findErr;
+        if (existing) {
+          const { error: updateErr } = await supabase
+            .from('inscrits')
+            .update({
+              province,
+              departement: department,
+              commune,
+              arrondissement,
+              center: centerName,
+              bureau: bureauName,
+              inscrits: registered_voters,
+              responsable_centre: responsableCentre,
+              contact_respo_centre: contactRespoCentre,
+              responsable_bureau: responsableBureau,
+              contact_respo_bureau: contactRespoBureau,
+              representant_bureau: representantBureau,
+              contact_repr_centre: contactReprCentre
+            })
+            .eq('id', existing.id);
+          if (updateErr) throw updateErr;
+        } else {
+          const { error: insertErr } = await supabase
+            .from('inscrits')
+            .insert({
+              province,
+              departement: department,
+              commune,
+              arrondissement,
+              center: centerName,
+              bureau: bureauName,
+              inscrits: registered_voters,
+              responsable_centre: responsableCentre,
+              contact_respo_centre: contactRespoCentre,
+              responsable_bureau: responsableBureau,
+              contact_respo_bureau: contactRespoBureau,
+              representant_bureau: representantBureau,
+              contact_repr_centre: contactReprCentre
+            });
+          if (insertErr) throw insertErr;
+        }
+      }
+      toast.success('Import CSV terminé');
+      await fetchVotingData();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Échec de l'import CSV: ${err.message || 'Erreur inconnue'}`);
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+  
+  const generateCode = (value: string): string => {
+    if (!value) return '';
+    const ascii = value
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/[^A-Za-z0-9]+/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toUpperCase();
+    if (/^[0-9]+(ER|E|È|ÈRE)?$/i.test(value)) {
+      return value.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+    }
+    return ascii.split(' ').map(w => w.slice(0, 3)).join('').slice(0, 8) || ascii.slice(0, 8);
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -260,6 +385,11 @@ const Voters = () => {
             <p className="text-gray-600 mt-2">Gestion des centres de vote et de leurs bureaux</p>
           </div>
           <div className="flex space-x-3">
+            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
+            <Button onClick={handleImportClick} variant="outline" className="flex items-center space-x-2">
+              <Upload className="w-4 h-4" />
+              <span>Importer CSV</span>
+            </Button>
             <Button onClick={exportToCSV} variant="outline" className="flex items-center space-x-2">
               <Download className="w-4 h-4" />
               <span>Exporter CSV</span>
@@ -523,12 +653,7 @@ const Voters = () => {
                         <TableHead>Centre</TableHead>
                         <TableHead>Bureau</TableHead>
                         <TableHead>Inscrits</TableHead>
-                        <TableHead>Responsable Centre</TableHead>
-                        <TableHead>Contact Respo Centre</TableHead>
-                        <TableHead>Responsable Bureau</TableHead>
-                        <TableHead>Contact Respo Bureau</TableHead>
-                        <TableHead>Représentant Bureau</TableHead>
-                        <TableHead>Contact Repr Centre</TableHead>
+                        <TableHead className="w-[120px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -541,12 +666,17 @@ const Voters = () => {
                           <TableCell className="font-medium">{voter.center}</TableCell>
                           <TableCell>{voter.bureau}</TableCell>
                           <TableCell>{voter.inscrits}</TableCell>
-                          <TableCell>{voter.responsableCentre}</TableCell>
-                          <TableCell>{voter.contactRespoCentre}</TableCell>
-                          <TableCell>{voter.responsableBureau}</TableCell>
-                          <TableCell>{voter.contactRespoBureau}</TableCell>
-                          <TableCell>{voter.representantBureau}</TableCell>
-                          <TableCell>{voter.contactReprCentre}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center space-x-1"
+                              onClick={() => { setSelectedVoter(voter); setDetailOpen(true); }}
+                            >
+                              <Eye className="w-4 h-4" />
+                              <span>Voir détail</span>
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -583,6 +713,45 @@ const Voters = () => {
             )}
           </CardContent>
         </Card>
+        {/* Modale de détail */}
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Détails du Centre/Bureau</DialogTitle>
+              <DialogDescription>
+                Informations complémentaires non affichées dans le tableau principal
+              </DialogDescription>
+            </DialogHeader>
+            {selectedVoter && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm text-gray-500">Responsable Centre</h3>
+                  <div className="font-medium">{selectedVoter.responsableCentre || '-'}</div>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">Contact Respo Centre</h3>
+                  <div className="font-medium">{selectedVoter.contactRespoCentre || '-'}</div>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">Responsable Bureau</h3>
+                  <div className="font-medium">{selectedVoter.responsableBureau || '-'}</div>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">Contact Respo Bureau</h3>
+                  <div className="font-medium">{selectedVoter.contactRespoBureau || '-'}</div>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">Représentant Bureau (Candidat)</h3>
+                  <div className="font-medium">{selectedVoter.representantBureau || '-'}</div>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">Contact Repr Centre</h3>
+                  <div className="font-medium">{selectedVoter.contactReprCentre || '-'}</div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
