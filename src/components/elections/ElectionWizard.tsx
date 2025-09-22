@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Select2, { Select2Option } from '@/components/ui/select2';
 import { Badge } from '@/components/ui/badge';
-import { X, ChevronLeft, ChevronRight, Star, Trash2, Edit } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Star, Trash2, Edit, Search } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface Candidate {
   id: string;
@@ -52,6 +54,86 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     party: '',
     isOurCandidate: false
   });
+
+  // États pour les données de localisation
+  const [provinces, setProvinces] = useState<Array<{id: string, name: string}>>([]);
+  const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([]);
+  const [communes, setCommunes] = useState<Array<{id: string, name: string}>>([]);
+  const [arrondissements, setArrondissements] = useState<Array<{id: string, name: string}>>([]);
+  
+  // États pour les IDs sélectionnés
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>('');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+  const [selectedCommuneId, setSelectedCommuneId] = useState<string>('');
+  const [selectedArrondissementId, setSelectedArrondissementId] = useState<string>('');
+
+  // Charger les provinces
+  const loadProvinces = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('provinces')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setProvinces(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des provinces:', error);
+    }
+  };
+
+  // Charger les départements
+  const loadDepartments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setDepartments(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des départements:', error);
+    }
+  };
+
+  // Charger les communes
+  const loadCommunes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('communes')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setCommunes(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des communes:', error);
+    }
+  };
+
+  // Charger les arrondissements
+  const loadArrondissements = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('arrondissements')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setArrondissements(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des arrondissements:', error);
+    }
+  };
+
+  // Charger toutes les données de localisation
+  useEffect(() => {
+    loadProvinces();
+    loadDepartments();
+    loadCommunes();
+    loadArrondissements();
+  }, []);
 
   const steps = [
     'Informations Générales',
@@ -257,55 +339,73 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
       case 2:
         return (
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="province">Province</Label>
-              <Select value={formData.province} onValueChange={(value) => setFormData({ ...formData, province: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner la province" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Estuaire">Estuaire</SelectItem>
-                  <SelectItem value="Haut-Ogooué">Haut-Ogooué</SelectItem>
-                  <SelectItem value="Moyen-Ogooué">Moyen-Ogooué</SelectItem>
-                  <SelectItem value="Ngounié">Ngounié</SelectItem>
-                  <SelectItem value="Nyanga">Nyanga</SelectItem>
-                  <SelectItem value="Ogooué-Ivindo">Ogooué-Ivindo</SelectItem>
-                  <SelectItem value="Ogooué-Lolo">Ogooué-Lolo</SelectItem>
-                  <SelectItem value="Ogooué-Maritime">Ogooué-Maritime</SelectItem>
-                  <SelectItem value="Woleu-Ntem">Woleu-Ntem</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select2
+              label="Province"
+              placeholder="Rechercher une province..."
+              options={provinces.map(p => ({ value: p.id, label: p.name }))}
+              value={provinces.find(p => p.id === selectedProvinceId) ? 
+                { value: selectedProvinceId, label: provinces.find(p => p.id === selectedProvinceId)?.name || '' } : null}
+              onChange={(selectedOption) => {
+                if (selectedOption) {
+                  setSelectedProvinceId(selectedOption.value);
+                  setFormData({ ...formData, province: selectedOption.label });
+                } else {
+                  setSelectedProvinceId('');
+                  setFormData({ ...formData, province: '' });
+                }
+              }}
+            />
             
-            <div>
-              <Label htmlFor="department">Département</Label>
-              <Input
-                id="department"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                placeholder="Ex: Lemboumbi-Leyou"
-              />
-            </div>
+            <Select2
+              label="Département"
+              placeholder="Rechercher un département..."
+              options={departments.map(d => ({ value: d.id, label: d.name }))}
+              value={departments.find(d => d.id === selectedDepartmentId) ? 
+                { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
+              onChange={(selectedOption) => {
+                if (selectedOption) {
+                  setSelectedDepartmentId(selectedOption.value);
+                  setFormData({ ...formData, department: selectedOption.label });
+                } else {
+                  setSelectedDepartmentId('');
+                  setFormData({ ...formData, department: '' });
+                }
+              }}
+            />
             
-            <div>
-              <Label htmlFor="commune">Commune / Canton / District</Label>
-              <Input
-                id="commune"
-                value={formData.commune}
-                onChange={(e) => setFormData({ ...formData, commune: e.target.value })}
-                placeholder="Ex: Commune de Moanda"
-              />
-            </div>
+            <Select2
+              label="Commune / Canton / District"
+              placeholder="Rechercher une commune..."
+              options={communes.map(c => ({ value: c.id, label: c.name }))}
+              value={communes.find(c => c.id === selectedCommuneId) ? 
+                { value: selectedCommuneId, label: communes.find(c => c.id === selectedCommuneId)?.name || '' } : null}
+              onChange={(selectedOption) => {
+                if (selectedOption) {
+                  setSelectedCommuneId(selectedOption.value);
+                  setFormData({ ...formData, commune: selectedOption.label });
+                } else {
+                  setSelectedCommuneId('');
+                  setFormData({ ...formData, commune: '' });
+                }
+              }}
+            />
             
-            <div>
-              <Label htmlFor="arrondissement">Arrondissement / Siège</Label>
-              <Input
-                id="arrondissement"
-                value={formData.arrondissement}
-                onChange={(e) => setFormData({ ...formData, arrondissement: e.target.value })}
-                placeholder="Ex: 1er Arrondissement"
-              />
-            </div>
+            <Select2
+              label="Arrondissement / Siège"
+              placeholder="Rechercher un arrondissement..."
+              options={arrondissements.map(a => ({ value: a.id, label: a.name }))}
+              value={arrondissements.find(a => a.id === selectedArrondissementId) ? 
+                { value: selectedArrondissementId, label: arrondissements.find(a => a.id === selectedArrondissementId)?.name || '' } : null}
+              onChange={(selectedOption) => {
+                if (selectedOption) {
+                  setSelectedArrondissementId(selectedOption.value);
+                  setFormData({ ...formData, arrondissement: selectedOption.label });
+                } else {
+                  setSelectedArrondissementId('');
+                  setFormData({ ...formData, arrondissement: '' });
+                }
+              }}
+            />
           </div>
         );
         

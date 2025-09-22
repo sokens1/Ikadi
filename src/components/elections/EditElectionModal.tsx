@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Select2, { Select2Option } from '@/components/ui/select2';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, Save, Calendar, MapPin, Users, Building } from 'lucide-react';
+import { X, Save, Calendar, MapPin, Users, Building, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface EditElectionModalProps {
   election: Election;
@@ -34,9 +36,119 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     seatsAvailable: election.configuration.seatsAvailable,
     budget: election.configuration.budget || 0,
     voteGoal: election.configuration.voteGoal || 0,
+    nbElecteurs: election.statistics.totalVoters || 0,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // États pour les données de localisation
+  const [provinces, setProvinces] = useState<Array<{id: string, name: string}>>([]);
+  const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([]);
+  const [communes, setCommunes] = useState<Array<{id: string, name: string}>>([]);
+  const [arrondissements, setArrondissements] = useState<Array<{id: string, name: string}>>([]);
+  
+  // États pour les IDs sélectionnés
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>('');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+  const [selectedCommuneId, setSelectedCommuneId] = useState<string>('');
+  const [selectedArrondissementId, setSelectedArrondissementId] = useState<string>('');
+
+  // Charger les provinces
+  const loadProvinces = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('provinces')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setProvinces(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des provinces:', error);
+    }
+  };
+
+  // Charger les départements
+  const loadDepartments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setDepartments(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des départements:', error);
+    }
+  };
+
+  // Charger les communes
+  const loadCommunes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('communes')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setCommunes(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des communes:', error);
+    }
+  };
+
+  // Charger les arrondissements
+  const loadArrondissements = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('arrondissements')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setArrondissements(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des arrondissements:', error);
+    }
+  };
+
+  // Charger toutes les données de localisation
+  useEffect(() => {
+    loadProvinces();
+    loadDepartments();
+    loadCommunes();
+    loadArrondissements();
+  }, []);
+
+  // Initialiser les IDs sélectionnés avec les valeurs actuelles
+  useEffect(() => {
+    if (provinces.length > 0) {
+      const currentProvince = provinces.find(p => p.name === formData.province);
+      if (currentProvince) setSelectedProvinceId(currentProvince.id);
+    }
+  }, [provinces, formData.province]);
+
+  useEffect(() => {
+    if (departments.length > 0) {
+      const currentDepartment = departments.find(d => d.name === formData.department);
+      if (currentDepartment) setSelectedDepartmentId(currentDepartment.id);
+    }
+  }, [departments, formData.department]);
+
+  useEffect(() => {
+    if (communes.length > 0) {
+      const currentCommune = communes.find(c => c.name === formData.commune);
+      if (currentCommune) setSelectedCommuneId(currentCommune.id);
+    }
+  }, [communes, formData.commune]);
+
+  useEffect(() => {
+    if (arrondissements.length > 0) {
+      const currentArrondissement = arrondissements.find(a => a.name === formData.arrondissement);
+      if (currentArrondissement) setSelectedArrondissementId(currentArrondissement.id);
+    }
+  }, [arrondissements, formData.arrondissement]);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({
@@ -90,6 +202,10 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
           voteGoal: formData.voteGoal,
           allowMultipleCandidates: election.configuration.allowMultipleCandidates,
           requirePhotoValidation: election.configuration.requirePhotoValidation,
+        },
+        statistics: {
+          ...election.statistics,
+          totalVoters: formData.nbElecteurs,
         },
       };
 
@@ -197,45 +313,75 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="province">Province</Label>
-                  <Input
-                    id="province"
-                    value={formData.province}
-                    onChange={(e) => handleInputChange('province', e.target.value)}
-                    placeholder="Ex: Estuaire"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="department">Département</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => handleInputChange('department', e.target.value)}
-                    placeholder="Ex: Libreville"
-                  />
-                </div>
+                <Select2
+                  label="Province"
+                  placeholder="Rechercher une province..."
+                  options={provinces.map(p => ({ value: p.id, label: p.name }))}
+                  value={provinces.find(p => p.id === selectedProvinceId) ? 
+                    { value: selectedProvinceId, label: provinces.find(p => p.id === selectedProvinceId)?.name || '' } : null}
+                  onChange={(selectedOption) => {
+                    if (selectedOption) {
+                      setSelectedProvinceId(selectedOption.value);
+                      handleInputChange('province', selectedOption.label);
+                    } else {
+                      setSelectedProvinceId('');
+                      handleInputChange('province', '');
+                    }
+                  }}
+                />
+                
+                <Select2
+                  label="Département"
+                  placeholder="Rechercher un département..."
+                  options={departments.map(d => ({ value: d.id, label: d.name }))}
+                  value={departments.find(d => d.id === selectedDepartmentId) ? 
+                    { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
+                  onChange={(selectedOption) => {
+                    if (selectedOption) {
+                      setSelectedDepartmentId(selectedOption.value);
+                      handleInputChange('department', selectedOption.label);
+                    } else {
+                      setSelectedDepartmentId('');
+                      handleInputChange('department', '');
+                    }
+                  }}
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="commune">Commune</Label>
-                  <Input
-                    id="commune"
-                    value={formData.commune}
-                    onChange={(e) => handleInputChange('commune', e.target.value)}
-                    placeholder="Ex: Libreville"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="arrondissement">Arrondissement</Label>
-                  <Input
-                    id="arrondissement"
-                    value={formData.arrondissement}
-                    onChange={(e) => handleInputChange('arrondissement', e.target.value)}
-                    placeholder="Ex: 1er Arrondissement"
-                  />
-                </div>
+                <Select2
+                  label="Commune"
+                  placeholder="Rechercher une commune..."
+                  options={communes.map(c => ({ value: c.id, label: c.name }))}
+                  value={communes.find(c => c.id === selectedCommuneId) ? 
+                    { value: selectedCommuneId, label: communes.find(c => c.id === selectedCommuneId)?.name || '' } : null}
+                  onChange={(selectedOption) => {
+                    if (selectedOption) {
+                      setSelectedCommuneId(selectedOption.value);
+                      handleInputChange('commune', selectedOption.label);
+                    } else {
+                      setSelectedCommuneId('');
+                      handleInputChange('commune', '');
+                    }
+                  }}
+                />
+                
+                <Select2
+                  label="Arrondissement"
+                  placeholder="Rechercher un arrondissement..."
+                  options={arrondissements.map(a => ({ value: a.id, label: a.name }))}
+                  value={arrondissements.find(a => a.id === selectedArrondissementId) ? 
+                    { value: selectedArrondissementId, label: arrondissements.find(a => a.id === selectedArrondissementId)?.name || '' } : null}
+                  onChange={(selectedOption) => {
+                    if (selectedOption) {
+                      setSelectedArrondissementId(selectedOption.value);
+                      handleInputChange('arrondissement', selectedOption.label);
+                    } else {
+                      setSelectedArrondissementId('');
+                      handleInputChange('arrondissement', '');
+                    }
+                  }}
+                />
               </div>
             </CardContent>
           </Card>
@@ -249,7 +395,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="seatsAvailable">Sièges disponibles</Label>
                   <Input
@@ -260,6 +406,20 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                     onChange={(e) => handleInputChange('seatsAvailable', parseInt(e.target.value) || 1)}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nbElecteurs">Nombre d'électeurs</Label>
+                  <Input
+                    id="nbElecteurs"
+                    type="number"
+                    min="0"
+                    value={formData.nbElecteurs}
+                    onChange={(e) => handleInputChange('nbElecteurs', parseInt(e.target.value) || 0)}
+                    placeholder="Ex: 50000"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="budget">Budget (FCFA)</Label>
                   <Input

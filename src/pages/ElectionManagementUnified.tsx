@@ -86,7 +86,28 @@ const ElectionManagementUnified = () => {
         }
 
         // Transformer les données Supabase en format Election unifié
-        const transformedElections: Election[] = data?.map(election => ({
+        const transformedElections: Election[] = data?.map(election => {
+          console.log('Données brutes de l\'élection:', election);
+          console.log('Données de localisation:', {
+            // Champs directs
+            province: election.province,
+            department: election.department,
+            commune: election.commune,
+            arrondissement: election.arrondissement,
+            localisation: election.localisation,
+            // Relations
+            provinces: election.provinces,
+            departments: election.departments,
+            communes: election.communes,
+            arrondissements: election.arrondissements,
+            // IDs de relations
+            province_id: election.province_id,
+            department_id: election.department_id,
+            commune_id: election.commune_id,
+            arrondissement_id: election.arrondissement_id
+          });
+          
+          return {
           id: election.id.toString(),
           title: election.title,
           type: election.election_type || 'Législatives',
@@ -94,11 +115,13 @@ const ElectionManagementUnified = () => {
           date: new Date(election.election_date),
           description: election.description || '',
           location: {
-            province: election.provinces?.name || '',
-            department: election.departments?.name || '',
-            commune: election.communes?.name || '',
-            arrondissement: election.arrondissements?.name || '',
-            fullAddress:  election.localisation || `${election.communes?.name || ''}, ${election.departments?.name || ''}`,
+            province: election.provinces?.name || election.province || '',
+            department: election.departments?.name || election.department || '',
+            commune: election.communes?.name || election.commune || '',
+            arrondissement: election.arrondissements?.name || election.arrondissement || '',
+            fullAddress: election.localisation || 
+              `${election.communes?.name || election.commune || ''}, ${election.departments?.name || election.department || ''}` ||
+              'Localisation non spécifiée',
           },
           configuration: {
             seatsAvailable: election.seats_available || 1,
@@ -108,7 +131,7 @@ const ElectionManagementUnified = () => {
             requirePhotoValidation: false,
           },
           statistics: {
-            totalVoters: election.registered_voters || 0,
+            totalVoters: election.nb_electeurs || election.registered_voters || 0,
             totalCandidates: election.candidates_count || 0,
             totalCenters: election.voting_centers_count || 0,
             totalBureaux: election.voting_bureaux_count || 0,
@@ -126,7 +149,8 @@ const ElectionManagementUnified = () => {
           createdAt: new Date(election.created_at),
           updatedAt: new Date(election.updated_at),
           createdBy: election.created_by || 'system',
-        })) || [];
+        };
+        }) || [];
 
         setElections(transformedElections);
       } catch (error) {
@@ -229,6 +253,7 @@ const ElectionManagementUnified = () => {
         election_date: updatedData.date?.toISOString().split('T')[0],
         status: updatedData.status,
         description: updatedData.description || '',
+        nb_electeurs: updatedData.statistics?.totalVoters || 0,
       };
 
       console.log('Données à envoyer à Supabase:', supabaseData);
@@ -418,13 +443,14 @@ const ElectionManagementUnified = () => {
       // Préparer les données pour Supabase
       const supabaseData = {
         title: electionData.title,
-        election_type: electionData.type,
+        type: electionData.type, // Utiliser 'type' au lieu de 'election_type'
         election_date: electionData.date,
         status: 'À venir',
         description: electionData.description || '',
         seats_available: electionData.configuration.seatsAvailable,
         budget: electionData.configuration.budget || 0,
         vote_goal: electionData.configuration.voteGoal || 0,
+        nb_electeurs: electionData.statistics?.totalVoters || 0,
         // Note: Les relations géographiques seraient gérées séparément
       };
 
@@ -490,6 +516,9 @@ const ElectionManagementUnified = () => {
   };
 
   if (selectedElection) {
+    console.log('Élection sélectionnée pour la vue détaillée:', selectedElection);
+    console.log('Données de localisation de l\'élection sélectionnée:', selectedElection.location);
+    
     // Adapter notre type Election vers le type attendu par ElectionDetailView
     const adaptedElection = {
       id: parseInt(selectedElection.id.replace(/\D/g, '')) || 1,
@@ -510,6 +539,8 @@ const ElectionManagementUnified = () => {
       commune: selectedElection.location.commune,
       arrondissement: selectedElection.location.arrondissement,
     };
+    
+    console.log('Élection adaptée pour ElectionDetailView:', adaptedElection);
 
     return (
       <ElectionDetailView 
