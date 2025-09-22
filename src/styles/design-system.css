@@ -226,6 +226,31 @@
   letter-spacing: 0.05em;
 }
 
+/* Couleurs personnalisées pour les statuts d'élection */
+.status-badge[data-status="gray"] {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.status-badge[data-status="orange"] {
+  background-color: #fed7aa;
+  color: #ea580c;
+  border: 1px solid #fdba74;
+}
+
+.status-badge[data-status="green"] {
+  background-color: #bbf7d0;
+  color: #16a34a;
+  border: 1px solid #86efac;
+}
+
+.status-badge[data-status="red"] {
+  background-color: #fecaca;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
 .status-badge--success {
   background: var(--secondary-green-50);
   color: var(--secondary-green-700);

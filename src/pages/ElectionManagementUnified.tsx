@@ -95,7 +95,7 @@ const ElectionManagementUnified = () => {
             department: election.departments?.name || '',
             commune: election.communes?.name || '',
             arrondissement: election.arrondissements?.name || '',
-            fullAddress: `${election.communes?.name || ''}, ${election.departments?.name || ''}`,
+            fullAddress:  election.localisation || `${election.communes?.name || ''}, ${election.departments?.name || ''}`,
           },
           configuration: {
             seatsAvailable: election.seats_available || 1,
@@ -164,36 +164,32 @@ const ElectionManagementUnified = () => {
   // Fonction pour déterminer la couleur du statut
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'en cours':
-      case 'active':
-        return 'success';
       case 'à venir':
       case 'programmée':
-        return 'info';
-      case 'préparation':
-        return 'warning';
+        return 'gray';
+      case 'en cours':
+      case 'active':
+        return 'orange';
       case 'terminée':
       case 'completed':
-        return 'neutral';
+        return 'green';
       case 'annulée':
-        return 'error';
+        return 'red';
       default:
-        return 'info';
+        return 'gray';
     }
   };
 
   const getStatusVariant = (color: string) => {
     switch (color) {
-      case 'success':
-        return 'default';
-      case 'info':
+      case 'gray':
         return 'secondary';
-      case 'warning':
+      case 'orange':
         return 'outline';
-      case 'error':
+      case 'green':
+        return 'default';
+      case 'red':
         return 'destructive';
-      case 'neutral':
-        return 'secondary';
       default:
         return 'secondary';
     }
@@ -506,13 +502,13 @@ const ElectionManagementUnified = () => {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="caption text-gray-600 font-medium">En Cours</p>
-                  <p className="heading-2 text-green-600">{statistics.byStatus['En cours'] || 0}</p>
-                  <div className="w-12 h-1 bg-green-200 rounded-full">
-                    <div className="w-full h-full bg-green-500 rounded-full"></div>
+                  <p className="heading-2 text-orange-600">{statistics.byStatus['En cours'] || 0}</p>
+                  <div className="w-12 h-1 bg-orange-200 rounded-full">
+                    <div className="w-full h-full bg-orange-500 rounded-full"></div>
                   </div>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <Users className="h-8 w-8 text-green-600" />
+                <div className="p-3 bg-orange-100 rounded-full">
+                  <Users className="h-8 w-8 text-orange-600" />
                 </div>
               </div>
             </CardContent>
@@ -523,13 +519,13 @@ const ElectionManagementUnified = () => {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="caption text-gray-600 font-medium">À Venir</p>
-                  <p className="heading-2 text-orange-600">{statistics.byStatus['À venir'] || 0}</p>
-                  <div className="w-12 h-1 bg-orange-200 rounded-full">
-                    <div className="w-full h-full bg-orange-500 rounded-full"></div>
+                  <p className="heading-2 text-gray-600">{statistics.byStatus['À venir'] || 0}</p>
+                  <div className="w-12 h-1 bg-gray-200 rounded-full">
+                    <div className="w-full h-full bg-gray-500 rounded-full"></div>
                   </div>
                 </div>
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <Calendar className="h-8 w-8 text-orange-600" />
+                <div className="p-3 bg-gray-100 rounded-full">
+                  <Calendar className="h-8 w-8 text-gray-600" />
                 </div>
               </div>
             </CardContent>
@@ -540,13 +536,13 @@ const ElectionManagementUnified = () => {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="caption text-gray-600 font-medium">Terminées</p>
-                  <p className="heading-2 text-gray-600">{statistics.byStatus['Terminée'] || 0}</p>
-                  <div className="w-12 h-1 bg-gray-200 rounded-full">
-                    <div className="w-full h-full bg-gray-500 rounded-full"></div>
+                  <p className="heading-2 text-green-600">{statistics.byStatus['Terminée'] || 0}</p>
+                  <div className="w-12 h-1 bg-green-200 rounded-full">
+                    <div className="w-full h-full bg-green-500 rounded-full"></div>
                   </div>
                 </div>
-                <div className="p-3 bg-gray-100 rounded-full">
-                  <Building className="h-8 w-8 text-gray-600" />
+                <div className="p-3 bg-green-100 rounded-full">
+                  <Building className="h-8 w-8 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -679,6 +675,7 @@ const ElectionManagementUnified = () => {
                         <Badge 
                           variant={getStatusVariant(getStatusColor(election.status))}
                           className="status-badge"
+                          data-status={getStatusColor(election.status)}
                         >
                           {election.status}
                         </Badge>
@@ -794,7 +791,7 @@ const ElectionManagementUnified = () => {
                 >
                   <div className="flex-1 min-w-0 mb-4 md:mb-0 md:mr-6">
                     <div className="flex items-start justify-between mb-2">
-                      <CardTitle className="heading-4 group-hover:text-primary-blue line-clamp-1 flex-1">
+                      <CardTitle className="heading-5 group-hover:text-primary-blue line-clamp-1 flex-1">
                         {election.title}
                       </CardTitle>
                       <DropdownMenu>
@@ -839,6 +836,7 @@ const ElectionManagementUnified = () => {
                     <Badge
                       variant={getStatusVariant(getStatusColor(election.status))}
                       className="status-badge"
+                      data-status={getStatusColor(election.status)}
                     >
                       {election.status}
                     </Badge>
