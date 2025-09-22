@@ -8,17 +8,16 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import PublicHomePage from "./pages/PublicHomePage";
 import Dashboard from "./pages/Dashboard";
-import ElectionManagement from "./pages/ElectionManagement";
+import ElectionManagementUnified from "./pages/ElectionManagementUnified";
 import UserManagement from "./pages/UserManagement";
 import Results from "./pages/Results";
-// import CampaignManagement from "./pages/CampaignManagement"; // Désactivé temporairement
 import OperationDetail from "./pages/OperationDetail";
-// import Conversations from "./pages/Conversations"; // Désactivé temporairement
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import VotingCenters from "./pages/VotingCenters";
 import Voters from "./pages/Voters";
-
+// import CampaignManagement from "./pages/CampaignManagement"; // Désactivé temporairement
+// import Conversations from "./pages/Conversations"; // Désactivé temporairement
 // Create QueryClient outside of component to avoid recreation on every render
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,7 +39,7 @@ const App = () => {
                 <Route path="/" element={<PublicHomePage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/elections" element={<ElectionManagement />} />
+                <Route path="/elections" element={<ElectionManagementUnified />} />
                 <Route path="/centers" element={<VotingCenters />} />
                 <Route path="/users" element={<UserManagement />} />
                 <Route path="/results" element={<Results />} />
