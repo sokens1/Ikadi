@@ -163,13 +163,39 @@
   transition: all var(--transition-normal);
   overflow: hidden;
   position: relative;
-  cursor: pointer;
 }
 
+.election-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-blue), var(--primary-blue-light));
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
 
 .election-card:hover {
+  box-shadow: var(--shadow-xl);
+  border-color: var(--primary-blue-300);
+  transform: translateY(-2px);
+}
+
+.election-card:hover::before {
+  opacity: 1;
+}
+
+.election-card:hover .election-card-header .heading-4 {
+  color: var(--primary-blue);
+}
+
+.election-card:hover .election-card-content button {
+  background-color: var(--primary-blue);
+  color: white;
+  border-color: var(--primary-blue);
   box-shadow: var(--shadow-md);
-  border-color: var(--neutral-gray-200);
 }
 
 .election-card-header {

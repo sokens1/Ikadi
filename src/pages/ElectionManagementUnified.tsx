@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
@@ -9,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
   Calendar, 
   Users, 
@@ -21,11 +23,18 @@ import {
   Filter,
   Download,
   MoreVertical,
-  X
+  X,
+  LayoutGrid,
+  List,
+  Edit,
+  Trash2,
+  Copy,
+  FileDown
 } from 'lucide-react';
 import ElectionWizard from '@/components/elections/ElectionWizard';
 import ElectionDetailView from '@/components/elections/ElectionDetailView';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const ElectionManagementUnified = () => {
   const {
@@ -49,6 +58,7 @@ const ElectionManagementUnified = () => {
   const [searchQuery, setSearchQueryLocal] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Charger les élections depuis Supabase
   useEffect(() => {
@@ -197,6 +207,97 @@ const ElectionManagementUnified = () => {
     setSelectedElection(null);
   };
 
+  const handleEditElection = (election: Election) => {
+    toast.info('Fonctionnalité de modification en cours de développement');
+    console.log('Modifier élection:', election);
+  };
+
+  const handleDeleteElection = async (electionId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette élection ?')) {
+      try {
+        setLoading(true);
+        await deleteElection(electionId);
+        toast.success('Élection supprimée avec succès');
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        toast.error('Erreur lors de la suppression de l\'élection');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleDuplicateElection = (election: Election) => {
+    const duplicatedElection = {
+      ...election,
+      id: crypto.randomUUID(),
+      title: `${election.title} (Copie)`,
+      status: 'À venir' as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    try {
+      addElection(duplicatedElection);
+      toast.success('Élection dupliquée avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la duplication:', error);
+      toast.error('Erreur lors de la duplication de l\'élection');
+    }
+  };
+
+  const handleExportElection = (election: Election) => {
+    const data = {
+      title: election.title,
+      type: election.type,
+      date: election.date.toISOString(),
+      status: election.status,
+      location: election.location,
+      statistics: election.statistics,
+      configuration: election.configuration
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `election-${election.title.replace(/\s+/g, '-').toLowerCase()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Élection exportée avec succès');
+  };
+
+  const handleExportAllElections = () => {
+    const data = {
+      elections: filteredElections.map(election => ({
+        title: election.title,
+        type: election.type,
+        date: election.date.toISOString(),
+        status: election.status,
+        location: election.location,
+        statistics: election.statistics,
+        configuration: election.configuration
+      })),
+      exportDate: new Date().toISOString(),
+      totalElections: filteredElections.length
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `elections-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`${filteredElections.length} élection(s) exportée(s) avec succès`);
+  };
+
   const handleCreateElection = async (electionData: CreateElectionData) => {
     try {
       // Validation des données
@@ -291,11 +392,12 @@ const ElectionManagementUnified = () => {
       title: selectedElection.title,
       date: selectedElection.date.toISOString().split('T')[0],
       status: selectedElection.status,
-      description: selectedElection.description || '',
+      description: selectedElection.description || `${selectedElection.location.commune}, ${selectedElection.location.department}, ${selectedElection.location.province}`,
       voters: selectedElection.statistics.totalVoters,
       centers: selectedElection.statistics.totalCenters,
       candidates: selectedElection.statistics.totalCandidates,
       location: selectedElection.location.fullAddress,
+      type: selectedElection.type,
       budget: selectedElection.configuration.budget || 0,
       voteGoal: selectedElection.configuration.voteGoal || 0,
       seatsAvailable: selectedElection.configuration.seatsAvailable,
@@ -307,7 +409,7 @@ const ElectionManagementUnified = () => {
 
     return (
       <ElectionDetailView 
-        election={adaptedElection as unknown as any} 
+        election={adaptedElection as any} 
         onBack={handleCloseDetail}
       />
     );
@@ -366,15 +468,15 @@ const ElectionManagementUnified = () => {
                   <Plus className="h-5 w-5" />
                   Nouvelle Élection
                 </Button>
-                <Button 
+                {/* <Button 
                   variant="outline" 
                   className="btn-secondary shadow-md hover:shadow-lg transition-all duration-300"
                   size="lg"
-                  onClick={() => toast.info('Fonctionnalité d\'export en cours de développement')}
+                  onClick={handleExportAllElections}
                 >
                   <Download className="h-5 w-5" />
                   Exporter
-                </Button>
+                </Button> */}
               </div>
             </div>
           </div>
@@ -501,10 +603,34 @@ const ElectionManagementUnified = () => {
                   <SelectItem value="Législatives">Législatives</SelectItem>
                   <SelectItem value="Locales">Locales</SelectItem>
                   <SelectItem value="Présidentielle">Présidentielle</SelectItem>
-                </SelectContent>
-              </Select>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  "h-10 w-10 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
+                  viewMode === 'grid' && "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                )}
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  "h-10 w-10 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
+                  viewMode === 'list' && "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                )}
+              >
+                <List className="h-5 w-5" />
+              </Button>
             </div>
           </div>
+        </div>
         </div>
 
         {/* Liste des élections */}
@@ -537,101 +663,223 @@ const ElectionManagementUnified = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="election-grid">
-            {filteredElections.map((election) => (
-              <Card 
-                key={election.id} 
-                className="election-card cursor-pointer"
-                onClick={() => handleViewElection(election)}
-              >
-                <CardHeader className="election-card-header">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="heading-4 mb-3 line-clamp-2">
+          viewMode === 'grid' ? (
+            <div className="election-grid">
+              {filteredElections.map((election) => (
+                <Card 
+                  key={election.id} 
+                  className="election-card group hover:shadow-lg transition-all duration-300"
+                >
+                  <CardHeader className="election-card-header">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="heading-4 group-hover:text-primary-blue mb-3 line-clamp-2">
+                          {election.title}
+                        </CardTitle>
+                        <Badge 
+                          variant={getStatusVariant(getStatusColor(election.status))}
+                          className="status-badge"
+                        >
+                          {election.status}
+                        </Badge>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewElection(election); }}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Voir les détails
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditElection(election); }}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          {/* <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateElection(election); }}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Dupliquer
+                          </DropdownMenuItem> */}
+                          {/* <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleExportElection(election); }}>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Exporter
+                          </DropdownMenuItem> */}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={(e) => { e.stopPropagation(); handleDeleteElection(election.id); }} 
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="election-card-content">
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Calendar className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <span className="font-medium">
+                            {election.date.toLocaleDateString('fr-FR', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <MapPin className="h-4 w-4 text-green-600" />
+                          </div>
+                          <span className="font-medium line-clamp-1">{election.location.fullAddress}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                        <div className="text-center p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center justify-center gap-2 text-blue-600 mb-2">
+                            <Users className="h-5 w-5" />
+                            <span className="text-sm font-semibold">Électeurs</span>
+                          </div>
+                          <p className="heading-3 text-blue-700">
+                            {election.statistics.totalVoters.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="text-center p-3 bg-green-50 rounded-lg">
+                          <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
+                            <Building className="h-5 w-5" />
+                            <span className="text-sm font-semibold">Centres</span>
+                          </div>
+                          <p className="heading-3 text-green-700">
+                            {election.statistics.totalCenters}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-md transition-all duration-300 py-3 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 group-hover:shadow-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewElection(election);
+                        }}
+                      >
+                        Voir les détails
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {filteredElections.map((election) => (
+                <Card
+                  key={election.id}
+                  className="election-card group hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row items-center justify-between p-4 md:p-6"
+                >
+                  <div className="flex-1 min-w-0 mb-4 md:mb-0 md:mr-6">
+                    <div className="flex items-start justify-between mb-2">
+                      <CardTitle className="heading-4 group-hover:text-primary-blue line-clamp-1 flex-1">
                         {election.title}
                       </CardTitle>
-                      <Badge 
-                        variant={getStatusVariant(getStatusColor(election.status))}
-                        className="status-badge"
-                      >
-                        {election.status}
-                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1 ml-2"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewElection(election); }}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Voir les détails
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditElection(election); }}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateElection(election); }}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Dupliquer
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleExportElection(election); }}>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Exporter
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={(e) => { e.stopPropagation(); handleDeleteElection(election.id); }} 
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewElection(election);
-                      }}
-                      className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2"
+                    <Badge
+                      variant={getStatusVariant(getStatusColor(election.status))}
+                      className="status-badge"
                     >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                      {election.status}
+                    </Badge>
+                    <div className="flex items-center text-gray-600 body-small mt-2">
+                      <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+                      <span>{election.date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600 body-small mt-1">
+                      <MapPin className="h-4 w-4 mr-2 text-gray-500" />
+                      <span>{election.location.fullAddress}</span>
+                    </div>
                   </div>
-                </CardHeader>
-                
-                <CardContent className="election-card-content">
-                  <div className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm text-gray-600">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Calendar className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <span className="font-medium">
-                          {election.date.toLocaleDateString('fr-FR', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-600">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <MapPin className="h-4 w-4 text-green-600" />
-                        </div>
-                        <span className="font-medium line-clamp-1">{election.location.fullAddress}</span>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-                      <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <div className="flex items-center justify-center gap-2 text-blue-600 mb-2">
-                          <Users className="h-5 w-5" />
-                          <span className="text-sm font-semibold">Électeurs</span>
-                        </div>
-                        <p className="heading-3 text-blue-700">
-                          {election.statistics.totalVoters.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
-                          <Building className="h-5 w-5" />
-                          <span className="text-sm font-semibold">Centres</span>
-                        </div>
-                        <p className="heading-3 text-green-700">
-                          {election.statistics.totalCenters}
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-6 text-gray-700 body-small mb-4 md:mb-0 md:mr-6">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4 text-blue-500" />
+                      <span>{election.statistics.totalVoters.toLocaleString()}</span>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <Building className="h-4 w-4 text-green-500" />
+                      <span>{election.statistics.totalCenters}</span>
+                    </div>
+                  </div>
 
+                  <div className="w-full md:w-auto">
                     <Button
                       variant="outline"
-                      className="w-full flex items-center justify-center gap-2 py-3"
+                      className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-md transition-all duration-300 py-3 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 group-hover:shadow-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleViewElection(election);
                       }}
                     >
                       Voir les détails
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          )
         )}
 
         {/* Election Wizard Modal */}

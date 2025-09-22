@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useReducer, useCallback, useMemo } from 'react';
+import { useReducer, useCallback, useMemo, useState } from 'react';
 import { Election, ElectionState, ElectionAction, ElectionFilters } from '@/types/elections';
 
 // État initial
@@ -69,6 +69,12 @@ function electionReducer(state: ElectionState, action: ElectionAction): Election
         error: null,
       };
 
+    case 'SET_SELECTED_ELECTION':
+      return {
+        ...state,
+        selectedElection: action.payload,
+      };
+
     default:
       return state;
   }
@@ -104,8 +110,7 @@ export function useElectionState() {
   }, []);
 
   const setSelectedElection = useCallback((election: Election | null) => {
-    // Cette action est gérée localement car elle n'affecte pas la liste
-    return election;
+    dispatch({ type: 'SET_SELECTED_ELECTION', payload: election });
   }, []);
 
   const setFilters = useCallback((filters: ElectionFilters) => {

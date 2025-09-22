@@ -148,7 +148,7 @@ export interface ElectionFilters {
 
 // Types pour les actions utilisateur
 export interface ElectionAction {
-  type: 'SET_ELECTIONS' | 'ADD_ELECTION' | 'UPDATE_ELECTION' | 'DELETE_ELECTION' | 'SET_LOADING' | 'SET_ERROR';
+  type: 'SET_ELECTIONS' | 'ADD_ELECTION' | 'UPDATE_ELECTION' | 'DELETE_ELECTION' | 'SET_LOADING' | 'SET_ERROR' | 'SET_SELECTED_ELECTION';
   payload?: any;
 }
 
