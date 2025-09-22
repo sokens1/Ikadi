@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import ElectionWizard from '@/components/elections/ElectionWizard';
 import ElectionDetailView from '@/components/elections/ElectionDetailView';
+import EditElectionModal from '@/components/elections/EditElectionModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +56,8 @@ const ElectionManagementUnified = () => {
   } = useElectionState();
 
   const [showWizard, setShowWizard] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingElection, setEditingElection] = useState<Election | null>(null);
   const [searchQuery, setSearchQueryLocal] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -204,8 +207,113 @@ const ElectionManagementUnified = () => {
   };
 
   const handleEditElection = (election: Election) => {
-    toast.info('Fonctionnalité de modification en cours de développement');
-    console.log('Modifier élection:', election);
+    setEditingElection(election);
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingElection(null);
+  };
+
+  const handleUpdateElection = async (updatedData: Partial<Election>) => {
+    if (!editingElection) return;
+
+    try {
+      setLoading(true);
+
+      // Préparer les données pour Supabase (champs de base uniquement)
+      const supabaseData = {
+        title: updatedData.title,
+        type: updatedData.type, // Utiliser 'type' au lieu de 'election_type'
+        election_date: updatedData.date?.toISOString().split('T')[0],
+        status: updatedData.status,
+        description: updatedData.description || '',
+      };
+
+      console.log('Données à envoyer à Supabase:', supabaseData);
+      console.log('ID de l\'élection à modifier:', editingElection.id);
+      console.log('Type de l\'ID:', typeof editingElection.id);
+
+      // Vérifier que l'ID existe et est valide
+      if (!editingElection.id) {
+        throw new Error('ID de l\'élection manquant');
+      }
+
+      // D'abord vérifier que l'élection existe
+      const { data: existingElection, error: fetchError } = await supabase
+        .from('elections')
+        .select('id, title')
+        .eq('id', editingElection.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Erreur lors de la vérification de l\'élection:', fetchError);
+        throw new Error(`Élection non trouvée: ${fetchError.message}`);
+      }
+
+      console.log('Élection trouvée:', existingElection);
+
+      const { error } = await supabase
+        .from('elections')
+        .update(supabaseData)
+        .eq('id', editingElection.id);
+
+      if (error) {
+        console.error('Erreur lors de la mise à jour de l\'élection:', error);
+        console.error('Détails de l\'erreur:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        // Essayer une approche alternative si l'erreur persiste
+        console.log('Tentative d\'approche alternative...');
+        
+        // Essayer de mettre à jour seulement le titre d'abord
+        const { error: simpleError } = await supabase
+          .from('elections')
+          .update({ title: updatedData.title })
+          .eq('id', editingElection.id);
+          
+        if (simpleError) {
+          console.error('Erreur même avec approche simple:', simpleError);
+          toast.error(`Erreur lors de la modification: ${error.message}`);
+          return;
+        } else {
+          console.log('Mise à jour simple réussie, tentative de mise à jour complète...');
+          // Si la mise à jour simple fonctionne, essayer la mise à jour complète
+          const { error: fullError } = await supabase
+            .from('elections')
+            .update(supabaseData)
+            .eq('id', editingElection.id);
+            
+          if (fullError) {
+            console.error('Erreur lors de la mise à jour complète:', fullError);
+            toast.error(`Erreur lors de la modification: ${fullError.message}`);
+            return;
+          }
+        }
+      }
+
+      // Mettre à jour l'élection dans l'état local
+      const updatedElection: Election = {
+        ...editingElection,
+        ...updatedData,
+        updatedAt: new Date(),
+      };
+
+      updateElection(updatedElection);
+      setShowEditModal(false);
+      setEditingElection(null);
+      toast.success('Élection modifiée avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la modification de l\'élection:', error);
+      toast.error('Erreur lors de la modification de l\'élection');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteElection = async (electionId: string) => {
@@ -889,6 +997,15 @@ const ElectionManagementUnified = () => {
               setShowWizard(false);
               toast.success('Élection créée avec succès');
             }}
+          />
+        )}
+
+        {/* Edit Election Modal */}
+        {showEditModal && editingElection && (
+          <EditElectionModal
+            election={editingElection}
+            onClose={handleCloseEditModal}
+            onUpdate={handleUpdateElection}
           />
         )}
       </div>
