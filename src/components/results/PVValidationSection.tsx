@@ -88,6 +88,23 @@ const PVValidationSection = () => {
     return enriched.filter(e => e.status === filter);
   }, [pvs, bureauxMap, centersMap, filter]);
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'En attente';
+      case 'entered':
+        return 'Saisi';
+      case 'validated':
+        return 'Validé';
+      case 'anomaly':
+        return 'Anomalie';
+      case 'published':
+        return 'Publié';
+      default:
+        return status;
+    }
+  };
+
   const getPriorityBadge = (status: string) => (
     <Badge className={
       status === 'validated' ? 'bg-green-100 text-green-800 border-green-200'
@@ -95,7 +112,7 @@ const PVValidationSection = () => {
       : status === 'entered' ? 'bg-blue-100 text-blue-800 border-blue-200'
       : 'bg-orange-100 text-orange-800 border-orange-200'
     }>
-      {status}
+      {getStatusLabel(status)}
     </Badge>
   );
 

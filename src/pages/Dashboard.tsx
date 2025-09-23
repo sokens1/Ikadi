@@ -185,7 +185,7 @@ const Dashboard = () => {
             centers: centersCount || 0,
             provinces: provincesCount || 0,
             bureaux: bureauxCount || 0,
-            average: centersCount && bureauxCount ? (bureauxCount / centersCount).toFixed(1) : 0
+            average: centersCount && bureauxCount ? Number((bureauxCount / centersCount).toFixed(1)) : 0
           },
           pvsWaiting: {
             count: pvsCount || 0,
