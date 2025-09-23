@@ -38,48 +38,30 @@
 - **Données**: Accès à Supabase via `src/lib/supabase.ts` (client Supabase configuré à partir de variables d’environnement Vite).
 - **UI**: Composants shadcn-ui (Radix UI) sous `src/components/ui/*`. Icônes `lucide-react`. Styles Tailwind (`tailwind.config.ts`, `src/index.css`, `src/styles/design-system.css`).
 
-### Modules et dossiers clés
-- `src/pages/*`: Pages routées (Dashboard, Elections, Users, Results, Voters, VotingCenters, Campaign, etc.).
-- `src/contexts/*`: Contextes applicatifs (`AuthContext`, `NotificationContext`).
-- `src/components/*`: Composants UI réutilisables et sections fonctionnelles (élections, résultats, campagne...).
-- `src/hooks/*`: Hooks personnalisés (ex. `useElectionState` pour gérer liste/filtrage/statistiques d’élections).
-- `src/lib/*`: Intégrations (ex. `supabase.ts`), utilitaires, schémas de validation.
-- `src/types/*`: Types TypeScript partagés (ex. `types/elections.ts`).
+### Palette iKADI et utilitaires Tailwind
+Pour respecter les couleurs demandées:
+- **Vert (header/nav)**: `#006400` → classe utilitaire: `.bg-ik-green`, `.text-ik-green`
+- **Bleu (boutons primaires)**: `#1E90FF` → `.bg-ik-blue`, `.text-ik-blue`, ou bouton: `.btn-ik-primary`
+- **Jaune (hover boutons)**: `#FDB913` → `.bg-ik-yellow`, `.text-ik-yellow` (déjà utilisé au hover de `.btn-ik-primary`)
+- **Arrière-plan général**: `#F5F7FA` → `.bg-ik-bg`
+- **Cartes chiffres clés**: `.ik-card-green` (fond vert, texte blanc) et `.ik-card-yellow` (fond jaune, texte gris foncé)
 
-### Authentification (Aperçu)
-- Sign-in via `supabase.auth.signInWithPassword`.
-- Récupération des métadonnées utilisateur dans la table `users`. Fallback par défaut si la ligne n’existe pas.
-- Session basique mémorisée sous la clé `ikadi-user`.
+Ces utilitaires sont définis dans `src/index.css` (section "Utilitaires iKADI"). Exemple d’usage:
 
-```43:116:src/contexts/AuthContext.tsx
-// Extrait — login et mapping utilisateur
-const { data: authData } = await supabase.auth.signInWithPassword({ email, password });
-// ...
-const { data: userData } = await supabase.from('users').select('*').eq('id', authData.user.id).single();
-// ... mapping vers type User et stockage local
+```tsx
+// Bouton primaire
+<Button className="btn-ik-primary">Connexion</Button>
+
+// Header vert
+<header className="bg-ik-green">…</header>
+
+// Carte chiffres clés
+<div className="ik-card-green rounded-lg p-5">…</div>
 ```
 
-### Notifications (Aperçu)
-- CRUD local des notifications via contexte, avec `unreadCount` dérivé.
-
-```23:67:src/contexts/NotificationContext.tsx
-// Extrait — Provider Notifications
-const [notifications, setNotifications] = useState<Notification[]>([]);
-const unreadCount = notifications.filter(n => !n.read).length;
-// addNotification, markAsRead, markAllAsRead, removeNotification
-```
-
-### Intégration Supabase
-- Client initialisé depuis variables d’environnement Vite:
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY` (doit commencer par `eyJ`)
-- Options Auth: auto refresh, persistent session, détection de session dans l’URL.
-
-```1:29:src/lib/supabase.ts
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-// validations et logs de debug, puis createClient(...)
-```
+Animation de la section héro (zoom doux infini):
+- Classe: `.ik-hero-zoom` (définie dans `src/index.css`)
+- Appliquée sur une couche overlay pour l’effet de zoom subtil.
 
 ### Routage: pages principales
 - **/** → `PublicHomePage` (Page d’accueil publique)
@@ -96,7 +78,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 - **catch-all** → `NotFound`
 
 ### Emplacement de la HomePage
-- La HomePage est gérée par le composant `src/pages/PublicHomePage.tsx` et montée sur la route `/` dans `src/App.tsx`.
+- La HomePage est gérée par `src/pages/PublicHomePage.tsx` et montée sur `/` dans `src/App.tsx`.
 
 ### Scripts NPM
 - **dev**: démarre le serveur Vite en développement.
@@ -126,7 +108,6 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 Notes:
-- Les clés `NEXT_PUBLIC_*` ne sont pas nécessaires ici (projet Vite), privilégier `VITE_*`.
 - Ne jamais exposer de service role key côté client.
 
 ### Démarrage rapide
@@ -138,12 +119,12 @@ Notes:
 
 ### Style et UI
 - **Tailwind**: utilitaires via `tailwind.config.ts` et `src/index.css`.
-- **shadcn-ui/Radix**: composants accessibles sous `src/components/ui/*` (modaux, menus, tabs, toasts, etc.).
+- **shadcn-ui/Radix**: composants sous `src/components/ui/*`.
 - **Icônes**: `lucide-react`.
 
 ### Hooks métiers
-- `useElectionState`: gestion locale des élections (liste, CRUD côté état, filtrage, recherche, statistiques dérivées).
-- `useElectionFilters` et `useElectionValidation`: utilitaires de filtrage/validation.
+- `useElectionState`: gestion locale des élections (liste, filtrage, stats dérivées).
+- `useElectionFilters`, `useElectionValidation`: utilitaires de filtrage/validation.
 
 ### Structure du projet (extrait)
 - `src/main.tsx`: bootstrap React
@@ -154,12 +135,9 @@ Notes:
 - `src/components/ui/*`: librairie UI
 - `src/styles/design-system.css`: styles additionnels
 
-### Tests et qualité
-- **ESLint** configuré (React, TypeScript). Commande: `npm run lint`.
-
 ### Déploiement
 - Build: `npm run build` → sortie Vite optimisée.
-- Hébergement statique (Netlify, Vercel, Render, etc.). Configurer les variables d’environnement et les règles de réécriture pour le SPA (fallback vers `index.html`).
+- Hébergement statique; configurer les variables d’env et le fallback SPA.
 
 ---
 
