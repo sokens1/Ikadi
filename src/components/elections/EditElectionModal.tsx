@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Election } from '@/types/elections';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Select2, { Select2Option } from '@/components/ui/select2';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, Save, Calendar, MapPin, Users, Building, Search } from 'lucide-react';
+import { X, Save, Calendar, MapPin, Users, Building, Vote, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import FloatingInput from '@/components/ui/floating-input';
+import FloatingTextarea from '@/components/ui/floating-textarea';
+import FloatingSelect from '@/components/ui/floating-select';
+import { ModernForm, ModernFormSection, ModernFormGrid, ModernFormActions } from '@/components/ui/modern-form';
 
 interface EditElectionModalProps {
   election: Election;
@@ -219,238 +218,226 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
-            <Calendar className="h-5 w-5 text-blue-600" />
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader className="pb-6">
+          <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-gray-900">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Calendar className="h-6 w-6 text-blue-600" />
+            </div>
             Modifier l'élection
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-gray-600 mt-2">
             Modifiez les informations de l'élection sélectionnée. Les champs marqués d'un astérisque (*) sont obligatoires.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <ModernForm onSubmit={handleSubmit}>
           {/* Informations générales */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">Informations générales</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Titre de l'élection *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    placeholder="Ex: Élections Locales 2025"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">Type d'élection *</Label>
-                  <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner le type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Législatives">Législatives</SelectItem>
-                      <SelectItem value="Locales">Locales</SelectItem>
-                      <SelectItem value="Présidentielle">Présidentielle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          <ModernFormSection
+            title="Informations Générales"
+            description="Modifiez les paramètres de base de l'élection"
+            icon={<Vote className="w-5 h-5" />}
+          >
+            <ModernFormGrid cols={2}>
+              <FloatingInput
+                label="Titre de l'élection"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                placeholder="Ex: Élections Locales 2025"
+                icon={<Building className="w-4 h-4" />}
+                required
+              />
+              
+              <FloatingSelect
+                label="Type d'élection"
+                value={formData.type}
+                onChange={(value) => handleInputChange('type', value)}
+                options={[
+                  { value: "Législatives", label: "Législatives" },
+                  { value: "Locales", label: "Locales" },
+                  { value: "Présidentielle", label: "Présidentielle" }
+                ]}
+                icon={<Vote className="w-4 h-4" />}
+                required
+              />
+            </ModernFormGrid>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date de l'élection *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => handleInputChange('date', e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Statut</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner le statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="À venir">À venir</SelectItem>
-                      <SelectItem value="En cours">En cours</SelectItem>
-                      <SelectItem value="Terminée">Terminée</SelectItem>
-                      <SelectItem value="Annulée">Annulée</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            <ModernFormGrid cols={2}>
+              <FloatingInput
+                label="Date de l'élection"
+                type="date"
+                value={formData.date}
+                onChange={(e) => handleInputChange('date', e.target.value)}
+                icon={<Calendar className="w-4 h-4" />}
+                required
+              />
+              
+              <FloatingSelect
+                label="Statut"
+                value={formData.status}
+                onChange={(value) => handleInputChange('status', value)}
+                options={[
+                  { value: "À venir", label: "À venir" },
+                  { value: "En cours", label: "En cours" },
+                  { value: "Terminée", label: "Terminée" },
+                  { value: "Annulée", label: "Annulée" }
+                ]}
+                icon={<Target className="w-4 h-4" />}
+              />
+            </ModernFormGrid>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Description de l'élection..."
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
+            <ModernFormGrid cols={1}>
+              <FloatingTextarea
+                label="Description"
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Description de l'élection..."
+                rows={3}
+                icon={<Building className="w-4 h-4" />}
+                helperText="Décrivez les objectifs et le contexte de cette élection"
+              />
+            </ModernFormGrid>
+          </ModernFormSection>
 
           {/* Localisation */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-medium flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-green-600" />
-                Localisation
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select2
-                  label="Province"
-                  placeholder="Rechercher une province..."
-                  options={provinces.map(p => ({ value: p.id, label: p.name }))}
-                  value={provinces.find(p => p.id === selectedProvinceId) ? 
-                    { value: selectedProvinceId, label: provinces.find(p => p.id === selectedProvinceId)?.name || '' } : null}
-                  onChange={(selectedOption) => {
-                    if (selectedOption) {
-                      setSelectedProvinceId(selectedOption.value);
-                      handleInputChange('province', selectedOption.label);
-                    } else {
-                      setSelectedProvinceId('');
-                      handleInputChange('province', '');
-                    }
-                  }}
-                />
-                
-                <Select2
-                  label="Département"
-                  placeholder="Rechercher un département..."
-                  options={departments.map(d => ({ value: d.id, label: d.name }))}
-                  value={departments.find(d => d.id === selectedDepartmentId) ? 
-                    { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
-                  onChange={(selectedOption) => {
-                    if (selectedOption) {
-                      setSelectedDepartmentId(selectedOption.value);
-                      handleInputChange('department', selectedOption.label);
-                    } else {
-                      setSelectedDepartmentId('');
-                      handleInputChange('department', '');
-                    }
-                  }}
-                />
-              </div>
+          <ModernFormSection
+            title="Circonscription Électorale"
+            description="Modifiez la zone géographique de l'élection"
+            icon={<MapPin className="w-5 h-5" />}
+          >
+            <ModernFormGrid cols={2}>
+              <Select2
+                label="Province"
+                placeholder="Rechercher une province..."
+                options={provinces.map(p => ({ value: p.id, label: p.name }))}
+                value={provinces.find(p => p.id === selectedProvinceId) ? 
+                  { value: selectedProvinceId, label: provinces.find(p => p.id === selectedProvinceId)?.name || '' } : null}
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setSelectedProvinceId(selectedOption.value);
+                    handleInputChange('province', selectedOption.label);
+                  } else {
+                    setSelectedProvinceId('');
+                    handleInputChange('province', '');
+                  }
+                }}
+              />
+              
+              <Select2
+                label="Département"
+                placeholder="Rechercher un département..."
+                options={departments.map(d => ({ value: d.id, label: d.name }))}
+                value={departments.find(d => d.id === selectedDepartmentId) ? 
+                  { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setSelectedDepartmentId(selectedOption.value);
+                    handleInputChange('department', selectedOption.label);
+                  } else {
+                    setSelectedDepartmentId('');
+                    handleInputChange('department', '');
+                  }
+                }}
+              />
+            </ModernFormGrid>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select2
-                  label="Commune"
-                  placeholder="Rechercher une commune..."
-                  options={communes.map(c => ({ value: c.id, label: c.name }))}
-                  value={communes.find(c => c.id === selectedCommuneId) ? 
-                    { value: selectedCommuneId, label: communes.find(c => c.id === selectedCommuneId)?.name || '' } : null}
-                  onChange={(selectedOption) => {
-                    if (selectedOption) {
-                      setSelectedCommuneId(selectedOption.value);
-                      handleInputChange('commune', selectedOption.label);
-                    } else {
-                      setSelectedCommuneId('');
-                      handleInputChange('commune', '');
-                    }
-                  }}
-                />
-                
-                <Select2
-                  label="Arrondissement"
-                  placeholder="Rechercher un arrondissement..."
-                  options={arrondissements.map(a => ({ value: a.id, label: a.name }))}
-                  value={arrondissements.find(a => a.id === selectedArrondissementId) ? 
-                    { value: selectedArrondissementId, label: arrondissements.find(a => a.id === selectedArrondissementId)?.name || '' } : null}
-                  onChange={(selectedOption) => {
-                    if (selectedOption) {
-                      setSelectedArrondissementId(selectedOption.value);
-                      handleInputChange('arrondissement', selectedOption.label);
-                    } else {
-                      setSelectedArrondissementId('');
-                      handleInputChange('arrondissement', '');
-                    }
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
+            <ModernFormGrid cols={2}>
+              <Select2
+                label="Commune"
+                placeholder="Rechercher une commune..."
+                options={communes.map(c => ({ value: c.id, label: c.name }))}
+                value={communes.find(c => c.id === selectedCommuneId) ? 
+                  { value: selectedCommuneId, label: communes.find(c => c.id === selectedCommuneId)?.name || '' } : null}
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setSelectedCommuneId(selectedOption.value);
+                    handleInputChange('commune', selectedOption.label);
+                  } else {
+                    setSelectedCommuneId('');
+                    handleInputChange('commune', '');
+                  }
+                }}
+              />
+              
+              <Select2
+                label="Arrondissement"
+                placeholder="Rechercher un arrondissement..."
+                options={arrondissements.map(a => ({ value: a.id, label: a.name }))}
+                value={arrondissements.find(a => a.id === selectedArrondissementId) ? 
+                  { value: selectedArrondissementId, label: arrondissements.find(a => a.id === selectedArrondissementId)?.name || '' } : null}
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setSelectedArrondissementId(selectedOption.value);
+                    handleInputChange('arrondissement', selectedOption.label);
+                  } else {
+                    setSelectedArrondissementId('');
+                    handleInputChange('arrondissement', '');
+                  }
+                }}
+              />
+            </ModernFormGrid>
+          </ModernFormSection>
 
           {/* Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-medium flex items-center gap-2">
-                <Building className="h-5 w-5 text-purple-600" />
-                Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="seatsAvailable">Sièges disponibles</Label>
-                  <Input
-                    id="seatsAvailable"
-                    type="number"
-                    min="1"
-                    value={formData.seatsAvailable}
-                    onChange={(e) => handleInputChange('seatsAvailable', parseInt(e.target.value) || 1)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nbElecteurs">Nombre d'électeurs</Label>
-                  <Input
-                    id="nbElecteurs"
-                    type="number"
-                    min="0"
-                    value={formData.nbElecteurs}
-                    onChange={(e) => handleInputChange('nbElecteurs', parseInt(e.target.value) || 0)}
-                    placeholder="Ex: 50000"
-                  />
-                </div>
-              </div>
+          <ModernFormSection
+            title="Configuration"
+            description="Modifiez les paramètres de configuration de l'élection"
+            icon={<Building className="w-5 h-5" />}
+          >
+            <ModernFormGrid cols={2}>
+              <FloatingInput
+                label="Sièges disponibles"
+                type="number"
+                min="1"
+                value={formData.seatsAvailable}
+                onChange={(e) => handleInputChange('seatsAvailable', parseInt(e.target.value) || 1)}
+                icon={<Target className="w-4 h-4" />}
+                helperText="Nombre de sièges à pourvoir"
+              />
+              
+              <FloatingInput
+                label="Nombre d'électeurs"
+                type="number"
+                min="0"
+                value={formData.nbElecteurs}
+                onChange={(e) => handleInputChange('nbElecteurs', parseInt(e.target.value) || 0)}
+                placeholder="Ex: 50000"
+                icon={<Users className="w-4 h-4" />}
+                helperText="Nombre total d'électeurs inscrits"
+              />
+            </ModernFormGrid>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="budget">Budget (FCFA)</Label>
-                  <Input
-                    id="budget"
-                    type="number"
-                    min="0"
-                    value={formData.budget}
-                    onChange={(e) => handleInputChange('budget', parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="voteGoal">Objectif de voix</Label>
-                  <Input
-                    id="voteGoal"
-                    type="number"
-                    min="0"
-                    value={formData.voteGoal}
-                    onChange={(e) => handleInputChange('voteGoal', parseInt(e.target.value) || 0)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            <ModernFormGrid cols={2}>
+              <FloatingInput
+                label="Budget (FCFA)"
+                type="number"
+                min="0"
+                value={formData.budget}
+                onChange={(e) => handleInputChange('budget', parseInt(e.target.value) || 0)}
+                icon={<Target className="w-4 h-4" />}
+                helperText="Budget alloué en francs CFA"
+              />
+              
+              <FloatingInput
+                label="Objectif de voix"
+                type="number"
+                min="0"
+                value={formData.voteGoal}
+                onChange={(e) => handleInputChange('voteGoal', parseInt(e.target.value) || 0)}
+                icon={<Vote className="w-4 h-4" />}
+                helperText="Nombre de voix visées"
+              />
+            </ModernFormGrid>
+          </ModernFormSection>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <ModernFormActions>
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
+              className="px-6 py-3 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300"
             >
               <X className="h-4 w-4 mr-2" />
               Annuler
@@ -458,13 +445,13 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications'}
             </Button>
-          </div>
-        </form>
+          </ModernFormActions>
+        </ModernForm>
       </DialogContent>
     </Dialog>
   );
