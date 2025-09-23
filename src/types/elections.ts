@@ -124,6 +124,11 @@ export interface CreateElectionData {
   description?: string;
   location: Omit<GeographicLocation, 'fullAddress'>;
   configuration: Omit<ElectionConfig, 'allowMultipleCandidates' | 'requirePhotoValidation'>;
+  // Optionnel: utilisé lors de la création pour renseigner nb_electeurs
+  statistics?: Pick<ElectionStats, 'totalVoters'>;
+  // Liens optionnels à créer lors de la création
+  candidates?: Array<{ id: string; isOurCandidate?: boolean }>;
+  centers?: Array<{ id: string }>;
 }
 
 export interface UpdateElectionData extends Partial<CreateElectionData> {

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import { useElectionState } from '@/hooks/useElectionState';
@@ -63,56 +63,58 @@ const ElectionManagementUnified = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Charger les élections depuis Supabase
-  useEffect(() => {
-    const fetchElections = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('elections')
-          .select(`
-            *,
-            provinces(name),
-            departments(name),
-            communes(name),
-            arrondissements(name)
-          `)
-          .order('election_date', { ascending: false });
+  // Fonction utilitaire pour rafraîchir les données des élections
+  const refreshElectionsData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('elections')
+        .select(`
+          *,
+          provinces(name),
+          departments(name),
+          communes(name),
+          arrondissements(name)
+        `)
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Erreur lors du chargement des élections:', error);
-          setError('Erreur lors du chargement des élections');
-          return;
-        }
+      if (error) {
+        console.error('Erreur lors du chargement des élections:', error);
+        setError(error.message);
+        return;
+      }
 
-        // Transformer les données Supabase en format Election unifié
-        const transformedElections: Election[] = data?.map(election => {
-          console.log('Données brutes de l\'élection:', election);
-          console.log('Données de localisation:', {
-            // Champs directs
-            province: election.province,
-            department: election.department,
-            commune: election.commune,
-            arrondissement: election.arrondissement,
-            localisation: election.localisation,
-            // Relations
-            provinces: election.provinces,
-            departments: election.departments,
-            communes: election.communes,
-            arrondissements: election.arrondissements,
-            // IDs de relations
-            province_id: election.province_id,
-            department_id: election.department_id,
-            commune_id: election.commune_id,
-            arrondissement_id: election.arrondissement_id
-          });
-          
+      // Récupérer les compteurs de candidats et centres pour chaque élection
+      const electionsWithCounts = await Promise.all(
+        (data || []).map(async (election) => {
+          // Compter les candidats
+          const { data: candidatesData } = await supabase
+            .from('election_candidates')
+            .select('id')
+            .eq('election_id', election.id);
+
+          // Compter les centres
+          const { data: centersData } = await supabase
+            .from('election_centers')
+            .select('id')
+            .eq('election_id', election.id);
+
           return {
-          id: election.id.toString(),
+            ...election,
+            candidates_count: candidatesData?.length || 0,
+            centers_count: centersData?.length || 0
+          };
+        })
+      );
+
+      // Transformer les données Supabase en format Election unifié
+      const transformedElections: Election[] = electionsWithCounts.map(election => {
+        return {
+          id: String(election.id),
           title: election.title,
-          type: election.election_type || 'Législatives',
+          type: election.election_type || election.type || 'Législatives',
           status: election.status || 'À venir',
-          date: new Date(election.election_date),
+          date: new Date(election.election_date || election.created_at),
           description: election.description || '',
           location: {
             province: election.provinces?.name || election.province || '',
@@ -133,7 +135,7 @@ const ElectionManagementUnified = () => {
           statistics: {
             totalVoters: election.nb_electeurs || election.registered_voters || 0,
             totalCandidates: election.candidates_count || 0,
-            totalCenters: election.voting_centers_count || 0,
+            totalCenters: election.centers_count || 0,
             totalBureaux: election.voting_bureaux_count || 0,
             completedSteps: 0,
             totalSteps: 5,
@@ -142,27 +144,30 @@ const ElectionManagementUnified = () => {
           timeline: {
             created: new Date(election.created_at),
             configured: election.status === 'À venir' ? new Date(election.created_at) : null,
-            started: election.status === 'En cours' ? new Date(election.election_date) : null,
-            ended: election.status === 'Terminée' ? new Date(election.election_date) : null,
+            started: election.status === 'En cours' ? new Date(election.election_date || election.created_at) : null,
+            ended: election.status === 'Terminée' ? new Date(election.election_date || election.created_at) : null,
             published: null,
           },
           createdAt: new Date(election.created_at),
           updatedAt: new Date(election.updated_at),
           createdBy: election.created_by || 'system',
         };
-        }) || [];
+      });
 
-        setElections(transformedElections);
-      } catch (error) {
-        console.error('Erreur lors du chargement des élections:', error);
-        setError('Erreur lors du chargement des élections');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchElections();
+      setElections(transformedElections);
+    } catch (err) {
+      console.error('Erreur lors du rafraîchissement:', err);
+      setError('Erreur lors du rafraîchissement des données');
+    } finally {
+      setLoading(false);
+    }
   }, [setLoading, setError, setElections]);
+
+  // Charger les élections depuis Supabase
+  useEffect(() => {
+    refreshElectionsData();
+  }, [refreshElectionsData]);
+
 
   // Mettre à jour les filtres dans le hook
   useEffect(() => {
@@ -253,7 +258,7 @@ const ElectionManagementUnified = () => {
         election_date: updatedData.date?.toISOString().split('T')[0],
         status: updatedData.status,
         description: updatedData.description || '',
-        nb_electeurs: updatedData.statistics?.totalVoters || 0,
+        nb_electeurs: updatedData.statistics?.totalVoters,
       };
 
       console.log('Données à envoyer à Supabase:', supabaseData);
@@ -322,14 +327,9 @@ const ElectionManagementUnified = () => {
         }
       }
 
-      // Mettre à jour l'élection dans l'état local
-      const updatedElection: Election = {
-        ...editingElection,
-        ...updatedData,
-        updatedAt: new Date(),
-      };
-
-      updateElection(updatedElection);
+      // Recharger les données depuis la base de données
+      await refreshElectionsData();
+      
       setShowEditModal(false);
       setEditingElection(null);
       toast.success('Élection modifiée avec succès');
@@ -448,9 +448,9 @@ const ElectionManagementUnified = () => {
         status: 'À venir',
         description: electionData.description || '',
         seats_available: electionData.configuration.seatsAvailable,
-        budget: electionData.configuration.budget || 0,
-        vote_goal: electionData.configuration.voteGoal || 0,
-        nb_electeurs: electionData.statistics?.totalVoters || 0,
+        budget: electionData.configuration.budget ,
+        vote_goal: electionData.configuration.voteGoal ,
+        nb_electeurs: electionData.statistics?.totalVoters ,
         // Note: Les relations géographiques seraient gérées séparément
       };
 
@@ -466,9 +466,58 @@ const ElectionManagementUnified = () => {
         return;
       }
 
+      const electionId = String(data.id);
+
+      // Lier les candidats à l'élection
+      if (electionData.candidates && electionData.candidates.length > 0) {
+        const candidateLinks = electionData.candidates.map(candidate => ({
+          election_id: electionId,
+          candidate_id: candidate.id,
+          is_our_candidate: candidate.isOurCandidate || false
+        }));
+
+        console.log('Candidats à lier:', candidateLinks);
+
+        const { error: candidateError } = await supabase
+          .from('election_candidates')
+          .insert(candidateLinks);
+
+        if (candidateError) {
+          console.error('Erreur lors de la liaison des candidats:', candidateError);
+          toast.error('Erreur lors de la liaison des candidats');
+        } else {
+          console.log('Candidats liés avec succès');
+        }
+      } else {
+        console.log('Aucun candidat à lier pour cette élection');
+      }
+
+      // Lier les centres à l'élection
+      if (electionData.centers && electionData.centers.length > 0) {
+        const centerLinks = electionData.centers.map(center => ({
+          election_id: electionId,
+          center_id: center.id
+        }));
+
+        console.log('Centres à lier:', centerLinks);
+
+        const { error: centerError } = await supabase
+          .from('election_centers')
+          .insert(centerLinks);
+
+        if (centerError) {
+          console.error('Erreur lors de la liaison des centres:', centerError);
+          toast.error('Erreur lors de la liaison des centres');
+        } else {
+          console.log('Centres liés avec succès');
+        }
+      } else {
+        console.log('Aucun centre à lier pour cette élection');
+      }
+
       // Créer l'objet Election complet
       const newElection: Election = {
-        id: data.id.toString(),
+        id: String(data.id),
         title: electionData.title,
         type: electionData.type,
         status: 'À venir',
@@ -504,7 +553,9 @@ const ElectionManagementUnified = () => {
         createdBy: 'current-user', // À remplacer par l'ID de l'utilisateur connecté
       };
 
-      addElection(newElection);
+      // Recharger les données depuis la base de données
+      await refreshElectionsData();
+      
       setShowWizard(false);
       toast.success('Élection créée avec succès');
     } catch (error) {
@@ -521,7 +572,7 @@ const ElectionManagementUnified = () => {
     
     // Adapter notre type Election vers le type attendu par ElectionDetailView
     const adaptedElection = {
-      id: parseInt(selectedElection.id.replace(/\D/g, '')) || 1,
+      id: selectedElection.id, // UUID direct
       title: selectedElection.title,
       date: selectedElection.date.toISOString().split('T')[0],
       status: selectedElection.status,
@@ -531,8 +582,8 @@ const ElectionManagementUnified = () => {
       candidates: selectedElection.statistics.totalCandidates,
       location: selectedElection.location.fullAddress,
       type: selectedElection.type,
-      budget: selectedElection.configuration.budget || 0,
-      voteGoal: selectedElection.configuration.voteGoal || 0,
+      budget: selectedElection.configuration.budget ,
+      voteGoal: selectedElection.configuration.voteGoal ,
       seatsAvailable: selectedElection.configuration.seatsAvailable,
       province: selectedElection.location.province,
       department: selectedElection.location.department,
@@ -546,6 +597,7 @@ const ElectionManagementUnified = () => {
       <ElectionDetailView 
         election={adaptedElection as any} 
         onBack={handleCloseDetail}
+        onDataChange={refreshElectionsData}
       />
     );
   }
@@ -555,7 +607,7 @@ const ElectionManagementUnified = () => {
       <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gov-blue mx-auto mb-4"></div>
             <p className="text-gray-600">Chargement des élections...</p>
           </div>
         </div>
@@ -584,7 +636,7 @@ const ElectionManagementUnified = () => {
     <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* Header avec statistiques */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 mb-8">
+        <div className="relative overflow-hidden bg-gradient-to-r from-gov-blue/5 to-gov-blue-light/5 rounded-2xl p-8 mb-8">
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           <div className="relative z-10">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -624,13 +676,13 @@ const ElectionManagementUnified = () => {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="caption text-gray-600 font-medium">Total Élections</p>
-                  <p className="heading-2 text-blue-600">{statistics.total}</p>
-                  <div className="w-12 h-1 bg-blue-200 rounded-full">
-                    <div className="w-full h-full bg-blue-500 rounded-full"></div>
+                  <p className="heading-2 text-gov-blue">{statistics.total}</p>
+                  <div className="w-12 h-1 bg-gov-blue/20 rounded-full">
+                    <div className="w-full h-full bg-gov-blue rounded-full"></div>
                   </div>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <Calendar className="h-8 w-8 text-blue-600" />
+                <div className="p-3 bg-gov-blue/10 rounded-full">
+                  <Calendar className="h-8 w-8 text-gov-blue" />
                 </div>
               </div>
             </CardContent>
@@ -747,7 +799,7 @@ const ElectionManagementUnified = () => {
                 onClick={() => setViewMode('grid')}
                 className={cn(
                   "h-10 w-10 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
-                  viewMode === 'grid' && "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  viewMode === 'grid' && "bg-gov-blue/10 text-gov-blue hover:bg-gov-blue/20"
                 )}
               >
                 <LayoutGrid className="h-5 w-5" />
@@ -758,7 +810,7 @@ const ElectionManagementUnified = () => {
                 onClick={() => setViewMode('list')}
                 className={cn(
                   "h-10 w-10 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
-                  viewMode === 'list' && "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  viewMode === 'list' && "bg-gov-blue/10 text-gov-blue hover:bg-gov-blue/20"
                 )}
               >
                 <List className="h-5 w-5" />
@@ -864,16 +916,16 @@ const ElectionManagementUnified = () => {
                     <div className="space-y-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-3 text-sm text-gray-600">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <Calendar className="h-4 w-4 text-blue-600" />
+                          <div className="p-2 bg-gov-blue/10 rounded-lg">
+                            <Calendar className="h-4 w-4 text-gov-blue" />
                           </div>
                           <span className="font-medium">
-                            {election.date.toLocaleDateString('fr-FR', {
+                            {election.date ? election.date.toLocaleDateString('fr-FR', {
                               weekday: 'long',
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric'
-                            })}
+                            }) : 'Date non définie'}
                           </span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
@@ -885,12 +937,12 @@ const ElectionManagementUnified = () => {
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-                        <div className="text-center p-3 bg-blue-50 rounded-lg">
-                          <div className="flex items-center justify-center gap-2 text-blue-600 mb-2">
+                        <div className="text-center p-3 bg-gov-blue/5 rounded-lg">
+                          <div className="flex items-center justify-center gap-2 text-gov-blue mb-2">
                             <Users className="h-5 w-5" />
                             <span className="text-sm font-semibold">Électeurs</span>
                           </div>
-                          <p className="heading-3 text-blue-700">
+                          <p className="heading-3 text-gov-blue">
                             {election.statistics.totalVoters.toLocaleString()}
                           </p>
                         </div>
@@ -907,7 +959,7 @@ const ElectionManagementUnified = () => {
 
                       <Button
                         variant="outline"
-                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-md transition-all duration-300 py-3 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 group-hover:shadow-md"
+                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-3 group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewElection(election);
@@ -981,7 +1033,7 @@ const ElectionManagementUnified = () => {
                     </Badge>
                     <div className="flex items-center text-gray-600 body-small mt-2">
                       <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>{election.date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      <span>{election.date ? election.date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date non définie'}</span>
                     </div>
                     <div className="flex items-center text-gray-600 body-small mt-1">
                       <MapPin className="h-4 w-4 mr-2 text-gray-500" />
@@ -991,7 +1043,7 @@ const ElectionManagementUnified = () => {
 
                   <div className="flex items-center gap-6 text-gray-700 body-small mb-4 md:mb-0 md:mr-6">
                     <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-blue-500" />
+                      <Users className="h-4 w-4 text-gov-blue" />
                       <span>{election.statistics.totalVoters.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -1003,7 +1055,7 @@ const ElectionManagementUnified = () => {
                   <div className="w-full md:w-auto">
                     <Button
                       variant="outline"
-                      className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-md transition-all duration-300 py-3 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 group-hover:shadow-md"
+                      className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-3 group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleViewElection(election);

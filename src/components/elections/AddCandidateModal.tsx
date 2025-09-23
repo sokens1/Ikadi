@@ -1,11 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { X } from 'lucide-react';
+import { X, Users } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ModernForm, ModernFormSection, ModernFormActions } from '@/components/ui/modern-form';
+import MultiSelect from '@/components/ui/multi-select';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface Candidate {
+  id: string;
   name: string;
   party: string;
   isOurCandidate: boolean;
@@ -14,91 +19,122 @@ interface Candidate {
 
 interface AddCandidateModalProps {
   onClose: () => void;
-  onSubmit: (candidate: Candidate) => void;
+  onSubmit: (candidates: Candidate[]) => void;
 }
 
 const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit }) => {
-  const [formData, setFormData] = useState<Candidate>({
-    name: '',
-    party: '',
-    isOurCandidate: false,
-    photo: '/placeholder.svg'
-  });
+  const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
+  const [candidates, setCandidates] = useState<Array<{id: string, name: string, party: string, isOurCandidate: boolean}>>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Charger les candidats disponibles
+  useEffect(() => {
+    const loadCandidates = async () => {
+      try {
+        setLoading(true);
+        // Essayer d'abord avec 'candidats', puis avec 'candidates' si ça échoue
+        let { data, error } = await supabase
+          .from('candidats')
+          .select('id, nom, parti, est_notre_candidat')
+          .order('nom');
+
+        if (error && (error.code === 'PGRST116' || error.code === 'PGRST205')) {
+          // Table 'candidats' n'existe pas, essayer 'candidates'
+          const result = await supabase
+            .from('candidates')
+            .select('id, name, party, is_our_candidate')
+            .order('name');
+          data = result.data;
+          error = result.error;
+        }
+
+        if (error) {
+          console.error('Erreur lors du chargement des candidats:', error);
+          toast.error('Erreur lors du chargement des candidats');
+          return;
+        }
+
+        // Transformer les données selon le format de la table
+        const transformedCandidates = (data || []).map((candidate: any) => ({
+          id: candidate.id,
+          name: candidate.nom || candidate.name || '',
+          party: candidate.parti || candidate.party || '',
+          isOurCandidate: candidate.est_notre_candidat || candidate.is_our_candidate || false
+        }));
+
+        setCandidates(transformedCandidates);
+      } catch (error) {
+        console.error('Erreur lors du chargement des candidats:', error);
+        toast.error('Erreur lors du chargement des candidats');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCandidates();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.party) {
-      onSubmit(formData);
+    if (selectedCandidates.length > 0) {
+      const candidatesToAdd = candidates
+        .filter(c => selectedCandidates.includes(c.id))
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          party: c.party,
+          isOurCandidate: c.isOurCandidate,
+          photo: '/placeholder.svg'
+        }));
+      onSubmit(candidatesToAdd);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gov-gray">Ajouter un Candidat</h2>
-          <Button variant="ghost" onClick={onClose}>
-            <X className="w-6 h-6" />
-          </Button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <Label htmlFor="name">Nom et Prénom(s) *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Nom complet du candidat"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="party">Parti politique / Appartenance *</Label>
-            <Input
-              id="party"
-              value={formData.party}
-              onChange={(e) => setFormData({ ...formData, party: e.target.value })}
-              placeholder="Nom du parti politique"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="photo">Photo du candidat (URL)</Label>
-            <Input
-              id="photo"
-              value={formData.photo}
-              onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
-              placeholder="URL de la photo"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="ourCandidate"
-              checked={formData.isOurCandidate}
-              onChange={(e) => setFormData({ ...formData, isOurCandidate: e.target.checked })}
-              className="w-4 h-4 text-gov-blue border-gray-300 rounded focus:ring-gov-blue"
-            />
-            <Label htmlFor="ourCandidate" className="text-sm font-medium text-gray-700">
-              C'est notre candidat
-            </Label>
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Annuler
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <div className="p-2 bg-gov-blue/10 rounded-lg">
+              <Users className="w-5 h-5 text-gov-blue" />
+            </div>
+            <div>
+              <div className="text-xl font-bold text-gray-900">Sélection des Candidats</div>
+              <div className="text-sm text-gray-600">Choisissez les candidats qui participeront à cette élection</div>
+            </div>
+          </DialogTitle>
+          <DialogDescription>
+            <Button variant="ghost" onClick={onClose} className="absolute right-4 top-4" type="button">
+              <X className="w-5 h-5" />
             </Button>
-            <Button type="submit" className="gov-bg-primary hover:bg-gov-blue-dark">
-              Ajouter le candidat
-            </Button>
-          </div>
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="pt-2">
+          <ModernForm>
+            <ModernFormSection title="Candidats">
+              <MultiSelect
+                options={(candidates || []).map(c => ({
+                  value: c.id,
+                  label: c.name,
+                  subtitle: c.party
+                }))}
+                selected={selectedCandidates}
+                onSelectionChange={setSelectedCandidates}
+                placeholder="Sélectionnez des candidats..."
+              />
+            </ModernFormSection>
+
+            <ModernFormActions>
+              <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+              <Button type="submit" className="btn-primary" disabled={selectedCandidates.length === 0}>
+                Ajouter {selectedCandidates.length} candidat{selectedCandidates.length > 1 ? 's' : ''}
+              </Button>
+            </ModernFormActions>
+          </ModernForm>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

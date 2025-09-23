@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Version améliorée avec table de liaison election_centers
 // À utiliser après avoir exécuté le script create-election-centers-relation.sql
 
@@ -202,114 +203,54 @@ const ElectionDetailViewImproved: React.FC<ElectionDetailViewProps> = ({ electio
     }
   };
 
-  const handleAddCenter = async (centerData: Omit<Center, 'id'>) => {
+  const handleAddCenter = async (centersData: Center[]) => {
     try {
-      // Récupérer la localisation de l'élection courante
-      const { data: electionData, error: electionError } = await supabase
-        .from('elections')
-        .select('province_id, department_id, commune_id, arrondissement_id')
-        .eq('id', election.id)
-        .single();
+      // Lier les centres sélectionnés à l'élection
+      const centerLinks = centersData.map(center => ({
+        election_id: election.id,
+        center_id: center.id
+      }));
 
-      if (electionError) {
-        console.error('Erreur lors de la récupération de l\'élection:', electionError);
-        return;
-      }
-
-      // Créer le centre avec la même localisation que l'élection
-      const { data: centerResult, error: centerError } = await supabase
-        .from('voting_centers')
-        .insert([{
-          name: centerData.name,
-          address: centerData.address,
-          contact_name: centerData.responsable,
-          contact_phone: centerData.contact,
-          province_id: electionData.province_id,
-          department_id: electionData.department_id,
-          commune_id: electionData.commune_id,
-          arrondissement_id: electionData.arrondissement_id
-        }])
-        .select()
-        .single();
-
-      if (centerError) {
-        console.error('Erreur lors de l\'ajout du centre:', centerError);
-        return;
-      }
-
-      // Associer le centre à l'élection via la table de liaison
       const { error: linkError } = await supabase
         .from('election_centers')
-        .insert([{
-          election_id: election.id,
-          center_id: centerResult.id
-        }]);
+        .insert(centerLinks);
 
       if (linkError) {
-        console.error('Erreur lors de l\'association centre-élection:', linkError);
+        console.error('Erreur lors de l\'association centres-élection:', linkError);
         return;
       }
 
-      // Ajouter le nouveau centre à la liste locale
-      const newCenter: Center = {
-        id: centerResult.id.toString(),
-        name: centerResult.name,
-        address: centerResult.address || '',
-        responsable: centerResult.contact_name || '',
-        contact: centerResult.contact_phone || '',
-        bureaux: 0,
-        voters: 0
-      };
-
-      setCenters(prev => [...prev, newCenter]);
+      // Ajouter les centres à la liste locale
+      setCenters(prev => [...prev, ...centersData]);
       setShowAddCenter(false);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du centre:', error);
+      console.error('Erreur lors de l\'ajout des centres:', error);
     }
   };
 
-  const handleAddCandidate = async (candidateData: Omit<Candidate, 'id'>) => {
+  const handleAddCandidate = async (candidatesData: Candidate[]) => {
     try {
-      // D'abord créer le candidat
-      const { data: candidateResult, error: candidateError } = await supabase
-        .from('candidates')
-        .insert([{
-          name: candidateData.name,
-          party: candidateData.party,
-          photo_url: candidateData.photo,
-          is_our_candidate: candidateData.isOurCandidate
-        }])
-        .select()
-        .single();
+      // Lier les candidats sélectionnés à l'élection
+      const candidateLinks = candidatesData.map(candidate => ({
+        election_id: election.id,
+        candidate_id: candidate.id,
+        is_our_candidate: candidate.isOurCandidate
+      }));
 
-      if (candidateError) {
-        console.error('Erreur lors de l\'ajout du candidat:', candidateError);
-        return;
-      }
-
-      // Ensuite l'associer à l'élection
-      const { error: electionCandidateError } = await supabase
+      const { error: linkError } = await supabase
         .from('election_candidates')
-        .insert([{
-          election_id: election.id,
-          candidate_id: candidateResult.id,
-          is_our_candidate: candidateData.isOurCandidate
-        }]);
+        .insert(candidateLinks);
 
-      if (electionCandidateError) {
-        console.error('Erreur lors de l\'association candidat-élection:', electionCandidateError);
+      if (linkError) {
+        console.error('Erreur lors de l\'association candidats-élection:', linkError);
         return;
       }
 
-      // Ajouter le nouveau candidat à la liste locale
-      const newCandidate: Candidate = {
-        ...candidateData,
-        id: candidateResult.id.toString()
-      };
-      setCandidates([...candidates, newCandidate]);
+      // Ajouter les candidats à la liste locale
+      setCandidates(prev => [...prev, ...candidatesData]);
       setShowAddCandidate(false);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du candidat:', error);
+      console.error('Erreur lors de l\'ajout des candidats:', error);
     }
   };
 
