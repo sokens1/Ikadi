@@ -86,6 +86,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
+    /* Bleu institutionnel renforcé */
     --primary: 214 100% 27%;
     --primary-foreground: 210 40% 98%;
 
@@ -107,9 +108,10 @@
 
     --radius: 0.5rem;
 
-    --gov-blue: 214 100% 27%;
-    --gov-blue-light: 214 100% 35%;
-    --gov-blue-dark: 214 100% 20%;
+    /* Palette iKADI (bleu plus profond, saturé) */
+    --gov-blue: 221 72% 34%;
+    --gov-blue-light: 221 85% 45%;
+    --gov-blue-dark: 221 68% 25%;
     --gov-gray: 215 15% 25%;
     --gov-gray-light: 215 15% 95%;
   }

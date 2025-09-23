@@ -45,14 +45,13 @@ const PublicHomePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Chiffres clés
   const [totalBureaux, setTotalBureaux] = useState<number>(0);
   const [totalCandidats, setTotalCandidats] = useState<number>(0);
 
-  // Compte à rebours
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
-  // Couleurs pour les candidats
+  const [heroOk, setHeroOk] = useState<boolean>(true);
+
   const candidateColors = [
     "#1e40af",
     "#dc2626",
@@ -85,23 +84,46 @@ const PublicHomePage = () => {
     return () => clearInterval(interval);
   }, [results.election]);
 
+  useEffect(() => {
+    const img = new Image();
+    img.src = HERO_IMAGE;
+    img.onload = () => setHeroOk(true);
+    img.onerror = () => setHeroOk(false);
+  }, []);
+
   const fetchPublicResults = async () => {
     try {
       setLoading(true);
       setError(null);
-      const { data: elections, error: electionsError } = await supabase
+      // Priorité: élection au statut "En cours"
+      const { data: running, error: runningError } = await supabase
         .from('elections')
         .select('*')
-        .eq('is_published', true)
+        .eq('status', 'En cours')
         .order('election_date', { ascending: false })
         .limit(1);
-      if (electionsError) throw electionsError;
-      if (!elections || elections.length === 0) {
+      if (runningError) throw runningError;
+
+      let currentElection = running && running.length > 0 ? running[0] : null;
+
+      // Fallback: dernière élection publiée
+      if (!currentElection) {
+        const { data: published, error: publishedError } = await supabase
+          .from('elections')
+          .select('*')
+          .eq('is_published', true)
+          .order('election_date', { ascending: false })
+          .limit(1);
+        if (publishedError) throw publishedError;
+        currentElection = published && published.length > 0 ? published[0] : null;
+      }
+
+      if (!currentElection) {
         setResults(prev => ({ ...prev, election: null }));
         setLoading(false);
         return;
       }
-      const currentElection = elections[0];
+
       const [votersResult, centersResult, pvsResult, bureauxResult, candidatsCount] = await Promise.all([
         supabase.from('voters').select('id', { count: 'exact' }),
         supabase.from('voting_centers').select('id', { count: 'exact' }),
@@ -139,7 +161,7 @@ const PublicHomePage = () => {
         });
         candidatesAgg.forEach((item: any, index: number) => {
           if (item.candidates) {
-            const candidateVotes = item.candidate_results 
+            const candidateVotes = item.candidate_results
               ? item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0)
               : 0;
             candidates.push({
@@ -171,20 +193,21 @@ const PublicHomePage = () => {
   };
 
   const electionTitle = 'Élection du premier arrondissement de Moanda';
+  const dynamicTitle = results.election?.title || electionTitle;
   const canSeeResults = results.election ? Date.now() >= new Date(results.election.election_date).getTime() : false;
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header avec dégradé subtil */}
-      <header className="border-b bg-gradient-to-b from-white to-gov-blue/5 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      {/* Header avec dégradé visible */}
+      <header className="border-b bg-gradient-to-b from-white via-white to-gov-blue/10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gov-blue rounded-full flex items-center justify-center shadow-sm">
-                <span className="text-white font-bold text-lg">IK</span>
+                <span className="text-white font-bold text-lg">iK</span>
               </div>
               <div>
-                <h1 className="text-gov-blue font-bold text-2xl">IKADI</h1>
+                <h1 className="text-gov-blue font-bold text-2xl">iKADI</h1>
                 <p className="text-gov-gray text-sm">Plateforme de gestion électorale</p>
               </div>
             </div>
@@ -197,61 +220,69 @@ const PublicHomePage = () => {
               <a href="#circonscriptions" className="hover:text-gov-blue transition-colors">Circonscriptions / Bureaux</a>
               <a href="#contact" className="hover:text-gov-blue transition-colors">Contact</a>
             </nav>
-            <Link to="/login">
+            {/* <Link to="/login">
               <Button className="bg-gov-blue text-white hover:bg-gov-blue/90 shadow-sm">
                 Accès admin
               </Button>
-            </Link>
+            </Link> */}
           </div>
         </div>
       </header>
 
-      {/* Hero Section avec image de fond et overlay */}
-      <section className="relative">
-        <div
-          className="absolute inset-0 -z-10"
-          style={{
-            backgroundImage: `linear-gradient(rgba(8,47,73,0.55), rgba(8,47,73,0.55)), url(${HERO_IMAGE})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        />
-        <div className="container mx-auto px-4 py-14">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+      {/* Hero Section avec image de fond appliquée sur la section + overlay + fallback */}
+      <section
+        className="relative min-h-[460px]"
+        style={{
+          backgroundImage: heroOk
+            ? `url(${HERO_IMAGE})`
+            : `linear-gradient(135deg, hsl(var(--gov-blue)) 0%, hsl(var(--gov-blue-light)) 100%)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: heroOk ? 'fixed' : 'scroll'
+        }}
+      >
+        <div className="absolute inset-0 bg-[rgba(8,47,73,0.55)]" />
+        <div className="container mx-auto px-4 py-16 md:py-20 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <div className="text-white animate-[fadeIn_0.6s_ease-out]">
               <p className="font-semibold tracking-wide text-blue-100">Commission Locale</p>
-              <h2 className="text-3xl md:text-4xl font-bold mt-2">
-                {electionTitle}
-            </h2>
-              <p className="mt-4 max-w-xl text-blue-100">
+              <h2 className="text-4xl md:text-5xl font-bold mt-3">
+                {dynamicTitle}
+              </h2>
+              <p className="mt-5 max-w-2xl text-blue-100 text-lg">
                 Suivez les résultats des élections en direct avec transparence et sécurité. Inspiré par les meilleures pratiques de communication électorale.
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Button onClick={fetchPublicResults} disabled={loading} variant="outline" className="border-white text-white hover:bg-white/10">
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Actualiser
-            </Button>
+              <div className="mt-7 flex flex-wrap gap-3">
+                {/* <Button onClick={fetchPublicResults} disabled={loading} variant="outline" className="border-white text-white hover:bg-white/10">
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Actualiser
+                </Button>
                 <Link to="/results">
                   <Button disabled={!canSeeResults} className="bg-emerald-500 text-white hover:bg-emerald-600" id="resultats">
                     Résultat
                   </Button>
+                </Link> */}
+                <Link to="/login">
+                  <Button className="bg-gov-blue text-white hover:bg-gov-blue/90 shadow-sm">
+                    Accès admin
+                  </Button>
                 </Link>
               </div>
               {results.election && (
-                <div className="mt-6">
+                <div className="mt-8">
                   <p className="text-sm text-blue-100">Date du vote</p>
-                  <div className="font-medium">
+                  <div className="font-medium text-base md:text-lg">
                     {new Date(results.election.election_date).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                   </div>
-                  <div className="mt-3 grid grid-cols-4 gap-2 max-w-md">
+                  <div className="mt-4 grid grid-cols-4 gap-3 max-w-md">
                     {[
                       { label: 'Jours', value: timeLeft.days },
                       { label: 'Heures', value: timeLeft.hours },
                       { label: 'Minutes', value: timeLeft.minutes },
                       { label: 'Secondes', value: timeLeft.seconds },
                     ].map((item) => (
-                      <div key={item.label} className="bg-white/10 border border-white/20 rounded p-3 text-center">
-                        <div className="text-2xl font-bold">{item.value}</div>
+                      <div key={item.label} className="bg-white/10 border border-white/20 rounded-lg p-4 text-center">
+                        <div className="text-2xl md:text-3xl font-bold">{item.value}</div>
                         <div className="text-xs text-blue-100">{item.label}</div>
                       </div>
                     ))}
@@ -261,7 +292,7 @@ const PublicHomePage = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[{ label: 'Bureaux de vote', icon: Landmark, value: totalBureaux }, { label: 'Candidats', icon: Vote, value: totalCandidats }, { label: 'Électeurs inscrits', icon: Users, value: results.totalVoters }].map((k) => (
-                <Card key={k.label} className="bg-white/90 backdrop-blur border-white/40 shadow-sm animate-[fadeInUp_0.7s_ease-out]">
+                <Card key={k.label} className="bg-white/95 backdrop-blur border-white/40 shadow-sm animate-[fadeInUp_0.7s_ease-out]">
                   <CardHeader>
                     <CardTitle className="text-sm font-medium text-gov-gray">{k.label}</CardTitle>
                   </CardHeader>
@@ -278,7 +309,7 @@ const PublicHomePage = () => {
         </div>
       </section>
 
-      {/* Section Résultats (provisoires) */}
+      {/* Section Résultats (inchangé) */}
       <section className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mb-6">
           <h3 className="text-2xl font-bold text-gov-dark">Résultats en temps réel</h3>
@@ -300,111 +331,111 @@ const PublicHomePage = () => {
           <>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               <Card className="shadow-sm">
-              <CardHeader>
+                <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-gov-dark">
-                  <Calendar className="w-5 h-5" />
+                    <Calendar className="w-5 h-5" />
                     <span>Élection en cours</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {results.election ? (
-                  <>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {results.election ? (
+                    <>
                       <h4 className="text-lg font-semibold mb-1">{results.election.title}</h4>
                       <p className="text-gov-gray">
-                      {new Date(results.election.election_date).toLocaleDateString('fr-FR', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </>
-                ) : (
+                        {new Date(results.election.election_date).toLocaleDateString('fr-FR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </>
+                  ) : (
                     <p className="text-gov-gray">Aucune élection en cours</p>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
               <Card className="shadow-sm">
-              <CardHeader>
+                <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-gov-dark">
-                  <Users className="w-5 h-5" />
-                  <span>Participation</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                    <Users className="w-5 h-5" />
+                    <span>Participation</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="text-3xl font-bold text-emerald-600 mb-2">
-                  {results.participation}%
-                </div>
+                    {results.participation}%
+                  </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div className="bg-emerald-600 h-2 rounded-full transition-all duration-1000" style={{ width: `${results.participation}%` }} />
-                </div>
+                  </div>
                   <p className="text-gov-gray text-sm mt-2">
-                  {results.totalVoters.toLocaleString()} électeurs inscrits
-                </p>
-              </CardContent>
-            </Card>
+                    {results.totalVoters.toLocaleString()} électeurs inscrits
+                  </p>
+                </CardContent>
+              </Card>
               <Card className="shadow-sm">
-              <CardHeader>
+                <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-gov-dark">
-                  <TrendingUp className="w-5 h-5" />
+                    <TrendingUp className="w-5 h-5" />
                     <span>Progression dépouillement</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="text-3xl font-bold text-amber-600 mb-2">
-                  {results.resultsProgress}%
-                </div>
+                    {results.resultsProgress}%
+                  </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div className="bg-amber-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${results.resultsProgress}%` }} />
-                </div>
+                  </div>
                   <p className="text-gov-gray text-sm mt-2">
-                  {results.totalCenters} centres de vote
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+                    {results.totalCenters} centres de vote
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
             <Card className="shadow-sm">
-            <CardHeader>
+              <CardHeader>
                 <CardTitle className="text-gov-dark">Résultats provisoires</CardTitle>
                 <p className="text-gov-gray text-sm">
                   {results.candidates.length > 0 ? `Basés sur ${results.resultsProgress}% des procès-verbaux traités` : 'Aucun résultat disponible pour le moment'}
-              </p>
-            </CardHeader>
-            <CardContent>
-              {results.candidates.length > 0 ? (
-                <div className="space-y-4">
+                </p>
+              </CardHeader>
+              <CardContent>
+                {results.candidates.length > 0 ? (
+                  <div className="space-y-4">
                     {results.candidates.map((candidate) => (
-                    <div key={candidate.id} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div>
+                      <div key={candidate.id} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div>
                             <span className="font-medium text-gov-dark">{candidate.name}</span>
                             <span className="text-sm text-gov-gray ml-2">({candidate.party})</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-lg" style={{ color: candidate.color }}>
-                            {candidate.percentage.toFixed(1)}%
-                          </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-lg" style={{ color: candidate.color }}>
+                              {candidate.percentage.toFixed(1)}%
+                            </span>
                             <p className="text-sm text-gov-gray">{candidate.votes.toLocaleString()} voix</p>
                           </div>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
                           <div className="h-3 rounded-full transition-all duration-1000" style={{ width: `${candidate.percentage}%`, backgroundColor: candidate.color }} />
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
                     <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gov-gray">Aucun candidat enregistré pour cette élection</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </>
         )}
       </section>
 
-      {/* Section actualités / annonces */}
+      {/* Section actualités / annonces (inchangé) */}
       <section id="infos" className="bg-gradient-to-b from-gray-50 to-white border-t">
         <div className="container mx-auto px-4 py-12">
           <div className="flex items-center gap-3 mb-6">
@@ -414,32 +445,32 @@ const PublicHomePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[{ t: 'Communiqués de la commission locale', d: 'Derniers communiqués officiels, décisions et informations au public.' }, { t: 'Dates importantes', d: 'Jour de vote, calendrier électoral et échéances clés.' }, { t: 'Comment voter', d: 'Conditions, pièces requises et rappels pratiques pour voter.' }].map((n) => (
               <Card key={n.t} className="shadow-sm hover:shadow transition-shadow">
-            <CardHeader>
+                <CardHeader>
                   <CardTitle className="text-base">{n.t}</CardTitle>
-            </CardHeader>
-            <CardContent>
+                </CardHeader>
+                <CardContent>
                   <p className="text-gov-gray text-sm">{n.d}</p>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
             ))}
-              </div>
+          </div>
         </div>
       </section>
 
-      {/* Footer avec dégradé subtil */}
-      <footer id="contact" className="border-t bg-gradient-to-t from-white to-gov-blue/5">
+      {/* Footer avec dégradé visible */}
+      <footer id="contact" className="border-t bg-gradient-to-t from-white via-white to-gov-blue/10">
         <div className="container mx-auto px-4 py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             <div>
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-9 h-9 bg-gov-blue rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold">IK</span>
+                  <span className="text-white font-semibold">iK</span>
                 </div>
                 <div>
-                  <h3 className="text-gov-dark font-bold text-lg">IKADI</h3>
+                  <h3 className="text-gov-dark font-bold text-lg">iKADI</h3>
                 </div>
               </div>
-              <p className="text-gov-gray text-sm">Plateforme IDADI: Système de gestion des processus électoraux alliant transparence, sécurité et efficacité.</p>
+              <p className="text-gov-gray text-sm">Système de gestion des processus électoraux alliant transparence, sécurité et efficacité.</p>
             </div>
             <div className="text-sm text-gov-gray">
               <h4 className="font-semibold text-gov-dark mb-2">Ressources</h4>
@@ -450,7 +481,7 @@ const PublicHomePage = () => {
               </ul>
             </div>
             <div className="text-sm text-gov-gray md:text-right">
-              <p>© {new Date().getFullYear()} IKADI. Tous droits réservés.</p>
+              <p>© {new Date().getFullYear()} iKADI. Tous droits réservés.</p>
               <p className="text-xs mt-1">Inspiration UI: Commission électorale du Ghana (<a className="underline hover:text-gov-blue" href="https://ec.gov.gh/">ec.gov.gh</a>)</p>
             </div>
           </div>
