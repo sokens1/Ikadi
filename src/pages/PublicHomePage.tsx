@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Users, TrendingUp, RefreshCw, Flag, Landmark, Megaphone, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { fetchAllElections, fetchRunningElection, fetchPublishedElection, fetchLatestElection } from '@/lib/services/elections';
-import { fetchGlobalMetrics } from '@/lib/services/metrics';
+import { fetchAllElections, fetchRunningElection, fetchPublishedElection, fetchLatestElection } from '../api/elections';
+import { fetchGlobalMetrics } from '../api/metrics';
 import { toast } from 'sonner';
 
 // Icone WhatsApp (SVG minimal)

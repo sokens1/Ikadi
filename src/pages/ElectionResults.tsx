@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Share2, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { fetchElectionById } from '@/lib/services/elections';
-import { fetchElectionSummary } from '@/lib/services/results';
+import { fetchElectionById } from '../api/elections';
+import { fetchElectionSummary } from '../api/results';
 import { toast } from 'sonner';
 
 // Icone WhatsApp (SVG minimal)
