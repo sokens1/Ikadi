@@ -71,16 +71,10 @@ const ElectionResults: React.FC = () => {
       }
 
       // Récupérer les résultats depuis election_result_summary
+      // Utilise le nom de table correct et sélectionne toutes les colonnes pour éviter les erreurs de schéma
       const { data: summaryData, error: summaryError } = await supabase
-        .from('election_results_summary')
-        .select(`
-          candidate_id,
-          candidate_name,
-          party_name,
-          total_votes,
-          percentage,
-          rank
-        `)
+        .from('election_result_summary')
+        .select('*')
         .eq('election_id', id)
         .order('rank', { ascending: true });
 
@@ -142,7 +136,7 @@ const ElectionResults: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
-          <div className="text-6xl mb-4">📊</div>
+          <div className="text-6xl mb-4">🗳️</div>
           <h1 className="text-2xl font-bold text-gov-dark mb-2">Aucun résultat disponible</h1>
           <p className="text-gov-gray mb-6">
             {error || 'Les résultats de cette élection ne sont pas encore disponibles.'}
@@ -277,7 +271,7 @@ const ElectionResults: React.FC = () => {
           
           {results.candidates.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">📊</div>
+              <div className="text-6xl mb-4">🗳️</div>
               <h3 className="text-xl font-semibold text-gov-dark mb-2">Aucun résultat disponible</h3>
               <p className="text-gov-gray">Les résultats de cette élection ne sont pas encore publiés.</p>
             </div>
@@ -295,7 +289,7 @@ const ElectionResults: React.FC = () => {
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-gov-dark">{candidate.candidate_name}</h3>
-                          <p className="text-gov-gray">{candidate.party_name}</p>
+                          <p className="text-gov-gray">{(candidate as any).party_name || (candidate as any).party || ''}</p>
                         </div>
                       </div>
                       <div className="text-right">
