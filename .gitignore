@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+#Variables d'environnement
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+#Extensions ou Packages
+.vscode
+.idea
+.cursorrules
+.cursor
+.cursorignore
+.cursorignore  
+package-lock.json
