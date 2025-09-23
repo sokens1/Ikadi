@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, ChevronLeft, ChevronRight, Star, Trash2, Edit, Search, Calendar, MapPin, Users, Building, Vote, Target } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Star, Trash2, Edit, Search, Calendar, MapPin, Users, Building, Vote, Target, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import FloatingInput from '@/components/ui/floating-input';
 import FloatingTextarea from '@/components/ui/floating-textarea';
@@ -326,7 +327,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                 onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })}
                 placeholder="0"
                 icon={<Building className="w-4 h-4" />}
-                helperText="Montant en francs CFA"
+                // helperText="Montant en francs CFA"
               />
               
               <FloatingInput
@@ -336,7 +337,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                 onChange={(e) => setFormData({ ...formData, voteGoal: parseInt(e.target.value) || 0 })}
                 placeholder="0"
                 icon={<Users className="w-4 h-4" />}
-                helperText="Nombre de voix visées"
+                // helperText="Nombre de voix visées"
               />
             </ModernFormGrid>
           </ModernFormSection>
@@ -456,7 +457,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                   label="C'est notre candidat prioritaire"
                   checked={currentCandidate.isOurCandidate}
                   onChange={(checked) => setCurrentCandidate({ ...currentCandidate, isOurCandidate: checked })}
-                  helperText="Marquez cette case si ce candidat est votre candidat principal"
+                  // helperText="Marquez cette case si ce candidat est votre candidat principal"
                 />
               </div>
               
@@ -531,7 +532,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                 min="1"
                 icon={<Building className="w-4 h-4" />}
                 required
-                helperText="Nombre de centres de vote dans la circonscription"
+                // helperText="Nombre de centres de vote dans la circonscription"
               />
               
               <FloatingInput
@@ -543,7 +544,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                 min="1"
                 icon={<Target className="w-4 h-4" />}
                 required
-                helperText="Estimation du nombre de bureaux par centre"
+                // helperText="Estimation du nombre de bureaux par centre"
               />
             </ModernFormGrid>
 
@@ -557,7 +558,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                 min="1"
                 icon={<Users className="w-4 h-4" />}
                 required
-                helperText="Nombre total d'électeurs inscrits dans la circonscription"
+                // helperText="Nombre total d'électeurs inscrits dans la circonscription"
               />
             </ModernFormGrid>
             
@@ -588,7 +589,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
           </ModernFormSection>
         );
         
-      case 5:
+      case 5: {
         const ourCandidate = formData.candidates.find(c => c.isOurCandidate);
         return (
           <div className="space-y-6">
@@ -691,6 +692,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
             </ModernFormSection>
           </div>
         );
+      }
         
       default:
         return null;

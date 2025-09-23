@@ -33,9 +33,9 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     commune: election.location.commune,
     arrondissement: election.location.arrondissement,
     seatsAvailable: election.configuration.seatsAvailable,
-    budget: election.configuration.budget || 0,
-    voteGoal: election.configuration.voteGoal || 0,
-    nbElecteurs: election.statistics.totalVoters || 0,
+    budget: election.configuration.budget,
+    voteGoal: election.configuration.voteGoal,
+    nbElecteurs: election.statistics.totalVoters,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -224,11 +224,11 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             <div className="p-2 bg-gov-blue/10 rounded-lg">
               <Calendar className="h-6 w-6 text-gov-blue" />
             </div>
-            Modifier l'élection
+            Modification de l'élection
           </DialogTitle>
-          <DialogDescription className="text-gray-600 mt-2">
+          {/* <DialogDescription className="text-gray-600 mt-2">
             Modifiez les informations de l'élection sélectionnée. Les champs marqués d'un astérisque (*) sont obligatoires.
-          </DialogDescription>
+          </DialogDescription> */}
         </DialogHeader>
 
         <ModernForm onSubmit={handleSubmit}>
@@ -294,7 +294,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 placeholder="Description de l'élection..."
                 rows={3}
                 icon={<Building className="w-4 h-4" />}
-                helperText="Décrivez les objectifs et le contexte de cette élection"
+                // helperText="Décrivez les objectifs et le contexte de cette élection"
               />
             </ModernFormGrid>
           </ModernFormSection>
@@ -390,9 +390,9 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 type="number"
                 min="1"
                 value={formData.seatsAvailable}
-                onChange={(e) => handleInputChange('seatsAvailable', parseInt(e.target.value) || 1)}
+                onChange={(e) => handleInputChange('seatsAvailable', parseInt(e.target.value))}
                 icon={<Target className="w-4 h-4" />}
-                helperText="Nombre de sièges à pourvoir"
+                // helperText="Nombre de sièges à pourvoir"
               />
               
               <FloatingInput
@@ -400,10 +400,10 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 type="number"
                 min="0"
                 value={formData.nbElecteurs}
-                onChange={(e) => handleInputChange('nbElecteurs', parseInt(e.target.value) || 0)}
+                onChange={(e) => handleInputChange('nbElecteurs', parseInt(e.target.value))}
                 placeholder="Ex: 50000"
                 icon={<Users className="w-4 h-4" />}
-                helperText="Nombre total d'électeurs inscrits"
+                // helperText="Nombre total d'électeurs inscrits"
               />
             </ModernFormGrid>
 
@@ -413,9 +413,9 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 type="number"
                 min="0"
                 value={formData.budget}
-                onChange={(e) => handleInputChange('budget', parseInt(e.target.value) || 0)}
+                onChange={(e) => handleInputChange('budget', parseInt(e.target.value))}
                 icon={<Target className="w-4 h-4" />}
-                helperText="Budget alloué en francs CFA"
+                // helperText="Budget alloué en francs CFA"
               />
               
               <FloatingInput
@@ -423,9 +423,9 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 type="number"
                 min="0"
                 value={formData.voteGoal}
-                onChange={(e) => handleInputChange('voteGoal', parseInt(e.target.value) || 0)}
+                onChange={(e) => handleInputChange('voteGoal', parseInt(e.target.value))}
                 icon={<Vote className="w-4 h-4" />}
-                helperText="Nombre de voix visées"
+                // helperText="Nombre de voix visées"
               />
             </ModernFormGrid>
           </ModernFormSection>

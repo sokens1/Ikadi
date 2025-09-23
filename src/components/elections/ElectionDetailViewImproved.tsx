@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Version améliorée avec table de liaison election_centers
 // À utiliser après avoir exécuté le script create-election-centers-relation.sql
 
