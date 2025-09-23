@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -38,28 +38,31 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
   const [votingCenters, setVotingCenters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Charger les centres de vote et leurs PV depuis Supabase
-  useEffect(() => {
+  const fetchVotingCenters = useCallback(async () => {
     if (!selectedElection) return;
-
-    const fetchVotingCenters = async () => {
       try {
         setLoading(true);
         
-        // D'abord récupérer les détails de l'élection pour avoir sa localisation
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('province_id, department_id, commune_id, arrondissement_id')
-          .eq('id', selectedElection)
-          .single();
+        // Filtrer STRICTEMENT par les centres liés via la table de liaison election_centers
+        const { data: ecRows, error: ecError } = await supabase
+          .from('election_centers')
+          .select('center_id')
+          .eq('election_id', selectedElection);
 
-        if (electionError) {
-          console.error('Erreur lors du chargement de l\'élection:', electionError);
+        if (ecError) {
+          console.error('Erreur lors du chargement de election_centers:', ecError);
+          setVotingCenters([]);
           return;
         }
 
-        // Construire la requête basée sur la localisation de l'élection
-        let centersQuery = supabase
+        const centerIds = (ecRows || []).map((r: any) => r.center_id).filter(Boolean);
+
+        if (centerIds.length === 0) {
+          setVotingCenters([]);
+          return;
+        }
+
+        const { data, error } = await supabase
           .from('voting_centers')
           .select(`
             *,
@@ -71,23 +74,13 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
                 status,
                 entered_by,
                 entered_at,
+                election_id,
                 anomalies
               )
             )
-          `);
-
-        // Filtrer par localisation si disponible
-        if (electionData.arrondissement_id) {
-          centersQuery = centersQuery.eq('arrondissement_id', electionData.arrondissement_id);
-        } else if (electionData.commune_id) {
-          centersQuery = centersQuery.eq('commune_id', electionData.commune_id);
-        } else if (electionData.department_id) {
-          centersQuery = centersQuery.eq('department_id', electionData.department_id);
-        } else if (electionData.province_id) {
-          centersQuery = centersQuery.eq('province_id', electionData.province_id);
-        }
-
-        const { data, error } = await centersQuery.order('name', { ascending: true });
+          `)
+          .in('id', centerIds)
+          .order('name', { ascending: true });
 
         if (error) {
           console.error('Erreur lors du chargement des centres de vote:', error);
@@ -97,7 +90,8 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
         // Transformer les données Supabase
         const transformedCenters = data?.map(center => {
           const bureaux = center.voting_bureaux?.map((bureau: any) => {
-            const pv = bureau.procès_verbaux?.[0]; // Prendre le premier PV
+            const pvsForElection = (bureau.procès_verbaux || []).filter((pv: any) => pv.election_id === selectedElection);
+            const pv = pvsForElection.sort((a: any, b: any) => new Date(b.entered_at || 0).getTime() - new Date(a.entered_at || 0).getTime())[0];
             return {
               id: bureau.id.toString(),
               name: bureau.name,
@@ -112,7 +106,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
           }) || [];
 
           const bureauxSaisis = bureaux.filter((b: any) => 
-            b.status === 'saisi' || b.status === 'validé' || b.status === 'anomaly'
+            b.status === 'entered' || b.status === 'validated' || b.status === 'anomaly'
           ).length;
 
           return {
@@ -132,10 +126,20 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchVotingCenters();
   }, [selectedElection]);
+
+  // Charger initialement et à chaque changement d'élection
+  useEffect(() => {
+    fetchVotingCenters();
+  }, [fetchVotingCenters]);
+
+  // Rafraîchir après fermeture de la saisie PV
+  useEffect(() => {
+    if (!showPVEntry) {
+      fetchVotingCenters();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPVEntry]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -202,7 +206,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
   return (
     <div className="space-y-6">
       {/* Bouton d'action principal */}
-      <div className="flex justify-center">
+      <div className="flex justify-end">
         <Button 
           onClick={() => setShowPVEntry(true)}
           size="lg"
@@ -213,56 +217,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
         </Button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="gov-card border-l-4 border-l-blue-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5 text-blue-500" />
-                <span className="text-sm font-medium text-gray-600">Taux de Saisie</span>
-              </div>
-              <span className="text-2xl font-bold text-blue-600">{stats.tauxSaisie}%</span>
-            </div>
-            <Progress value={stats.tauxSaisie} className="mb-2" />
-            <p className="text-xs text-gray-500">
-              {stats.bureauxSaisis} bureaux saisis sur {stats.totalBureaux}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="gov-card border-l-4 border-l-green-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-green-500" />
-                <span className="text-sm font-medium text-gray-600">Voix Notre Candidat</span>
-              </div>
-              <span className="text-2xl font-bold text-green-600">{stats.voixNotreCanidat.toLocaleString()}</span>
-            </div>
-            <p className="text-xs text-gray-500">
-              Basé sur les PV déjà saisis
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="gov-card border-l-4 border-l-purple-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Flag className="h-5 w-5 text-purple-500" />
-                <span className="text-sm font-medium text-gray-600">Écart avec le 2ème</span>
-              </div>
-              <span className="text-2xl font-bold text-purple-600">+{stats.ecartDeuxieme}</span>
-            </div>
-            <p className="text-xs text-gray-500">
-              voix d'avance
-            </p>
-          </CardContent>
-        </Card>
-
-        
-      </div>
+      {/* KPIs retirés sur demande */}
 
       {/* Vue hiérarchique */}
       <Card className="gov-card">

@@ -196,31 +196,31 @@ const PublicHomePage = () => {
         `)
         .eq('election_id', currentElection.id);
 
-      const processed: CandidateResult[] = [];
-      if (candidatesAgg) {
-        let totalVotes = 0;
-        candidatesAgg.forEach((item: any) => {
-          if (item.candidate_results && item.candidate_results.length > 0) {
-            totalVotes += item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0);
-          }
-        });
-        candidatesAgg.forEach((item: any, index: number) => {
-          if (item.candidates) {
-            const candidateVotes = item.candidate_results
-              ? item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0)
-              : 0;
-            processed.push({
-              id: item.candidates.id,
-              name: item.candidates.name,
-              party: item.candidates.party || 'Indépendant',
-              votes: candidateVotes,
-              percentage: totalVotes > 0 ? (candidateVotes / totalVotes) * 100 : 0,
-              color: candidateColors[index % candidateColors.length]
-            });
-          }
-        });
-        processed.sort((a, b) => b.votes - a.votes);
-      }
+        let processed: CandidateResult[] = [];
+        if (candidatesAgg) {
+          let totalVotes = 0;
+          candidatesAgg.forEach((item: any) => {
+            if (item.candidate_results && item.candidate_results.length > 0) {
+              totalVotes += item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0);
+            }
+          });
+          candidatesAgg.forEach((item: any, index: number) => {
+            if (item.candidates) {
+              const candidateVotes = item.candidate_results
+                ? item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0)
+                : 0;
+              processed.push({
+                id: item.candidates.id,
+                name: item.candidates.name,
+                party: item.candidates.party || 'Indépendant',
+                votes: candidateVotes,
+                percentage: totalVotes > 0 ? (candidateVotes / totalVotes) * 100 : 0,
+                color: candidateColors[index % candidateColors.length]
+              });
+            }
+          });
+          processed.sort((a, b) => b.votes - a.votes);
+        }
 
       setResults({
         election: currentElection,
