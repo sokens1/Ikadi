@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, Users, TrendingUp, RefreshCw, Flag, Landmark, Megaphone, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import SEOHead from '@/components/SEOHead';
 
 // Icone WhatsApp (SVG minimal)
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -300,14 +301,44 @@ const PublicHomePage = () => {
   const dynamicTitle = results.election?.title || electionTitle;
   const canSeeResults = results.election ? Date.now() >= new Date(results.election.election_date).getTime() : false;
 
+  // SEO Data structuré pour la page d'accueil
+  const homePageStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "iKADI",
+    "description": "Plateforme officielle de gestion électorale de la République Gabonaise",
+    "url": "https://ikadi.gabon.ga/",
+    "publisher": {
+      "@type": "GovernmentOrganization",
+      "name": "République Gabonaise",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "GA",
+        "addressLocality": "Libreville"
+      }
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://ikadi.gabon.ga/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <SEOHead
+        title={dynamicTitle}
+        description={`Suivez ${dynamicTitle} en temps réel avec iKADI. Plateforme officielle de gestion électorale garantissant transparence et sécurité du processus démocratique gabonais.`}
+        keywords={`${dynamicTitle}, élections Gabon, résultats électoraux, ${results.election?.election_date ? new Date(results.election.election_date).getFullYear() : '2024'}, démocratie, transparence`}
+        structuredData={homePageStructuredData}
+      />
+      <div className="min-h-screen bg-white">
       {/* Header bleu plateforme avec texte blanc */}
-      <header className="border-b bg-gov-blue text-white">
+      <header className="border-b bg-gov-blue text-white" role="banner">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm" aria-hidden="true">
                 <span className="text-gov-blue font-bold text-lg">iK</span>
               </div>
               <div>
@@ -315,16 +346,17 @@ const PublicHomePage = () => {
                 <p className="text-white/80 text-sm">Plateforme de gestion électorale</p>
               </div>
             </div>
-            <nav className="hidden md:flex items-center space-x-6">
-              <a href="#" className="hover:underline">Accueil</a>
-              <a href="#about" className="hover:underline">A propos</a>
-              <a href="#infos" className="hover:underline">Infos électorales</a>
-              <a href="#candidats" className="hover:underline">Candidats</a>
-              <a href="#resultats" className="hover:underline">Résultats</a>
-              <a href="#circonscriptions" className="hover:underline">Circonscriptions / Bureaux</a>
-              <a href="#contact" className="hover:underline">Contact</a>
+            <nav className="hidden md:flex items-center space-x-6" role="navigation" aria-label="Menu principal">
+              <a href="#about" className="hover:underline" aria-label="En savoir plus sur iKADI">A propos</a>
+              <a href="#infos" className="hover:underline" aria-label="Informations électorales">Infos électorales</a>
+              <a href="#candidats" className="hover:underline" aria-label="Voir les candidats">Candidats</a>
+              <a href="#resultats" className="hover:underline" aria-label="Consulter les résultats">Résultats</a>
+              <a href="#circonscriptions" className="hover:underline" aria-label="Circonscriptions et bureaux de vote">Circonscriptions / Bureaux</a>
+              <a href="#contact" className="hover:underline" aria-label="Nous contacter">Contact</a>
             </nav>
-            {/* <Link to="/login"><Button className="bg-white text-gov-blue hover:bg-blue-50 shadow-sm">Accès admin</Button></Link> */}
+            <Link to="/login" aria-label="Accès administrateur">
+              <Button className="bg-white text-gov-blue hover:bg-blue-50 shadow-sm">Accès admin</Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -340,8 +372,9 @@ const PublicHomePage = () => {
           backgroundPosition: 'center',
           backgroundAttachment: heroOk ? 'fixed' : 'scroll'
         }}
+        aria-label="Section principale"
       >
-        <div className="absolute inset-0 bg-[rgba(0,0,0,0.45)]" />
+        <div className="absolute inset-0 bg-[rgba(0,0,0,0.45)]" aria-hidden="true" />
         <div className="container mx-auto px-4 py-16 mb-20 md:py-20 relative">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <div className="text-white animate-[fadeIn_0.6s_ease-out]">
@@ -353,16 +386,7 @@ const PublicHomePage = () => {
                 Suivez les résultats des élections en direct avec transparence et sécurité. Inspiré par les meilleures pratiques de communication électorale.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
-                {/* <Button onClick={fetchPublicResults} disabled={loading} variant="outline" className="border-white text-white hover:bg-white/10">
-                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  Actualiser
-                </Button>
-                <Link to="/results">
-                  <Button disabled={!canSeeResults} className="bg-white text-gov-blue hover:bg-blue-50" id="resultats">
-                    Résultat
-                  </Button>
-                </Link> */}
-                <Link to="/login">
+                <Link to="/login" aria-label="Accéder à l'interface d'administration">
                   <Button className="bg-gov-blue text-white hover:bg-gov-blue/90">
                     Accès admin
                   </Button>
@@ -647,7 +671,8 @@ const PublicHomePage = () => {
           <div className="mt-12 text-center font-semibold">© {new Date().getFullYear()} iKADI. Tous droits réservés.</div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 };
 
