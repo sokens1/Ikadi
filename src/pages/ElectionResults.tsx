@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Share2, Facebook, Link as LinkIcon, Menu, X } from 'lucide-react';
+import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fetchElectionById } from '../api/elections';
 import { fetchElectionSummary } from '../api/results';
@@ -47,7 +47,6 @@ interface ElectionResults {
 const ElectionResults: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [results, setResults] = useState<ElectionResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -156,12 +155,12 @@ const ElectionResults: React.FC = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm" onClick={() => setMobileOpen(false)}>
+              <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
                 <span className="text-gov-blue font-bold text-lg">iK</span>
               </Link>
               <div>
                 <h1 className="text-white font-bold text-2xl">iKADI</h1>
-                <p className="text-white/80 text-sm">Résultats d'élection</p>
+                <p className="text-white/80 text-sm">Plateforme de gestion électorale</p>
               </div>
             </div>
             <nav className="hidden md:flex items-center space-x-6">
@@ -173,32 +172,7 @@ const ElectionResults: React.FC = () => {
               <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
               <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a>
             </nav>
-            <div className="flex items-center gap-2 md:gap-3">
-              <button onClick={() => handleShare('whatsapp')} aria-label="Partager WhatsApp" className="hidden sm:inline-flex text-white hover:bg-white/20 rounded p-2"><WhatsAppIcon className="w-5 h-5" /></button>
-              <button onClick={() => handleShare('facebook')} aria-label="Partager Facebook" className="hidden sm:inline-flex text-white hover:bg-white/20 rounded p-2"><Facebook className="w-5 h-5" /></button>
-              <button onClick={() => handleShare('copy')} aria-label="Copier le lien" className="hidden sm:inline-flex text-white hover:bg-white/20 rounded p-2"><LinkIcon className="w-5 h-5" /></button>
-              <button className="md:hidden p-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(v => !v)} aria-label="Ouvrir le menu">
-                {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            </div>
           </div>
-          {mobileOpen && (
-            <div className="mt-3 md:hidden border-t border-white/10 pt-3 space-y-2">
-              {[
-                { href: '#', label: 'Accueil' },
-                { href: '#about', label: 'A propos' },
-                { href: '#infos', label: 'Infos électorales' },
-                { href: '#candidats', label: 'Candidats' },
-                { href: '#resultats', label: 'Résultats' },
-                { href: '#circonscriptions', label: 'Circonscriptions / Bureaux' },
-                { href: '#contact', label: 'Contact' },
-              ].map(link => (
-                <a key={link.label} href={link.href} className="block px-2 py-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(false)}>
-                  {link.label}
-                </a>
-              ))}
-            </div>
-          )}
         </div>
       </header>
 
@@ -324,7 +298,7 @@ const ElectionResults: React.FC = () => {
             {/* Colonne gauche: logo + description */}
             <div className="order-1 max-w-sm">
               <div className="flex items-center space-x-3 mb-3">
-                <Link to="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center" onClick={() => setMobileOpen(false)}>
+              <Link to="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
                   <span className="text-gov-blue font-semibold">iK</span>
                 </Link>
                 <div>
