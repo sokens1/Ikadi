@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
-import { Calendar, Users, TrendingUp, RefreshCw, Flag, Landmark, Megaphone, Facebook, Link as LinkIcon } from 'lucide-react';
+import { Calendar, Users, TrendingUp, RefreshCw, Flag, Landmark, Megaphone, Facebook, Link as LinkIcon, Menu, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fetchAllElections, fetchRunningElection, fetchPublishedElection, fetchLatestElection } from '../api/elections';
 import { fetchGlobalMetrics } from '../api/metrics';
@@ -53,6 +53,7 @@ const fallbackImages = [
 ];
 
 const PublicHomePage = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const [results, setResults] = useState<PublicResults>({
     election: null,
@@ -289,8 +290,28 @@ const PublicHomePage = () => {
               <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
               <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a>
             </nav>
+            <button className="md:hidden p-2 rounded hover:bg-white/10" aria-label="Ouvrir le menu" onClick={() => setMobileOpen(v => !v)}>
+              {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
             {/* <Link to="/login"><Button className="bg-white text-gov-blue hover:bg-blue-50 shadow-sm">Accès admin</Button></Link> */}
           </div>
+          {mobileOpen && (
+            <div className="mt-3 md:hidden border-t border-white/10 pt-3 space-y-2">
+              {[
+                { href: '#', label: 'Accueil' },
+                { href: '#about', label: 'A propos' },
+                { href: '#infos', label: 'Infos électorales' },
+                { href: '#candidats', label: 'Candidats' },
+                { href: '#resultats', label: 'Résultats' },
+                { href: '#circonscriptions', label: 'Circonscriptions / Bureaux' },
+                { href: '#contact', label: 'Contact' },
+              ].map(link => (
+                <a key={link.label} href={link.href} className="block px-2 py-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(false)}>
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
