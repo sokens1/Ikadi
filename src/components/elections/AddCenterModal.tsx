@@ -79,6 +79,10 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('AddCenterModal - handleSubmit appelé');
+    console.log('selectedCenters:', selectedCenters);
+    console.log('centers disponibles:', centers);
+    
     if (selectedCenters.length > 0) {
       const centersToAdd = centers
         .filter(c => selectedCenters.includes(c.id))
@@ -91,7 +95,12 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
           bureaux: c.total_bureaux || 0,
           voters: c.total_voters || 0
         }));
+      
+      console.log('centersToAdd:', centersToAdd);
       onSubmit(centersToAdd);
+    } else {
+      console.log('Aucun centre sélectionné');
+      toast.error('Veuillez sélectionner au moins un centre');
     }
   };
 
@@ -115,8 +124,8 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="pt-2">
-          <ModernForm>
+        <div className="pt-2">
+          <ModernForm onSubmit={handleSubmit}>
             <ModernFormSection title="Centres de Vote">
               <MultiSelect
                 options={(centers || []).map(c => ({
@@ -137,7 +146,7 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
               </Button>
             </ModernFormActions>
           </ModernForm>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -76,6 +76,10 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('AddCandidateModal - handleSubmit appelé');
+    console.log('selectedCandidates:', selectedCandidates);
+    console.log('candidates disponibles:', candidates);
+    
     if (selectedCandidates.length > 0) {
       const candidatesToAdd = candidates
         .filter(c => selectedCandidates.includes(c.id))
@@ -86,7 +90,12 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
           isOurCandidate: c.isOurCandidate,
           photo: '/placeholder.svg'
         }));
+      
+      console.log('candidatesToAdd:', candidatesToAdd);
       onSubmit(candidatesToAdd);
+    } else {
+      console.log('Aucun candidat sélectionné');
+      toast.error('Veuillez sélectionner au moins un candidat');
     }
   };
 
@@ -110,8 +119,8 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="pt-2">
-          <ModernForm>
+        <div className="pt-2">
+          <ModernForm onSubmit={handleSubmit}>
             <ModernFormSection title="Candidats">
               <MultiSelect
                 options={(candidates || []).map(c => ({
@@ -132,7 +141,7 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
               </Button>
             </ModernFormActions>
           </ModernForm>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
