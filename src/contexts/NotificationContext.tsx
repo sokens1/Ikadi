@@ -26,14 +26,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const addNotification = (notification: Omit<Notification, 'id' | 'date' | 'read'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Math.random().toString(36).substr(2, 9),
-      date: new Date(),
-      read: false,
-    };
-    
-    setNotifications(prev => [newNotification, ...prev]);
+    setNotifications(prev => {
+      // Déduplication simple: même titre + même message → on ignore
+      const isDuplicate = prev.some(n => n.title === notification.title && n.message === notification.message);
+      if (isDuplicate) return prev;
+
+      const newNotification: Notification = {
+        ...notification,
+        id: Math.random().toString(36).substr(2, 9),
+        date: new Date(),
+        read: false,
+      };
+      return [newNotification, ...prev];
+    });
   };
 
   const markAsRead = (id: string) => {

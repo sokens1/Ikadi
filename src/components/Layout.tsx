@@ -24,7 +24,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -185,14 +185,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-80 max-h-[500px] overflow-y-auto" align="end">
-                  <DropdownMenuLabel className="flex items-center justify-between">
+                <DropdownMenuContent sideOffset={8} align="end" className="z-50 w-80 max-h-[500px] overflow-y-auto rounded-md border bg-white p-2 shadow-lg">
+                  <DropdownMenuLabel className="flex items-center justify-between px-2 py-1.5 text-sm font-medium text-gray-700">
                     <span>Notifications ({unreadCount} non lues)</span>
                     {unreadCount > 0 && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 text-xs text-blue-600"
+                        className="h-6 text-xs text-blue-600 hover:bg-blue-50"
                         onClick={(e) => {
                           e.stopPropagation();
                           markAllAsRead();
@@ -205,15 +205,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {notifications.length === 0 ? (
-                    <div className="text-sm text-gray-500 p-2 text-center">
+                    <div className="text-sm text-gray-500 p-3 text-center">
                       Aucune notification
                     </div>
                   ) : (
                     notifications.map((notification) => (
                       <DropdownMenuItem
                         key={notification.id}
-                        className={`flex items-start gap-3 p-3 ${!notification.read ? 'bg-blue-50' : ''}`}
-                        onClick={() => markAsRead(notification.id)}
+                        className={`flex items-start gap-3 px-3 py-2 rounded-md focus:bg-gray-50 outline-none cursor-pointer ${!notification.read ? 'bg-blue-50' : ''}`}
+                        onClick={() => {
+                          markAsRead(notification.id);
+                          const t = notification.title?.toLowerCase() || '';
+                          if (t.includes('pv')) {
+                            navigate('/results');
+                          } else if (t.includes('élection') || t.includes('election')) {
+                            navigate('/elections');
+                          } else if (t.includes('électeur') || t.includes('electeur') || t.includes('votant')) {
+                            navigate('/voters');
+                          }
+                        }}
                       >
                         <div className="mt-0.5">
                           {getNotificationIcon(notification.type)}
