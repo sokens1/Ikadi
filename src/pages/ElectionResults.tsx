@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Share2, Facebook, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Share2, Facebook, Link as LinkIcon, Menu, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fetchElectionById } from '../api/elections';
 import { fetchElectionSummary } from '../api/results';
@@ -47,6 +47,7 @@ interface ElectionResults {
 const ElectionResults: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [results, setResults] = useState<ElectionResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,52 +150,55 @@ const ElectionResults: React.FC = () => {
   const winner = results.candidates.find(c => c.rank === 1);
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      {/* Header */}
-      <header className="bg-gov-blue text-white">
+    <div className="min-h-screen bg-white">
+      {/* Header identique à la Home */}
+      <header className="border-b bg-gov-blue text-white">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/')}
-                className="text-white hover:bg-white/20"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour
-              </Button>
-              <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold truncate">iKADI</h1>
-                <p className="text-white/80 text-xs sm:text-sm truncate">Résultats d'élection</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm" onClick={() => setMobileOpen(false)}>
+                <span className="text-gov-blue font-bold text-lg">iK</span>
+              </Link>
+              <div>
+                <h1 className="text-white font-bold text-2xl">iKADI</h1>
+                <p className="text-white/80 text-sm">Résultats d'élection</p>
               </div>
             </div>
-            <div className="flex items-center space-x-1 sm:space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleShare('whatsapp')}
-                className="text-white hover:bg-white/20"
-              >
-                <WhatsAppIcon className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleShare('facebook')}
-                className="text-white hover:bg-white/20"
-              >
-                <Facebook className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleShare('copy')}
-                className="text-white hover:bg-white/20"
-              >
-                <LinkIcon className="w-5 h-5" />
-              </Button>
+            <nav className="hidden md:flex items-center space-x-6">
+              <a href="#" className="hover:text-blue-200 transition-colors">Accueil</a>
+              <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
+              <a href="#infos" className="hover:text-blue-200 transition-colors">Infos électorales</a>
+              <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a>
+              <a href="#resultats" className="hover:text-blue-200 transition-colors">Résultats</a>
+              <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
+              <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a>
+            </nav>
+            <div className="flex items-center gap-2 md:gap-3">
+              <button onClick={() => handleShare('whatsapp')} aria-label="Partager WhatsApp" className="hidden sm:inline-flex text-white hover:bg-white/20 rounded p-2"><WhatsAppIcon className="w-5 h-5" /></button>
+              <button onClick={() => handleShare('facebook')} aria-label="Partager Facebook" className="hidden sm:inline-flex text-white hover:bg-white/20 rounded p-2"><Facebook className="w-5 h-5" /></button>
+              <button onClick={() => handleShare('copy')} aria-label="Copier le lien" className="hidden sm:inline-flex text-white hover:bg-white/20 rounded p-2"><LinkIcon className="w-5 h-5" /></button>
+              <button className="md:hidden p-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(v => !v)} aria-label="Ouvrir le menu">
+                {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
             </div>
           </div>
+          {mobileOpen && (
+            <div className="mt-3 md:hidden border-t border-white/10 pt-3 space-y-2">
+              {[
+                { href: '#', label: 'Accueil' },
+                { href: '#about', label: 'A propos' },
+                { href: '#infos', label: 'Infos électorales' },
+                { href: '#candidats', label: 'Candidats' },
+                { href: '#resultats', label: 'Résultats' },
+                { href: '#circonscriptions', label: 'Circonscriptions / Bureaux' },
+                { href: '#contact', label: 'Contact' },
+              ].map(link => (
+                <a key={link.label} href={link.href} className="block px-2 py-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(false)}>
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
@@ -313,17 +317,52 @@ const ElectionResults: React.FC = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gov-blue text-white py-8">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <p className="text-white/80">
-              ©2025 iKADI - Plateforme de gestion électorale. Tous droits réservés.
-            </p>
-            <p className="text-white/60 text-sm mt-2">
-              Dernière mise à jour: {new Date(results.last_updated).toLocaleString('fr-FR')}
-            </p>
+      {/* Footer identique à la Home */}
+      <footer id="contact" className="border-t bg-gov-blue mt-20 text-white">
+        <div className="container mx-auto px-4 pt-10 pb-6">
+          <div className="flex flex-col md:flex-row md:items-start justify-around gap-8">
+            {/* Colonne gauche: logo + description */}
+            <div className="order-1 max-w-sm">
+              <div className="flex items-center space-x-3 mb-3">
+                <Link to="/" className="w-9 h-9 bg-white rounded-full flex items-center justify-center" onClick={() => setMobileOpen(false)}>
+                  <span className="text-gov-blue font-semibold">iK</span>
+                </Link>
+                <div>
+                  <h3 className="text-white font-bold text-lg">iKADI</h3>
+                </div>
+              </div>
+              <p className="text-white/80 text-sm">Système de gestion des processus électoraux alliant transparence, sécurité et efficacité.</p>
+            </div>
+
+            {/* Ressources */}
+            <div className="order-3 md:order-2 text-sm text-white/90 max-w-sm w-full">
+              <h4 className="font-semibold text-white mb-2">Ressources</h4>
+              <ul className="space-y-1">
+                <li><a href="#candidats" className="hover:opacity-80">Candidats</a></li>
+                <li><a href="#circonscriptions" className="hover:opacity-80">Circonscriptions / Bureaux</a></li>
+                <li><a href="#resultats" className="hover:opacity-80">Résultats</a></li>
+              </ul>
+            </div>
+
+            {/* Partage */}
+            <div className="order-2 md:order-3 text-sm text-white/90 md:justify-self-end max-w-sm">
+              <h4 className="font-semibold text-white mb-2">Partager</h4>
+              <div className="flex flex-row flex-wrap gap-4 items-center">
+                <button aria-label="Partager sur WhatsApp" onClick={() => handleShare('whatsapp')} className="p-2 bg-white/10 rounded hover:bg-white/20" title="WhatsApp">
+                  <WhatsAppIcon width={28} height={28} />
+                </button>
+                <button aria-label="Partager sur Facebook" onClick={() => handleShare('facebook')} className="p-2 bg-white/10 rounded hover:bg-white/20" title="Facebook">
+                  <Facebook className="w-7 h-7" />
+                </button>
+                <button aria-label="Copier le lien" onClick={() => handleShare('copy')} className="p-2 bg-white/10 rounded hover:bg-white/20" title="Copier le lien">
+                  <LinkIcon className="w-7 h-7" />
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Copyright */}
+          <div className="mt-12 text-center font-semibold">© {new Date(results.last_updated).getFullYear()} iKADI. Tous droits réservés.</div>
         </div>
       </footer>
     </div>
