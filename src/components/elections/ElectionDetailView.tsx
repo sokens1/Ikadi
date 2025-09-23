@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,12 +18,13 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import AddCenterModal from './AddCenterModal';
 import AddCandidateModal from './AddCandidateModal';
 import CenterDetailModal from './CenterDetailModal';
 
 interface Election {
-  id: number;
+  id: string; // UUID
   title: string;
   date: string;
   status: string;
@@ -66,9 +67,10 @@ interface Candidate {
 interface ElectionDetailViewProps {
   election: Election;
   onBack: () => void;
+  onDataChange?: () => void;
 }
 
-const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBack }) => {
+const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBack, onDataChange }) => {
   const [showAddCenter, setShowAddCenter] = useState(false);
   const [showAddCandidate, setShowAddCandidate] = useState(false);
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
@@ -82,46 +84,21 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     totalCandidates: 0
   });
 
-  // Charger les centres de vote pour cette élection (basés sur la localisation)
-  useEffect(() => {
-    const fetchCenters = async () => {
+  // Fonction pour charger les centres de vote liés à cette élection
+  const fetchCenters = useCallback(async () => {
       try {
         setLoading(true);
         
-        // D'abord récupérer les détails de l'élection pour avoir sa localisation
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('province_id, department_id, commune_id, arrondissement_id')
-          .eq('id', election.id)
-          .single();
-
-        if (electionError) {
-          console.error('Erreur lors du chargement de l\'élection:', electionError);
-          setCenters([]);
-          setLoading(false);
-          return;
-        }
-
-        // Construire la requête basée sur la localisation de l'élection
-        let query = supabase
-          .from('voting_centers')
+        // Récupérer les centres liés à cette élection via la table de jonction
+        const { data, error } = await supabase
+          .from('election_centers')
           .select(`
-            *,
-            voting_bureaux!center_id(id, name)
-          `);
-
-        // Filtrer par localisation si disponible
-        if (electionData.arrondissement_id) {
-          query = query.eq('arrondissement_id', electionData.arrondissement_id);
-        } else if (electionData.commune_id) {
-          query = query.eq('commune_id', electionData.commune_id);
-        } else if (electionData.department_id) {
-          query = query.eq('department_id', electionData.department_id);
-        } else if (electionData.province_id) {
-          query = query.eq('province_id', electionData.province_id);
-        }
-
-        const { data, error } = await query.order('name', { ascending: true });
+            voting_centers(
+              id, name, address, contact_name, contact_phone,
+              voting_bureaux!center_id(id, name, registered_voters)
+            )
+          `)
+          .eq('election_id', election.id);
 
         if (error) {
           console.error('Erreur lors du chargement des centres:', error);
@@ -131,7 +108,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         }
 
         // Transformer les données Supabase en format Center
-        const transformedCenters: Center[] = data?.map(center => {
+        const transformedCenters: Center[] = data?.map((link: any) => {
+          const center = link.voting_centers;
           const totalVoters = center.voting_bureaux?.reduce((sum: number, bureau: any) => 
             sum + (bureau.registered_voters || 0), 0) || 0;
           
@@ -152,19 +130,23 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
       } finally {
         setLoading(false);
       }
-    };
+    }, [election.id]);
 
-    fetchCenters();
-  }, [election.id]);
-
-  // Charger les candidats pour cette élection
+  // Charger les centres de vote liés à cette élection
   useEffect(() => {
-    const fetchCandidates = async () => {
+    fetchCenters();
+  }, [fetchCenters]);
+
+  // Fonction pour charger les candidats liés à cette élection
+  const fetchCandidates = useCallback(async () => {
       try {
         const { data, error } = await supabase
-          .from('candidates')
-          .select('*')
-          .order('name', { ascending: true });
+          .from('election_candidates')
+          .select(`
+            candidates(id, name, party, photo_url, is_our_candidate),
+            is_our_candidate
+          `)
+          .eq('election_id', election.id);
 
         if (error) {
           console.error('Erreur lors du chargement des candidats:', error);
@@ -173,24 +155,24 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         }
 
         // Transformer les données Supabase en format Candidate
-        const transformedCandidates: Candidate[] = data?.map(candidate => ({
-          id: candidate.id.toString(),
-          name: candidate.name || '',
-          party: candidate.party || '',
-          isOurCandidate: candidate.is_priority || false,
-          photo: candidate.photo_url || '/placeholder.svg',
-          votes: candidate.votes_received || 0,
-          percentage: 0 // Calculé dynamiquement si nécessaire
+        const transformedCandidates: Candidate[] = data?.map((link: any) => ({
+          id: String(link.candidates.id),
+          name: link.candidates.name || '',
+          party: link.candidates.party || '',
+          isOurCandidate: link.is_our_candidate || false,
+          photo: link.candidates.photo_url || '/placeholder.svg',
         })) || [];
 
         setCandidates(transformedCandidates);
       } catch (error) {
         console.error('Erreur lors du chargement des candidats:', error);
       }
-    };
+    }, [election.id]);
 
+  // Charger les candidats liés à cette élection
+  useEffect(() => {
     fetchCandidates();
-  }, [election.id]);
+  }, [fetchCandidates]);
 
   // Mettre à jour les statistiques quand les données changent
   useEffect(() => {
@@ -214,142 +196,165 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     }
   };
 
-  const handleAddCenter = async (centerData: Omit<Center, 'id'>) => {
+  const handleAddCenter = async (centersData: Center[]) => {
     try {
-      // Récupérer la localisation de l'élection courante
-      const { data: electionData, error: electionError } = await supabase
-        .from('elections')
-        .select('province_id, department_id, commune_id, arrondissement_id')
-        .eq('id', election.id)
-        .single();
+      console.log('handleAddCenter appelé avec:', centersData);
+      console.log('ID de l\'élection:', election.id);
+      
+      // Lier les centres sélectionnés à l'élection
+      const centerLinks = centersData.map(center => ({
+        election_id: election.id,
+        center_id: center.id
+      }));
 
-      if (electionError) {
-        console.error('Erreur lors de la récupération de l\'élection:', electionError);
+      console.log('Liens centres à créer:', centerLinks);
+
+      const { data, error: linkError } = await supabase
+        .from('election_centers')
+        .insert(centerLinks)
+        .select();
+
+      if (linkError) {
+        console.error('Erreur lors de l\'association centres-élection:', linkError);
+        toast.error(`Erreur lors de l'association des centres: ${linkError.message}`);
         return;
       }
 
-      // Créer le centre avec la même localisation que l'élection
-      const { data, error } = await supabase
-        .from('voting_centers')
-        .insert([{
-          name: centerData.name,
-          address: centerData.address,
-          contact_name: centerData.responsable,
-          contact_phone: centerData.contact,
-          province_id: electionData.province_id,
-          department_id: electionData.department_id,
-          commune_id: electionData.commune_id,
-          arrondissement_id: electionData.arrondissement_id
-        }])
-        .select(`
-          *,
-          voting_bureaux!center_id(id, name)
-        `)
-        .single();
+      console.log('Centres liés avec succès:', data);
 
-      if (error) {
-        console.error('Erreur lors de l\'ajout du centre:', error);
-        return;
+      // Recharger les centres depuis la base de données
+      await fetchCenters();
+      
+      // Notifier le parent pour rafraîchir les données
+      if (onDataChange) {
+        onDataChange();
       }
-
-      // Transformer les données pour l'ajouter à la liste locale
-      const newCenter: Center = {
-        id: data.id.toString(),
-        name: data.name,
-        address: data.address || '',
-        responsable: data.contact_name || '',
-        contact: data.contact_phone || '',
-        bureaux: 0, // Nouveau centre, pas encore de bureaux
-        voters: 0   // Nouveau centre, pas encore d'électeurs
-      };
-
-      setCenters(prev => [...prev, newCenter]);
+      
       setShowAddCenter(false);
+      toast.success(`${centersData.length} centre${centersData.length > 1 ? 's' : ''} ajouté${centersData.length > 1 ? 's' : ''} et rattaché${centersData.length > 1 ? 's' : ''} à l'élection`);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du centre:', error);
+      console.error('Erreur lors de l\'ajout des centres:', error);
+      toast.error('Erreur lors de l\'ajout des centres');
     }
   };
 
-  const handleAddCandidate = async (candidateData: Omit<Candidate, 'id'>) => {
+  const handleAddCandidate = async (candidatesData: Candidate[]) => {
     try {
-      // D'abord créer le candidat
-      const { data: candidateResult, error: candidateError } = await supabase
-        .from('candidates')
-        .insert([{
-          name: candidateData.name,
-          party: candidateData.party,
-          photo_url: candidateData.photo,
-          is_priority: candidateData.isOurCandidate
-        }])
-        .select()
-        .single();
+      console.log('handleAddCandidate appelé avec:', candidatesData);
+      console.log('ID de l\'élection:', election.id);
+      
+      // Lier les candidats sélectionnés à l'élection
+      const candidateLinks = candidatesData.map(candidate => ({
+        election_id: election.id,
+        candidate_id: candidate.id,
+        is_our_candidate: candidate.isOurCandidate
+      }));
 
-      if (candidateError) {
-        console.error('Erreur lors de l\'ajout du candidat:', candidateError);
-        return;
-      }
+      console.log('Liens candidats à créer:', candidateLinks);
 
-      // Ensuite l'associer à l'élection
-      const { error: electionCandidateError } = await supabase
+      const { data, error: linkError } = await supabase
         .from('election_candidates')
-        .insert([{
-          election_id: election.id,
-          candidate_id: candidateResult.id
-        }]);
+        .insert(candidateLinks)
+        .select();
 
-      if (electionCandidateError) {
-        console.error('Erreur lors de l\'association candidat-élection:', electionCandidateError);
+      if (linkError) {
+        console.error('Erreur lors de l\'association candidats-élection:', linkError);
+        toast.error(`Erreur lors de l'association des candidats: ${linkError.message}`);
         return;
       }
 
-      // Ajouter le nouveau candidat à la liste locale
-      const newCandidate: Candidate = {
-        ...candidateData,
-        id: candidateResult.id.toString()
-      };
-      setCandidates([...candidates, newCandidate]);
+      console.log('Candidats liés avec succès:', data);
+
+      // Recharger les candidats depuis la base de données
+      await fetchCandidates();
+      
+      // Notifier le parent pour rafraîchir les données
+      if (onDataChange) {
+        onDataChange();
+      }
+      
       setShowAddCandidate(false);
+      toast.success(`${candidatesData.length} candidat${candidatesData.length > 1 ? 's' : ''} ajouté${candidatesData.length > 1 ? 's' : ''} et rattaché${candidatesData.length > 1 ? 's' : ''} à l'élection`);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du candidat:', error);
+      console.error('Erreur lors de l\'ajout des candidats:', error);
+      toast.error('Erreur lors de l\'ajout des candidats');
     }
   };
 
   const handleRemoveCenter = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('voting_centers')
-        .delete()
-        .eq('id', id);
+    toast.warning('Supprimer ce centre de cette élection ?', {
+      action: {
+        label: 'Supprimer',
+        onClick: async () => {
+          try {
+            // Supprimer uniquement le lien centre-élection
+            const { error } = await supabase
+              .from('election_centers')
+              .delete()
+              .eq('election_id', election.id)
+              .eq('center_id', id);
 
-      if (error) {
-        console.error('Erreur lors de la suppression du centre:', error);
-        return;
-      }
+            if (error) {
+              console.error('Erreur lors de la suppression du lien centre-élection:', error);
+              toast.error('Suppression impossible');
+              return;
+            }
 
-      setCenters(centers.filter(c => c.id !== id));
-    } catch (error) {
-      console.error('Erreur lors de la suppression du centre:', error);
-    }
+            // Recharger les centres depuis la base de données
+            await fetchCenters();
+            
+            // Notifier le parent pour rafraîchir les données
+            if (onDataChange) {
+              onDataChange();
+            }
+            
+            toast.success('Centre retiré de l\'élection');
+          } catch (err) {
+            console.error('Erreur lors de la suppression du centre:', err);
+            toast.error('Erreur lors de la suppression');
+          }
+        }
+      },
+      duration: 6000
+    });
   };
 
   const handleRemoveCandidate = async (id: string) => {
-    try {
-      // Supprimer l'association candidat-élection
-      const { error: electionCandidateError } = await supabase
-        .from('election_candidates')
-        .delete()
-        .eq('election_id', election.id)
-        .eq('candidate_id', id);
+    toast.warning('Supprimer ce candidat de cette élection ?', {
+      action: {
+        label: 'Supprimer',
+        onClick: async () => {
+          try {
+            // Supprimer l'association candidat-élection
+            const { error: electionCandidateError } = await supabase
+              .from('election_candidates')
+              .delete()
+              .eq('election_id', election.id)
+              .eq('candidate_id', id);
 
-      if (electionCandidateError) {
-        console.error('Erreur lors de la suppression de l\'association:', electionCandidateError);
-        return;
-      }
+            if (electionCandidateError) {
+              console.error('Erreur lors de la suppression de l\'association:', electionCandidateError);
+              toast.error('Suppression impossible');
+              return;
+            }
 
-      setCandidates(candidates.filter(c => c.id !== id));
-    } catch (error) {
-      console.error('Erreur lors de la suppression du candidat:', error);
-    }
+            // Recharger les candidats depuis la base de données
+            await fetchCandidates();
+            
+            // Notifier le parent pour rafraîchir les données
+            if (onDataChange) {
+              onDataChange();
+            }
+            
+            toast.success('Candidat retiré de l\'élection');
+          } catch (err) {
+            console.error('Erreur lors de la suppression du candidat:', err);
+            toast.error('Erreur lors de la suppression');
+          }
+        }
+      },
+      duration: 6000
+    });
   };
 
   if (loading) {
@@ -357,7 +362,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
       <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gov-blue mx-auto mb-4"></div>
             <p className="text-gray-600">Chargement des détails de l'élection...</p>
           </div>
         </div>
@@ -369,7 +374,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     <Layout>
       <div className="space-y-8 animate-fade-in">
         {/* Header moderne avec gradient */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6">
+        <div className="relative overflow-hidden bg-gradient-to-r from-gov-blue/5 via-gov-blue-light/5 to-purple-50 rounded-2xl p-6">
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
@@ -409,12 +414,12 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 bg-blue-500 rounded-lg">
+                    <div className="p-1.5 bg-gov-blue rounded-lg">
                       <Users className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-blue-700 uppercase tracking-wide">Électeurs</span>
+                    <span className="text-xs font-medium text-gov-blue uppercase tracking-wide">Électeurs</span>
                   </div>
-                  <div className="text-xl font-bold text-blue-900">
+                  <div className="text-xl font-bold text-gov-blue">
                     {statistics.totalVoters.toLocaleString('fr-FR')}
                   </div>
                 </div>
@@ -467,8 +472,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                 value="info" 
                 className="flex items-center space-x-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
               >
-                <div className="p-1.5 bg-blue-100 rounded-md data-[state=active]:bg-blue-500 transition-colors duration-300">
-                  <Building className="w-4 h-4 text-blue-600 data-[state=active]:text-white" />
+                <div className="p-1.5 bg-gov-blue/10 rounded-md data-[state=active]:bg-gov-blue transition-colors duration-300">
+                  <Building className="w-4 h-4 text-gov-blue data-[state=active]:text-white" />
                 </div>
                 <div className="text-left">
                   <div className="font-medium text-sm">Informations</div>
@@ -508,8 +513,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               <Card className="election-card group hover:shadow-lg transition-all duration-300">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Building className="w-5 h-5 text-blue-600" />
+                    <div className="p-2 bg-gov-blue/10 rounded-lg">
+                      <Building className="w-5 h-5 text-gov-blue" />
                     </div>
                     Informations Générales
                   </CardTitle>
@@ -552,7 +557,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Sièges à pourvoir</label>
-                    <p className="text-xl font-bold text-blue-600">{election.seatsAvailable}</p>
+                    <p className="text-xl font-bold text-gov-blue">{election.seatsAvailable}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -706,9 +711,9 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                         <div className="text-lg font-bold text-orange-600">{center.bureaux}</div>
                         <div className="text-xs text-orange-600 font-medium uppercase tracking-wide">Bureaux</div>
                       </div>
-                      <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="text-lg font-bold text-blue-600">{center.voters.toLocaleString('fr-FR')}</div>
-                        <div className="text-xs text-blue-600 font-medium uppercase tracking-wide">Électeurs</div>
+                      <div className="text-center p-3 bg-gov-blue/5 rounded-lg border border-gov-blue/20">
+                        <div className="text-lg font-bold text-gov-blue">{center.voters.toLocaleString('fr-FR')}</div>
+                        <div className="text-xs text-gov-blue font-medium uppercase tracking-wide">Électeurs</div>
                       </div>
                     </div>
 

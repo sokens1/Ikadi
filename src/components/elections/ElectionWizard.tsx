@@ -1,13 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import Select2, { Select2Option } from '@/components/ui/select2';
 import { Badge } from '@/components/ui/badge';
-import { X, ChevronLeft, ChevronRight, Star, Trash2, Edit, Search } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Star, Trash2, Edit, Search, Calendar, MapPin, Users, Building, Vote, Target, Check } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase';
+import FloatingInput from '@/components/ui/floating-input';
+import FloatingTextarea from '@/components/ui/floating-textarea';
+import FloatingSelect from '@/components/ui/floating-select';
+import FloatingCheckbox from '@/components/ui/floating-checkbox';
+import Select2, { Select2Option } from '@/components/ui/select2';
+import { ModernForm, ModernFormSection, ModernFormGrid, ModernFormActions } from '@/components/ui/modern-form';
+import MultiSelect from '@/components/ui/multi-select';
 
 interface Candidate {
   id: string;
@@ -40,20 +45,17 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     commune: '',
     arrondissement: '',
     
-    // Étape 3
-    candidates: [] as Candidate[],
+    // Étape 3 - Candidats sélectionnés
+    selectedCandidates: [] as string[],
     
-    // Étape 4
-    totalCenters: 0,
-    averageBureaux: 0,
+    // Étape 4 - Centres sélectionnés
+    selectedCenters: [] as string[],
     totalVoters: 0
   });
 
-  const [currentCandidate, setCurrentCandidate] = useState({
-    name: '',
-    party: '',
-    isOurCandidate: false
-  });
+  // États pour les données de candidats et centres
+  const [candidates, setCandidates] = useState<Array<{identifiant: string, nom: string, parti: string, est_notre_candidat: boolean}>>([]);
+  const [centers, setCenters] = useState<Array<{identifiant: string, nom: string, adresse: string, total_voters: number, total_bureaux: number}>>([]);
 
   // États pour les données de localisation
   const [provinces, setProvinces] = useState<Array<{id: string, name: string}>>([]);
@@ -127,12 +129,72 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     }
   };
 
-  // Charger toutes les données de localisation
+  // Charger les candidats (essaie les deux conventions de tables/colonnes)
+  const loadCandidates = async () => {
+    try {
+      // 1) Essai: table en anglais avec alias PostgREST → normaliser en champs FR attendus
+      const { data, error } = await supabase
+        .from('candidates')
+        .select('identifiant:id, nom:name, parti:party, est_notre_candidat:is_our_candidate')
+        .order('name');
+      if (!error) {
+        setCandidates(data || []);
+        return;
+      }
+      throw error;
+    } catch (_) {
+      try {
+        // 2) Fallback: table/français
+        const { data, error } = await supabase
+          .from('candidats')
+          .select('identifiant, nom, parti, est_notre_candidat')
+          .order('nom');
+        if (error) throw error;
+        setCandidates(data || []);
+      } catch (error) {
+        console.error('Erreur lors du chargement des candidats:', error);
+        setCandidates([]);
+      }
+    }
+  };
+
+  // Charger les centres de vote (essaie anglais puis français)
+  const loadCenters = async () => {
+    try {
+      // 1) Essai: table en anglais avec alias → normaliser en champs FR
+      const { data, error } = await supabase
+        .from('voting_centers')
+        .select('identifiant:id, nom:name, adresse:address, total_voters, total_bureaux')
+        .order('name');
+      if (!error) {
+        setCenters(data || []);
+        return;
+      }
+      throw error;
+    } catch (_) {
+      try {
+        // 2) Fallback: table/français
+        const { data, error } = await supabase
+          .from('centres_de_vote')
+          .select('identifiant, nom, adresse, total_voters, total_bureaux')
+          .order('nom');
+        if (error) throw error;
+        setCenters(data || []);
+      } catch (error) {
+        console.error('Erreur lors du chargement des centres:', error);
+        setCenters([]);
+      }
+    }
+  };
+
+  // Charger toutes les données
   useEffect(() => {
     loadProvinces();
     loadDepartments();
     loadCommunes();
     loadArrondissements();
+    loadCandidates();
+    loadCenters();
   }, []);
 
   const steps = [
@@ -155,36 +217,20 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     }
   };
 
-  const handleAddCandidate = () => {
-    if (currentCandidate.name && currentCandidate.party) {
-      const newCandidates = [...formData.candidates];
-      
-      // Si c'est notre candidat, désélectionner les autres
-      if (currentCandidate.isOurCandidate) {
-        newCandidates.forEach(c => c.isOurCandidate = false);
-      }
-      
-      const candidate: Candidate = {
-        id: Date.now().toString(),
-        name: currentCandidate.name,
-        party: currentCandidate.party,
-        isOurCandidate: currentCandidate.isOurCandidate
-      };
-      
-      setFormData({ ...formData, candidates: [...newCandidates, candidate] });
-      setCurrentCandidate({ name: '', party: '', isOurCandidate: false });
-    }
-  };
-
-  const handleRemoveCandidate = (id: string) => {
-    setFormData({
-      ...formData,
-      candidates: formData.candidates.filter(c => c.id !== id)
-    });
-  };
 
   const handleSubmit = () => {
     if (onSubmit) {
+      const selectedCandidatesData = formData.selectedCandidates.map(id => 
+        candidates.find(c => c.identifiant === id)
+      ).filter(Boolean);
+
+      const selectedCentersData = formData.selectedCenters.map(id => 
+        centers.find(c => c.identifiant === id)
+      ).filter(Boolean);
+
+      const totalBureaux = selectedCentersData.reduce((sum, center) => sum + (center.total_bureaux || 0), 0);
+      const totalElecteurs = selectedCentersData.reduce((sum, center) => sum + (center.total_voters || 0), 0);
+
       const election = {
         name: formData.name,
         type: formData.type,
@@ -196,10 +242,11 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         department: formData.department,
         commune: formData.commune,
         arrondissement: formData.arrondissement,
-        candidates: formData.candidates,
-        totalCenters: formData.totalCenters,
-        averageBureaux: formData.averageBureaux,
-        totalVoters: formData.totalVoters
+        candidates: selectedCandidatesData,
+        centers: selectedCentersData,
+        totalCenters: selectedCentersData.length,
+        totalBureaux: totalBureaux,
+        totalVoters: totalElecteurs || formData.totalVoters
       };
       
       onSubmit(election);
@@ -238,14 +285,10 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         console.log('Étape 3 - Peut continuer: true (optionnel)');
         break;
       case 4:
-        // Vérifie que les nombres sont strictement positifs
-        canProceedResult = formData.totalCenters > 0 && 
-                         formData.averageBureaux > 0 && 
-                         formData.totalVoters > 0;
+        // Vérifie qu'au moins un centre est sélectionné
+        canProceedResult = formData.selectedCenters.length > 0;
         console.log('Étape 4 - Peut continuer:', canProceedResult, {
-          totalCenters: formData.totalCenters,
-          averageBureaux: formData.averageBureaux,
-          totalVoters: formData.totalVoters
+          selectedCenters: formData.selectedCenters.length
         });
         break;
       case 5:
@@ -266,353 +309,510 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Nom de l'élection</Label>
-              <Input
-                id="name"
+          <ModernFormSection
+            title="Informations Générales"
+            description="Définissez les paramètres de base de votre élection"
+            icon={<Vote className="w-5 h-5" />}
+          >
+            <ModernFormGrid cols={2}>
+              <FloatingInput
+                label="Nom de l'élection"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Ex: Législatives 2023 - Siège unique Moanda"
+                icon={<Building className="w-4 h-4" />}
+                required
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="type">Type d'élection</Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner le type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Législatives">Législatives</SelectItem>
-                  <SelectItem value="Locales">Locales (Départementales / Municipales)</SelectItem>
-                  <SelectItem value="Présidentielle">Présidentielle</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="date">Date du scrutin</Label>
-              <Input
-                id="date"
+              
+              <FloatingSelect
+                label="Type d'élection"
+                value={formData.type}
+                onChange={(value) => setFormData({ ...formData, type: value })}
+                options={[
+                  { value: "Législatives", label: "Législatives" },
+                  { value: "Locales", label: "Locales (Départementales / Municipales)" },
+                  { value: "Présidentielle", label: "Présidentielle" }
+                ]}
+                icon={<Vote className="w-4 h-4" />}
+                required
+              />
+            </ModernFormGrid>
+
+            <ModernFormGrid cols={2}>
+              <FloatingInput
+                label="Date du scrutin"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                icon={<Calendar className="w-4 h-4" />}
+                required
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="seats">Siège(s) à pourvoir</Label>
-              <Input
-                id="seats"
+              
+              <FloatingInput
+                label="Siège(s) à pourvoir"
                 type="number"
                 value={formData.seatsAvailable}
                 onChange={(e) => setFormData({ ...formData, seatsAvailable: parseInt(e.target.value) || 1 })}
                 min="1"
+                icon={<Target className="w-4 h-4" />}
+                required
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="budget">Budget alloué à la campagne (FCFA)</Label>
-              <Input
-                id="budget"
+            </ModernFormGrid>
+
+            <ModernFormGrid cols={2}>
+              <FloatingInput
+                label="Budget alloué à la campagne (FCFA)"
                 type="number"
                 value={formData.budget}
                 onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })}
                 placeholder="0"
+                icon={<Building className="w-4 h-4" />}
+                // helperText="Montant en francs CFA"
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="goal">Objectif de voix</Label>
-              <Input
-                id="goal"
+              
+              <FloatingInput
+                label="Objectif de voix"
                 type="number"
                 value={formData.voteGoal}
                 onChange={(e) => setFormData({ ...formData, voteGoal: parseInt(e.target.value) || 0 })}
                 placeholder="0"
+                icon={<Users className="w-4 h-4" />}
+                // helperText="Nombre de voix visées"
               />
-            </div>
-          </div>
+            </ModernFormGrid>
+          </ModernFormSection>
         );
         
       case 2:
         return (
-          <div className="space-y-4">
-            <Select2
-              label="Province"
-              placeholder="Rechercher une province..."
-              options={provinces.map(p => ({ value: p.id, label: p.name }))}
-              value={provinces.find(p => p.id === selectedProvinceId) ? 
-                { value: selectedProvinceId, label: provinces.find(p => p.id === selectedProvinceId)?.name || '' } : null}
-              onChange={(selectedOption) => {
-                if (selectedOption) {
-                  setSelectedProvinceId(selectedOption.value);
-                  setFormData({ ...formData, province: selectedOption.label });
-                } else {
-                  setSelectedProvinceId('');
-                  setFormData({ ...formData, province: '' });
-                }
-              }}
-            />
-            
-            <Select2
-              label="Département"
-              placeholder="Rechercher un département..."
-              options={departments.map(d => ({ value: d.id, label: d.name }))}
-              value={departments.find(d => d.id === selectedDepartmentId) ? 
-                { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
-              onChange={(selectedOption) => {
-                if (selectedOption) {
-                  setSelectedDepartmentId(selectedOption.value);
-                  setFormData({ ...formData, department: selectedOption.label });
-                } else {
-                  setSelectedDepartmentId('');
-                  setFormData({ ...formData, department: '' });
-                }
-              }}
-            />
-            
-            <Select2
-              label="Commune / Canton / District"
-              placeholder="Rechercher une commune..."
-              options={communes.map(c => ({ value: c.id, label: c.name }))}
-              value={communes.find(c => c.id === selectedCommuneId) ? 
-                { value: selectedCommuneId, label: communes.find(c => c.id === selectedCommuneId)?.name || '' } : null}
-              onChange={(selectedOption) => {
-                if (selectedOption) {
-                  setSelectedCommuneId(selectedOption.value);
-                  setFormData({ ...formData, commune: selectedOption.label });
-                } else {
-                  setSelectedCommuneId('');
-                  setFormData({ ...formData, commune: '' });
-                }
-              }}
-            />
-            
-            <Select2
-              label="Arrondissement / Siège"
-              placeholder="Rechercher un arrondissement..."
-              options={arrondissements.map(a => ({ value: a.id, label: a.name }))}
-              value={arrondissements.find(a => a.id === selectedArrondissementId) ? 
-                { value: selectedArrondissementId, label: arrondissements.find(a => a.id === selectedArrondissementId)?.name || '' } : null}
-              onChange={(selectedOption) => {
-                if (selectedOption) {
-                  setSelectedArrondissementId(selectedOption.value);
-                  setFormData({ ...formData, arrondissement: selectedOption.label });
-                } else {
-                  setSelectedArrondissementId('');
-                  setFormData({ ...formData, arrondissement: '' });
-                }
-              }}
-            />
-          </div>
+          <ModernFormSection
+            title="Circonscription Électorale"
+            description="Définissez la zone géographique de votre élection"
+            icon={<MapPin className="w-5 h-5" />}
+          >
+            <ModernFormGrid cols={2}>
+              <Select2
+                label="Province"
+                placeholder="Rechercher une province..."
+                options={provinces.map(p => ({ value: p.id, label: p.name }))}
+                value={provinces.find(p => p.id === selectedProvinceId) ? 
+                  { value: selectedProvinceId, label: provinces.find(p => p.id === selectedProvinceId)?.name || '' } : null}
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setSelectedProvinceId(selectedOption.value);
+                    setFormData({ ...formData, province: selectedOption.label });
+                  } else {
+                    setSelectedProvinceId('');
+                    setFormData({ ...formData, province: '' });
+                  }
+                }}
+              />
+              
+              <Select2
+                label="Département"
+                placeholder="Rechercher un département..."
+                options={departments.map(d => ({ value: d.id, label: d.name }))}
+                value={departments.find(d => d.id === selectedDepartmentId) ? 
+                  { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setSelectedDepartmentId(selectedOption.value);
+                    setFormData({ ...formData, department: selectedOption.label });
+                  } else {
+                    setSelectedDepartmentId('');
+                    setFormData({ ...formData, department: '' });
+                  }
+                }}
+              />
+            </ModernFormGrid>
+
+            <ModernFormGrid cols={2}>
+              <Select2
+                label="Commune / Canton / District"
+                placeholder="Rechercher une commune..."
+                options={communes.map(c => ({ value: c.id, label: c.name }))}
+                value={communes.find(c => c.id === selectedCommuneId) ? 
+                  { value: selectedCommuneId, label: communes.find(c => c.id === selectedCommuneId)?.name || '' } : null}
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setSelectedCommuneId(selectedOption.value);
+                    setFormData({ ...formData, commune: selectedOption.label });
+                  } else {
+                    setSelectedCommuneId('');
+                    setFormData({ ...formData, commune: '' });
+                  }
+                }}
+              />
+              
+              <Select2
+                label="Arrondissement / Siège"
+                placeholder="Rechercher un arrondissement..."
+                options={arrondissements.map(a => ({ value: a.id, label: a.name }))}
+                value={arrondissements.find(a => a.id === selectedArrondissementId) ? 
+                  { value: selectedArrondissementId, label: arrondissements.find(a => a.id === selectedArrondissementId)?.name || '' } : null}
+                onChange={(selectedOption) => {
+                  if (selectedOption) {
+                    setSelectedArrondissementId(selectedOption.value);
+                    setFormData({ ...formData, arrondissement: selectedOption.label });
+                  } else {
+                    setSelectedArrondissementId('');
+                    setFormData({ ...formData, arrondissement: '' });
+                  }
+                }}
+              />
+            </ModernFormGrid>
+          </ModernFormSection>
         );
         
-      case 3:
+      case 3: {
+        const candidatesOptions = candidates.map(candidate => ({
+          value: candidate.identifiant,
+          label: candidate.nom,
+          subtitle: candidate.parti,
+          metadata: { est_notre_candidat: candidate.est_notre_candidat }
+        }));
+
         return (
-          <div className="space-y-6">
-            <div className="border rounded-lg p-4 bg-gray-50">
-              <h4 className="font-semibold mb-4">Ajouter un candidat</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="candidateName">Nom et Prénom(s)</Label>
-                  <Input
-                    id="candidateName"
-                    value={currentCandidate.name}
-                    onChange={(e) => setCurrentCandidate({ ...currentCandidate, name: e.target.value })}
-                    placeholder="Nom complet du candidat"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="candidateParty">Parti politique / Appartenance</Label>
-                  <Input
-                    id="candidateParty"
-                    value={currentCandidate.party}
-                    onChange={(e) => setCurrentCandidate({ ...currentCandidate, party: e.target.value })}
-                    placeholder="Nom du parti"
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-4 flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="ourCandidate"
-                  checked={currentCandidate.isOurCandidate}
-                  onChange={(e) => setCurrentCandidate({ ...currentCandidate, isOurCandidate: e.target.checked })}
-                />
-                <Label htmlFor="ourCandidate">C'est notre candidat</Label>
-              </div>
-              
-              <Button 
-                onClick={handleAddCandidate} 
-                className="mt-4"
-                disabled={!currentCandidate.name || !currentCandidate.party}
-              >
-                + Ajouter ce candidat
-              </Button>
+          <ModernFormSection
+            title="Sélection des Candidats"
+            description="Choisissez les candidats qui participeront à cette élection"
+            icon={<Users className="w-5 h-5" />}
+          >
+            <MultiSelect
+              options={candidatesOptions}
+              selected={formData.selectedCandidates}
+              onSelectionChange={(selected) => setFormData({...formData, selectedCandidates: selected})}
+              placeholder="Rechercher et sélectionner des candidats..."
+              title="Candidats"
+              icon={<Users className="w-5 h-5 text-gov-blue" />}
+              emptyMessage="Aucun candidat sélectionné"
+              renderOption={(option) => (
+                <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-gov-blue/10 rounded-full flex items-center justify-center">
+                    <Users className="w-5 h-5 text-gov-blue" />
             </div>
-            
-            {formData.candidates.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-4">Candidats ajoutés ({formData.candidates.length})</h4>
-                <div className="space-y-2">
-                  {formData.candidates.map((candidate) => (
-                    <div key={candidate.id} className="flex items-center justify-between p-3 border rounded-lg bg-white">
-                      <div className="flex items-center space-x-3">
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">{candidate.name}</span>
-                            {candidate.isOurCandidate && (
-                              <Badge className="bg-gov-blue text-white">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{option.label}</p>
+                    <p className="text-sm text-gray-600">{option.subtitle}</p>
+                    {option.metadata?.est_notre_candidat && (
+                      <Badge className="bg-gov-blue text-white px-2 py-1 text-xs mt-1">
                                 <Star className="w-3 h-3 mr-1" />
                                 Notre Candidat
                               </Badge>
                             )}
                           </div>
-                          <span className="text-sm text-gray-600">{candidate.party}</span>
+                  <Checkbox
+                    checked={formData.selectedCandidates.includes(option.value)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        if (!formData.selectedCandidates.includes(option.value)) {
+                          setFormData({
+                            ...formData,
+                            selectedCandidates: [...formData.selectedCandidates, option.value]
+                          });
+                        }
+                      } else {
+                        setFormData({
+                          ...formData,
+                          selectedCandidates: formData.selectedCandidates.filter(id => id !== option.value)
+                        });
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            />
+          </ModernFormSection>
+        );
+      }
+        
+      case 4: {
+        const centersOptions = centers.map(center => ({
+          value: center.identifiant,
+          label: center.nom,
+          subtitle: center.adresse,
+          metadata: { 
+            total_voters: center.total_voters, 
+            total_bureaux: center.total_bureaux 
+          }
+        }));
+
+        const selectedCentersData = formData.selectedCenters.map(id => 
+          centers.find(c => c.identifiant === id)
+        ).filter(Boolean);
+
+        const totalBureaux = selectedCentersData.reduce((sum, center) => sum + (center.total_bureaux || 0), 0);
+        const totalElecteurs = selectedCentersData.reduce((sum, center) => sum + (center.total_voters || 0), 0);
+
+        return (
+          <div className="space-y-6">
+            <ModernFormSection
+              title="Sélection des Centres de Vote"
+              description="Choisissez les centres de vote pour cette élection"
+              icon={<Building className="w-5 h-5" />}
+            >
+              <MultiSelect
+                options={centersOptions}
+                selected={formData.selectedCenters}
+                onSelectionChange={(selected) => setFormData({...formData, selectedCenters: selected})}
+                placeholder="Rechercher et sélectionner des centres..."
+                title="Centres de Vote"
+                icon={<Building className="w-5 h-5 text-green-600" />}
+                emptyMessage="Aucun centre sélectionné"
+                renderOption={(option) => (
+                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Building className="w-5 h-5 text-green-600" />
                         </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{option.label}</p>
+                      <p className="text-sm text-gray-600">{option.subtitle}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {option.metadata?.total_bureaux || 0} bureaux
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {option.metadata?.total_voters || 0} électeurs
+                        </Badge>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveCandidate(candidate.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
-                  ))}
+                    <Checkbox
+                      checked={formData.selectedCenters.includes(option.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          if (!formData.selectedCenters.includes(option.value)) {
+                            setFormData({
+                              ...formData,
+                              selectedCenters: [...formData.selectedCenters, option.value]
+                            });
+                          }
+                        } else {
+                          setFormData({
+                            ...formData,
+                            selectedCenters: formData.selectedCenters.filter(id => id !== option.value)
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              />
+            </ModernFormSection>
+
+            {/* Récapitulatif automatique */}
+            {selectedCentersData.length > 0 && (
+              <div className="bg-gradient-to-r from-gov-blue/5 to-green-50 rounded-xl border border-gov-blue/20 p-6">
+                <h5 className="font-semibold text-gov-blue mb-4 flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Récapitulatif Automatique
+                </h5>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-white rounded-lg">
+                    <div className="text-2xl font-bold text-gov-blue">{selectedCentersData.length}</div>
+                    <div className="text-sm text-gov-blue">Centres</div>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{totalBureaux}</div>
+                    <div className="text-sm text-green-600">Bureaux</div>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">{totalElecteurs.toLocaleString('fr-FR')}</div>
+                    <div className="text-sm text-purple-600">Électeurs</div>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {totalBureaux > 0 ? Math.round(totalElecteurs / totalBureaux) : 0}
+                    </div>
+                    <div className="text-sm text-orange-600">Électeurs/bureau</div>
+                  </div>
                 </div>
               </div>
             )}
-          </div>
-        );
-        
-      case 4:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="totalCenters">Nombre total de Centres de Vote prévus</Label>
-              <Input
-                id="totalCenters"
-                type="number"
-                value={formData.totalCenters}
-                onChange={(e) => setFormData({ ...formData, totalCenters: parseInt(e.target.value) || 0 })}
-                placeholder="Ex: 12"
-                min="1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="averageBureaux">Nombre moyen de Bureaux de Vote par Centre</Label>
-              <Input
-                id="averageBureaux"
-                type="number"
-                value={formData.averageBureaux}
-                onChange={(e) => setFormData({ ...formData, averageBureaux: parseInt(e.target.value) || 0 })}
-                placeholder="Ex: 4"
-                min="1"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Ce chiffre est une estimation. Le détail pourra être ajusté plus tard.
-              </p>
-            </div>
-            
-            <div>
-              <Label htmlFor="totalVoters">Nombre total d'Électeurs inscrits (estimation)</Label>
-              <Input
-                id="totalVoters"
+
+            {/* Champ manuel pour les électeurs si nécessaire */}
+            <ModernFormGrid cols={1}>
+              <FloatingInput
+                label="Nombre total d'Électeurs inscrits (estimation manuelle)"
                 type="number"
                 value={formData.totalVoters}
                 onChange={(e) => setFormData({ ...formData, totalVoters: parseInt(e.target.value) || 0 })}
                 placeholder="Ex: 15240"
                 min="1"
+                icon={<Users className="w-4 h-4" />}
+                helperText="Optionnel : Saisie manuelle si différente de l'estimation automatique"
               />
-            </div>
-            
-            {formData.totalCenters > 0 && formData.averageBureaux > 0 && (
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-2">Estimation automatique</h4>
-                <p className="text-blue-800">
-                  Total estimé de bureaux de vote : <strong>{formData.totalCenters * formData.averageBureaux}</strong>
-                </p>
-              </div>
-            )}
+            </ModernFormGrid>
           </div>
         );
+      }
         
-      case 5:
-        const ourCandidate = formData.candidates.find(c => c.isOurCandidate);
+      case 5: {
+        const selectedCandidatesData = formData.selectedCandidates.map(id => 
+          candidates.find(c => c.identifiant === id)
+        ).filter(Boolean);
+
+        const selectedCentersData = formData.selectedCenters.map(id => 
+          centers.find(c => c.identifiant === id)
+        ).filter(Boolean);
+
+        const totalBureaux = selectedCentersData.reduce((sum, center) => sum + (center.total_bureaux || 0), 0);
+        const totalElecteurs = selectedCentersData.reduce((sum, center) => sum + (center.total_voters || 0), 0);
+
         return (
           <div className="space-y-6">
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h4 className="font-semibold text-lg mb-4">Récapitulatif de l'élection</h4>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <div>
-                    <span className="font-medium">Nom :</span>
-                    <p className="text-gray-700">{formData.name}</p>
+            <ModernFormSection
+              title="Récapitulatif de l'élection"
+              description="Vérifiez les informations avant de créer l'élection"
+              icon={<Check className="w-5 h-5" />}
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="p-4 bg-gov-blue/5 rounded-xl border border-gov-blue/20">
+                    <h5 className="font-semibold text-gov-blue mb-3 flex items-center gap-2">
+                      <Building className="w-4 h-4" />
+                      Informations Générales
+                    </h5>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-gov-blue">Nom :</span>
+                        <span className="text-sm text-gov-blue">{formData.name}</span>
                   </div>
-                  
-                  <div>
-                    <span className="font-medium">Type :</span>
-                    <p className="text-gray-700">{formData.type}</p>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-gov-blue">Type :</span>
+                        <span className="text-sm text-gov-blue">{formData.type}</span>
                   </div>
-                  
-                  <div>
-                    <span className="font-medium">Date :</span>
-                    <p className="text-gray-700">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-gov-blue">Date :</span>
+                        <span className="text-sm text-gov-blue">
                       {formData.date ? new Date(formData.date).toLocaleDateString('fr-FR', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
                       }) : 'Non définie'}
-                    </p>
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div>
-                    <span className="font-medium">Circonscription :</span>
-                    <p className="text-gray-700">
+                  <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                    <h5 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Circonscription
+                    </h5>
+                    <div className="text-sm text-green-900">
                       {formData.province} {formData.department ? `→ ${formData.department}` : ''} {formData.commune ? `→ ${formData.commune}` : ''} {formData.arrondissement ? `→ ${formData.arrondissement}` : ''}
-                    </p>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="space-y-3">
-                  <div>
-                    <span className="font-medium">Candidats :</span>
-                    <p className="text-gray-700">
-                      {formData.candidates.length} {ourCandidate && `(dont ${ourCandidate.name})`}
-                    </p>
+                <div className="space-y-6">
+                  <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
+                    <h5 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Candidats & Structure
+                    </h5>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-purple-700">Candidats :</span>
+                        <span className="text-sm text-purple-900">{selectedCandidatesData.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-purple-700">Centres :</span>
+                        <span className="text-sm text-purple-900">{selectedCentersData.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-purple-700">Bureaux :</span>
+                        <span className="text-sm text-purple-900">{totalBureaux}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-purple-700">Électeurs :</span>
+                        <span className="text-sm text-purple-900">{(totalElecteurs || formData.totalVoters).toLocaleString('fr-FR')}</span>
                   </div>
-                  
-                  <div>
-                    <span className="font-medium">Structure :</span>
-                    <p className="text-gray-700">
-                      {formData.totalCenters} centres de vote, ~{formData.totalCenters * formData.averageBureaux} bureaux de vote
-                    </p>
                   </div>
-                  
-                  <div>
-                    <span className="font-medium">Électeurs :</span>
-                    <p className="text-gray-700">~{formData.totalVoters.toLocaleString('fr-FR')} électeurs</p>
                   </div>
                   
                   {formData.budget > 0 && (
-                    <div>
-                      <span className="font-medium">Budget :</span>
-                      <p className="text-gray-700">{formData.budget.toLocaleString('fr-FR')} FCFA</p>
+                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
+                      <h5 className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
+                        <Target className="w-4 h-4" />
+                        Budget & Objectifs
+                      </h5>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium text-orange-700">Budget :</span>
+                          <span className="text-sm text-orange-900">{formData.budget.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                        {formData.voteGoal > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium text-orange-700">Objectif voix :</span>
+                            <span className="text-sm text-orange-900">{formData.voteGoal.toLocaleString('fr-FR')}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Détail des candidats sélectionnés */}
+              {selectedCandidatesData.length > 0 && (
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <h5 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Candidats Sélectionnés
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {selectedCandidatesData.map(candidate => (
+                      <div key={candidate.identifiant} className="flex items-center justify-between p-2 bg-white rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-gov-blue rounded-full flex items-center justify-center">
+                            <Users className="w-3 h-3 text-white" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">{candidate.nom}</span>
+                          {candidate.est_notre_candidat && (
+                            <Badge className="bg-gov-blue text-white px-2 py-1 text-xs">
+                              <Star className="w-3 h-3 mr-1" />
+                              Notre Candidat
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">{candidate.parti}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Détail des centres sélectionnés */}
+              {selectedCentersData.length > 0 && (
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <h5 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Building className="w-4 h-4" />
+                    Centres de Vote Sélectionnés
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {selectedCentersData.map(center => (
+                      <div key={center.identifiant} className="flex items-center justify-between p-2 bg-white rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <Building className="w-3 h-3 text-white" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">{center.nom}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className="text-xs">{center.total_bureaux} bureaux</Badge>
+                          <Badge variant="outline" className="text-xs">{center.total_voters} électeurs</Badge>
+                        </div>
+                      </div>
+                    ))}
+              </div>
             </div>
+              )}
+            </ModernFormSection>
           </div>
         );
+      }
         
       default:
         return null;
@@ -620,36 +820,45 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
+        {/* Header moderne */}
+        <div className="relative bg-gradient-to-r from-gov-blue to-gov-blue-light p-6 text-white">
+          <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
+          <div className="relative flex items-center justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gov-gray">Configurer une nouvelle élection</h2>
-            <p className="text-sm sm:text-base text-gray-600">Étape {currentStep} sur 5 : {steps[currentStep - 1]}</p>
+              <h2 className="text-2xl font-bold">Configurer une nouvelle élection</h2>
+              <p className="text-gov-blue-light/80 mt-1">Étape {currentStep} sur 5 : {steps[currentStep - 1]}</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              onClick={onClose} 
+              className="text-white hover:bg-white/20 rounded-xl p-2"
+            >
+              <X className="w-6 h-6" />
+            </Button>
           </div>
-          <Button variant="ghost" onClick={onClose} className="flex-shrink-0">
-            <X className="w-5 h-5 sm:w-6 sm:h-6" />
-          </Button>
         </div>
 
-        {/* Progress */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50">
+        {/* Progress moderne */}
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between overflow-x-auto">
             {steps.map((step, index) => (
               <div key={index} className="flex items-center flex-shrink-0">
-                <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
-                  index + 1 <= currentStep ? 'bg-gov-blue text-white' : 'bg-gray-200 text-gray-600'
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                  index + 1 <= currentStep 
+                    ? 'bg-gov-blue text-white shadow-lg' 
+                    : 'bg-gray-200 text-gray-600'
                 }`}>
                   {index + 1}
                 </div>
-                <span className={`ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:inline ${
-                  index + 1 <= currentStep ? 'text-gov-blue font-medium' : 'text-gray-500'
+                <span className={`ml-3 text-sm font-medium hidden sm:inline transition-colors duration-300 ${
+                  index + 1 <= currentStep ? 'text-gov-blue' : 'text-gray-500'
                 }`}>
                   {step}
                 </span>
                 {index < steps.length - 1 && (
-                  <div className={`w-4 sm:w-8 h-0.5 mx-2 sm:mx-4 ${
+                  <div className={`w-12 h-1 mx-4 rounded-full transition-all duration-300 ${
                     index + 1 < currentStep ? 'bg-gov-blue' : 'bg-gray-200'
                   }`} />
                 )}
@@ -658,55 +867,51 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
           </div>
         </div>
 
-        {/* Content with fixed height and scroll */}
-        <div className="p-4 sm:p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
-          <div className="min-h-[50vh]">
+        {/* Content avec scroll */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <ModernForm>
             {renderStep()}
-          </div>
+          </ModernForm>
         </div>
 
-        {/* Footer - Toujours visible en bas */}
-        <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
+        {/* Footer moderne */}
+        <div className="bg-gray-50 border-t border-gray-200 p-6">
+          <div className="flex items-center justify-between">
           <Button
             variant="outline"
             onClick={handlePrevious}
             disabled={currentStep === 1}
-            className="flex items-center"
+              className="flex items-center px-6 py-3 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300"
           >
-            <ChevronLeft className="w-4 h-4 mr-1 sm:mr-2" />
+              <ChevronLeft className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Précédent</span>
             <span className="sm:hidden">Préc.</span>
           </Button>
           
-          <div className="flex space-x-2">
-            {/* Bouton Suivant toujours visible */}
+            <div className="flex space-x-3">
             {currentStep < 5 && (
               <Button
                 onClick={handleNext}
-                disabled={false} // Désactiver temporairement la validation
-                className="flex items-center gov-bg-primary hover:bg-gov-blue-dark"
-                style={{ backgroundColor: '#1d4ed8' }} // Couleur bleue explicite
-                data-testid="next-button"
+                  disabled={!canProceed()}
+                  className="flex items-center px-8 py-3 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="hidden sm:inline">Suivant</span>
                 <span className="sm:hidden">Suiv.</span>
-                <ChevronRight className="w-4 h-4 ml-1 sm:ml-2" />
+                  <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             )}
             
-            {/* Bouton Créer pour la dernière étape */}
             {currentStep === 5 && (
               <Button
                 onClick={handleSubmit}
-                className="gov-bg-primary hover:bg-gov-blue-dark"
-                style={{ backgroundColor: '#1d4ed8' }} // Couleur bleue explicite
+                  className="flex items-center px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
               >
+                  <Check className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Créer l'élection</span>
                 <span className="sm:hidden">Créer</span>
               </Button>
             )}
-            
-
+            </div>
           </div>
         </div>
       </div>

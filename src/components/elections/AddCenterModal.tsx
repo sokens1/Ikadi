@@ -1,11 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { X } from 'lucide-react';
+import { X, Building } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ModernForm, ModernFormSection, ModernFormActions } from '@/components/ui/modern-form';
+import MultiSelect from '@/components/ui/multi-select';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface Center {
+  id: string;
   name: string;
   address: string;
   responsable: string;
@@ -16,118 +21,125 @@ interface Center {
 
 interface AddCenterModalProps {
   onClose: () => void;
-  onSubmit: (center: Center) => void;
+  onSubmit: (centers: Center[]) => void;
 }
 
 const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) => {
-  const [formData, setFormData] = useState<Center>({
-    name: '',
-    address: '',
-    responsable: '',
-    contact: '',
-    bureaux: 1,
-    voters: 0
-  });
+  const [selectedCenters, setSelectedCenters] = useState<string[]>([]);
+  const [centers, setCenters] = useState<Array<{id: string, name: string, address: string, total_voters: number, total_bureaux: number}>>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Charger les centres disponibles
+  useEffect(() => {
+    const loadCenters = async () => {
+      try {
+        setLoading(true);
+        // Essayer d'abord avec 'voting_centers', puis avec 'centres_de_vote' si ça échoue
+        let { data, error } = await supabase
+          .from('voting_centers')
+          .select('id, name, address, total_voters, total_bureaux')
+          .order('name');
+
+        if (error && (error.code === 'PGRST116' || error.code === 'PGRST205')) {
+          // Table 'voting_centers' n'existe pas, essayer 'centres_de_vote'
+          const result = await supabase
+            .from('centres_de_vote')
+            .select('id, nom, adresse, total_voters, total_bureaux')
+            .order('nom');
+          data = result.data;
+          error = result.error;
+        }
+
+        if (error) {
+          console.error('Erreur lors du chargement des centres:', error);
+          toast.error('Erreur lors du chargement des centres');
+          return;
+        }
+
+        // Transformer les données selon le format de la table
+        const transformedCenters = (data || []).map((center: any) => ({
+          id: center.id,
+          name: center.name || center.nom || '',
+          address: center.address || center.adresse || '',
+          totalVoters: center.total_voters || 0,
+          totalBureaux: center.total_bureaux || 0
+        }));
+
+        setCenters(transformedCenters);
+      } catch (error) {
+        console.error('Erreur lors du chargement des centres:', error);
+        toast.error('Erreur lors du chargement des centres');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCenters();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.address && formData.bureaux > 0) {
-      onSubmit(formData);
+    if (selectedCenters.length > 0) {
+      const centersToAdd = centers
+        .filter(c => selectedCenters.includes(c.id))
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          address: c.address,
+          responsable: '',
+          contact: '',
+          bureaux: c.total_bureaux || 0,
+          voters: c.total_voters || 0
+        }));
+      onSubmit(centersToAdd);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gov-gray">Ajouter un Centre de Vote</h2>
-          <Button variant="ghost" onClick={onClose}>
-            <X className="w-6 h-6" />
-          </Button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <Label htmlFor="name">Nom du centre *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Ex: EPP de l'Alliance"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="address">Adresse *</Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Ex: Quartier Alliance, Moanda"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="responsable">Responsable du centre</Label>
-              <Input
-                id="responsable"
-                value={formData.responsable}
-                onChange={(e) => setFormData({ ...formData, responsable: e.target.value })}
-                placeholder="Nom du responsable"
-              />
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Building className="w-5 h-5 text-green-600" />
             </div>
-
             <div>
-              <Label htmlFor="contact">Contact</Label>
-              <Input
-                id="contact"
-                value={formData.contact}
-                onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                placeholder="+241 XX XX XX XX"
-              />
+              <div className="text-xl font-bold text-gray-900">Sélection des Centres de Vote</div>
+              <div className="text-sm text-gray-600">Choisissez les centres de vote pour cette élection</div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="bureaux">Nombre de bureaux de vote *</Label>
-              <Input
-                id="bureaux"
-                type="number"
-                value={formData.bureaux}
-                onChange={(e) => setFormData({ ...formData, bureaux: parseInt(e.target.value) || 1 })}
-                min="1"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="voters">Nombre d'électeurs</Label>
-              <Input
-                id="voters"
-                type="number"
-                value={formData.voters}
-                onChange={(e) => setFormData({ ...formData, voters: parseInt(e.target.value) || 0 })}
-                min="0"
-                placeholder="Estimation"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Annuler
+          </DialogTitle>
+          <DialogDescription>
+            <Button variant="ghost" onClick={onClose} className="absolute right-4 top-4" type="button">
+              <X className="w-5 h-5" />
             </Button>
-            <Button type="submit" className="gov-bg-primary hover:bg-gov-blue-dark">
-              Ajouter le centre
-            </Button>
-          </div>
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="pt-2">
+          <ModernForm>
+            <ModernFormSection title="Centres de Vote">
+              <MultiSelect
+                options={(centers || []).map(c => ({
+                  value: c.id,
+                  label: c.name,
+                  subtitle: c.address
+                }))}
+                selected={selectedCenters}
+                onSelectionChange={setSelectedCenters}
+                placeholder="Sélectionnez des centres..."
+              />
+            </ModernFormSection>
+
+            <ModernFormActions>
+              <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+              <Button type="submit" className="btn-primary" disabled={selectedCenters.length === 0}>
+                Ajouter {selectedCenters.length} centre{selectedCenters.length > 1 ? 's' : ''}
+              </Button>
+            </ModernFormActions>
+          </ModernForm>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
