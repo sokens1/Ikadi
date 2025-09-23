@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import { useElectionState } from '@/hooks/useElectionState';
@@ -63,85 +63,58 @@ const ElectionManagementUnified = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Charger les élections depuis Supabase
-  useEffect(() => {
-    const fetchElections = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('elections')
-          .select(`
-            *,
-            provinces(name),
-            departments(name),
-            communes(name),
-            arrondissements(name)
-          `)
-          .order('election_date', { ascending: false });
+  // Fonction utilitaire pour rafraîchir les données des élections
+  const refreshElectionsData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('elections')
+        .select(`
+          *,
+          provinces(name),
+          departments(name),
+          communes(name),
+          arrondissements(name)
+        `)
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Erreur lors du chargement des élections:', error);
-          setError('Erreur lors du chargement des élections');
-          return;
-        }
+      if (error) {
+        console.error('Erreur lors du chargement des élections:', error);
+        setError(error.message);
+        return;
+      }
 
-        // Récupérer les comptes de candidats et centres pour chaque élection
-        const electionsWithCounts = await Promise.all(
-          data?.map(async (election) => {
-            const [candidatesResult, centersResult] = await Promise.all([
-              supabase
-                .from('election_candidates')
-                .select('id')
-                .eq('election_id', election.id),
-              supabase
-                .from('election_centers')
-                .select('id')
-                .eq('election_id', election.id)
-            ]);
+      // Récupérer les compteurs de candidats et centres pour chaque élection
+      const electionsWithCounts = await Promise.all(
+        (data || []).map(async (election) => {
+          // Compter les candidats
+          const { data: candidatesData } = await supabase
+            .from('election_candidates')
+            .select('id')
+            .eq('election_id', election.id);
 
-            console.log(`Élection ${election.id}:`, {
-              candidates: candidatesResult.data?.length || 0,
-              centers: centersResult.data?.length || 0,
-              candidatesError: candidatesResult.error,
-              centersError: centersResult.error
-            });
+          // Compter les centres
+          const { data: centersData } = await supabase
+            .from('election_centers')
+            .select('id')
+            .eq('election_id', election.id);
 
-            return {
-              ...election,
-              candidates_count: candidatesResult.data?.length || 0,
-              centers_count: centersResult.data?.length || 0
-            };
-          }) || []
-        );
-
-        // Transformer les données Supabase en format Election unifié
-        const transformedElections: Election[] = electionsWithCounts.map(election => {
-          console.log('Données brutes de l\'élection:', election);
-          console.log('Données de localisation:', {
-            // Champs directs
-            province: election.province,
-            department: election.department,
-            commune: election.commune,
-            arrondissement: election.arrondissement,
-            localisation: election.localisation,
-            // Relations
-            provinces: election.provinces,
-            departments: election.departments,
-            communes: election.communes,
-            arrondissements: election.arrondissements,
-            // IDs de relations
-            province_id: election.province_id,
-            department_id: election.department_id,
-            commune_id: election.commune_id,
-            arrondissement_id: election.arrondissement_id
-          });
-          
           return {
+            ...election,
+            candidates_count: candidatesData?.length || 0,
+            centers_count: centersData?.length || 0
+          };
+        })
+      );
+
+      // Transformer les données Supabase en format Election unifié
+      const transformedElections: Election[] = electionsWithCounts.map(election => {
+        return {
           id: String(election.id),
           title: election.title,
-          type: election.election_type || 'Législatives',
+          type: election.election_type || election.type || 'Législatives',
           status: election.status || 'À venir',
-          date: new Date(election.election_date),
+          date: new Date(election.election_date || election.created_at),
           description: election.description || '',
           location: {
             province: election.provinces?.name || election.province || '',
@@ -154,8 +127,8 @@ const ElectionManagementUnified = () => {
           },
           configuration: {
             seatsAvailable: election.seats_available || 1,
-            budget: election.budget ,
-            voteGoal: election.vote_goal ,
+            budget: election.budget || 0,
+            voteGoal: election.vote_goal || 0,
             allowMultipleCandidates: true,
             requirePhotoValidation: false,
           },
@@ -171,27 +144,30 @@ const ElectionManagementUnified = () => {
           timeline: {
             created: new Date(election.created_at),
             configured: election.status === 'À venir' ? new Date(election.created_at) : null,
-            started: election.status === 'En cours' ? new Date(election.election_date) : null,
-            ended: election.status === 'Terminée' ? new Date(election.election_date) : null,
+            started: election.status === 'En cours' ? new Date(election.election_date || election.created_at) : null,
+            ended: election.status === 'Terminée' ? new Date(election.election_date || election.created_at) : null,
             published: null,
           },
           createdAt: new Date(election.created_at),
           updatedAt: new Date(election.updated_at),
           createdBy: election.created_by || 'system',
         };
-        }) || [];
+      });
 
-        setElections(transformedElections);
-      } catch (error) {
-        console.error('Erreur lors du chargement des élections:', error);
-        setError('Erreur lors du chargement des élections');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchElections();
+      setElections(transformedElections);
+    } catch (err) {
+      console.error('Erreur lors du rafraîchissement:', err);
+      setError('Erreur lors du rafraîchissement des données');
+    } finally {
+      setLoading(false);
+    }
   }, [setLoading, setError, setElections]);
+
+  // Charger les élections depuis Supabase
+  useEffect(() => {
+    refreshElectionsData();
+  }, [refreshElectionsData]);
+
 
   // Mettre à jour les filtres dans le hook
   useEffect(() => {
@@ -351,14 +327,9 @@ const ElectionManagementUnified = () => {
         }
       }
 
-      // Mettre à jour l'élection dans l'état local
-      const updatedElection: Election = {
-        ...editingElection,
-        ...updatedData,
-        updatedAt: new Date(),
-      };
-
-      updateElection(updatedElection);
+      // Recharger les données depuis la base de données
+      await refreshElectionsData();
+      
       setShowEditModal(false);
       setEditingElection(null);
       toast.success('Élection modifiée avec succès');
@@ -582,7 +553,9 @@ const ElectionManagementUnified = () => {
         createdBy: 'current-user', // À remplacer par l'ID de l'utilisateur connecté
       };
 
-      addElection(newElection);
+      // Recharger les données depuis la base de données
+      await refreshElectionsData();
+      
       setShowWizard(false);
       toast.success('Élection créée avec succès');
     } catch (error) {
@@ -624,61 +597,7 @@ const ElectionManagementUnified = () => {
       <ElectionDetailView 
         election={adaptedElection as any} 
         onBack={handleCloseDetail}
-        onDataChange={() => {
-          // Rafraîchir les données après modification
-          const refreshElections = async () => {
-            try {
-              setLoading(true);
-              const { data, error } = await supabase
-                .from('elections')
-                .select(`
-                  *,
-                  provinces(name),
-                  departments(name),
-                  communes(name),
-                  arrondissements(name)
-                `)
-                .order('created_at', { ascending: false });
-
-              if (error) {
-                console.error('Erreur lors du chargement des élections:', error);
-                setError(error.message);
-                return;
-              }
-
-              // Récupérer les compteurs de candidats et centres pour chaque élection
-              const electionsWithCounts = await Promise.all(
-                (data || []).map(async (election) => {
-                  // Compter les candidats
-                  const { data: candidatesData } = await supabase
-                    .from('election_candidates')
-                    .select('id')
-                    .eq('election_id', election.id);
-
-                  // Compter les centres
-                  const { data: centersData } = await supabase
-                    .from('election_centers')
-                    .select('id')
-                    .eq('election_id', election.id);
-
-                  return {
-                    ...election,
-                    candidates_count: candidatesData?.length || 0,
-                    centers_count: centersData?.length || 0
-                  };
-                })
-              );
-
-              setElections(electionsWithCounts);
-            } catch (err) {
-              console.error('Erreur lors du rafraîchissement:', err);
-              setError('Erreur lors du rafraîchissement des données');
-            } finally {
-              setLoading(false);
-            }
-          };
-          refreshElections();
-        }}
+        onDataChange={refreshElectionsData}
       />
     );
   }
@@ -1001,12 +920,12 @@ const ElectionManagementUnified = () => {
                             <Calendar className="h-4 w-4 text-gov-blue" />
                           </div>
                           <span className="font-medium">
-                            {election.date.toLocaleDateString('fr-FR', {
+                            {election.date ? election.date.toLocaleDateString('fr-FR', {
                               weekday: 'long',
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric'
-                            })}
+                            }) : 'Date non définie'}
                           </span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
@@ -1114,7 +1033,7 @@ const ElectionManagementUnified = () => {
                     </Badge>
                     <div className="flex items-center text-gray-600 body-small mt-2">
                       <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>{election.date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      <span>{election.date ? election.date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date non définie'}</span>
                     </div>
                     <div className="flex items-center text-gray-600 body-small mt-1">
                       <MapPin className="h-4 w-4 mr-2 text-gray-500" />
