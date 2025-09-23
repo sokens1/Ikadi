@@ -18,6 +18,7 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import AddCenterModal from './AddCenterModal';
 import AddCandidateModal from './AddCandidateModal';
 import CenterDetailModal from './CenterDetailModal';
@@ -192,142 +193,121 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     }
   };
 
-  const handleAddCenter = async (centerData: Omit<Center, 'id'>) => {
+  const handleAddCenter = async (centersData: Center[]) => {
     try {
-      // Récupérer la localisation de l'élection courante
-      const { data: electionData, error: electionError } = await supabase
-        .from('elections')
-        .select('province_id, department_id, commune_id, arrondissement_id')
-        .eq('id', election.id)
-        .single();
+      // Lier les centres sélectionnés à l'élection
+      const centerLinks = centersData.map(center => ({
+        election_id: election.id,
+        center_id: center.id
+      }));
 
-      if (electionError) {
-        console.error('Erreur lors de la récupération de l\'élection:', electionError);
+      const { error: linkError } = await supabase
+        .from('election_centers')
+        .insert(centerLinks);
+
+      if (linkError) {
+        console.error('Erreur lors de l\'association centres-élection:', linkError);
+        toast.error('Association des centres à l\'élection refusée');
         return;
       }
 
-      // Créer le centre avec la même localisation que l'élection
-      const { data, error } = await supabase
-        .from('voting_centers')
-        .insert([{
-          name: centerData.name,
-          address: centerData.address,
-          contact_name: centerData.responsable,
-          contact_phone: centerData.contact,
-          province_id: electionData.province_id,
-          department_id: electionData.department_id,
-          commune_id: electionData.commune_id,
-          arrondissement_id: electionData.arrondissement_id
-        }])
-        .select(`
-          *,
-          voting_bureaux!center_id(id, name)
-        `)
-        .single();
-
-      if (error) {
-        console.error('Erreur lors de l\'ajout du centre:', error);
-        return;
-      }
-
-      // Transformer les données pour l'ajouter à la liste locale
-      const newCenter: Center = {
-        id: data.id.toString(),
-        name: data.name,
-        address: data.address || '',
-        responsable: data.contact_name || '',
-        contact: data.contact_phone || '',
-        bureaux: 0, // Nouveau centre, pas encore de bureaux
-        voters: 0   // Nouveau centre, pas encore d'électeurs
-      };
-
-      setCenters(prev => [...prev, newCenter]);
+      // Ajouter les centres à la liste locale
+      setCenters(prev => [...prev, ...centersData]);
       setShowAddCenter(false);
+      toast.success(`${centersData.length} centre${centersData.length > 1 ? 's' : ''} ajouté${centersData.length > 1 ? 's' : ''} et rattaché${centersData.length > 1 ? 's' : ''} à l'élection`);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du centre:', error);
+      console.error('Erreur lors de l\'ajout des centres:', error);
     }
   };
 
-  const handleAddCandidate = async (candidateData: Omit<Candidate, 'id'>) => {
+  const handleAddCandidate = async (candidatesData: Candidate[]) => {
     try {
-      // D'abord créer le candidat
-      const { data: candidateResult, error: candidateError } = await supabase
-        .from('candidates')
-        .insert([{
-          name: candidateData.name,
-          party: candidateData.party,
-          photo_url: candidateData.photo,
-          is_priority: candidateData.isOurCandidate
-        }])
-        .select()
-        .single();
+      // Lier les candidats sélectionnés à l'élection
+      const candidateLinks = candidatesData.map(candidate => ({
+        election_id: election.id,
+        candidate_id: candidate.id,
+        is_our_candidate: candidate.isOurCandidate
+      }));
 
-      if (candidateError) {
-        console.error('Erreur lors de l\'ajout du candidat:', candidateError);
-        return;
-      }
-
-      // Ensuite l'associer à l'élection
-      const { error: electionCandidateError } = await supabase
+      const { error: linkError } = await supabase
         .from('election_candidates')
-        .insert([{
-          election_id: election.id,
-          candidate_id: candidateResult.id
-        }]);
+        .insert(candidateLinks);
 
-      if (electionCandidateError) {
-        console.error('Erreur lors de l\'association candidat-élection:', electionCandidateError);
+      if (linkError) {
+        console.error('Erreur lors de l\'association candidats-élection:', linkError);
+        toast.error('Association des candidats à l\'élection refusée');
         return;
       }
 
-      // Ajouter le nouveau candidat à la liste locale
-      const newCandidate: Candidate = {
-        ...candidateData,
-        id: candidateResult.id.toString()
-      };
-      setCandidates([...candidates, newCandidate]);
+      // Ajouter les candidats à la liste locale
+      setCandidates(prev => [...prev, ...candidatesData]);
       setShowAddCandidate(false);
+      toast.success(`${candidatesData.length} candidat${candidatesData.length > 1 ? 's' : ''} ajouté${candidatesData.length > 1 ? 's' : ''} et rattaché${candidatesData.length > 1 ? 's' : ''} à l'élection`);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du candidat:', error);
+      console.error('Erreur lors de l\'ajout des candidats:', error);
     }
   };
 
   const handleRemoveCenter = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('voting_centers')
-        .delete()
-        .eq('id', id);
+    toast.warning('Supprimer ce centre de cette élection ?', {
+      action: {
+        label: 'Supprimer',
+        onClick: async () => {
+          try {
+            // Supprimer uniquement le lien centre-élection
+            const { error } = await supabase
+              .from('election_centers')
+              .delete()
+              .eq('election_id', election.id)
+              .eq('center_id', id);
 
-      if (error) {
-        console.error('Erreur lors de la suppression du centre:', error);
-        return;
-      }
+            if (error) {
+              console.error('Erreur lors de la suppression du lien centre-élection:', error);
+              toast.error('Suppression impossible');
+              return;
+            }
 
-      setCenters(centers.filter(c => c.id !== id));
-    } catch (error) {
-      console.error('Erreur lors de la suppression du centre:', error);
-    }
+            setCenters(prev => prev.filter(c => c.id !== id));
+            toast.success('Centre retiré de l\'élection');
+          } catch (err) {
+            console.error('Erreur lors de la suppression du centre:', err);
+            toast.error('Erreur lors de la suppression');
+          }
+        }
+      },
+      duration: 6000
+    });
   };
 
   const handleRemoveCandidate = async (id: string) => {
-    try {
-      // Supprimer l'association candidat-élection
-      const { error: electionCandidateError } = await supabase
-        .from('election_candidates')
-        .delete()
-        .eq('election_id', election.id)
-        .eq('candidate_id', id);
+    toast.warning('Supprimer ce candidat de cette élection ?', {
+      action: {
+        label: 'Supprimer',
+        onClick: async () => {
+          try {
+            // Supprimer l'association candidat-élection
+            const { error: electionCandidateError } = await supabase
+              .from('election_candidates')
+              .delete()
+              .eq('election_id', election.id)
+              .eq('candidate_id', id);
 
-      if (electionCandidateError) {
-        console.error('Erreur lors de la suppression de l\'association:', electionCandidateError);
-        return;
-      }
+            if (electionCandidateError) {
+              console.error('Erreur lors de la suppression de l\'association:', electionCandidateError);
+              toast.error('Suppression impossible');
+              return;
+            }
 
-      setCandidates(candidates.filter(c => c.id !== id));
-    } catch (error) {
-      console.error('Erreur lors de la suppression du candidat:', error);
-    }
+            setCandidates(prev => prev.filter(c => c.id !== id));
+            toast.success('Candidat retiré de l\'élection');
+          } catch (err) {
+            console.error('Erreur lors de la suppression du candidat:', err);
+            toast.error('Erreur lors de la suppression');
+          }
+        }
+      },
+      duration: 6000
+    });
   };
 
   if (loading) {

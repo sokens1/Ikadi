@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,8 +16,8 @@ export interface MultiSelectOption {
 }
 
 interface MultiSelectProps {
-  options: MultiSelectOption[];
-  selected: string[];
+  options?: MultiSelectOption[];
+  selected?: string[];
   onSelectionChange: (selected: string[]) => void;
   placeholder?: string;
   searchable?: boolean;
@@ -30,8 +31,8 @@ interface MultiSelectProps {
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
-  options,
-  selected,
+  options = [],
+  selected = [],
   onSelectionChange,
   placeholder = "Sélectionner des éléments...",
   searchable = true,
@@ -47,6 +48,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   
   const filteredOptions = useMemo(() => {
+    if (!options || !Array.isArray(options)) return [];
     if (!searchable || !searchQuery) return options;
     return options.filter(option => 
       option.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -55,6 +57,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   }, [options, searchQuery]);
 
   const selectedOptions = useMemo(() => {
+    if (!selected || !Array.isArray(selected) || !options || !Array.isArray(options)) return [];
     return selected.map(value => options.find(opt => opt.value === value)).filter(Boolean) as MultiSelectOption[];
   }, [selected, options]);
 
