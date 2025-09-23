@@ -64,11 +64,12 @@ const PublicHomePage = () => {
       setLoading(true);
       setError(null);
 
-      // Récupérer la prochaine élection ou l'élection en cours
+      // Récupérer l'élection publiée la plus récente (ou en cours)
       const { data: elections, error: electionsError } = await supabase
         .from('elections')
         .select('*')
-        .order('election_date', { ascending: true })
+        .eq('is_published', true)
+        .order('election_date', { ascending: false })
         .limit(1);
 
       if (electionsError) throw electionsError;

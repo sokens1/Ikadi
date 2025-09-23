@@ -11,9 +11,9 @@ import Dashboard from "./pages/Dashboard";
 import ElectionManagement from "./pages/ElectionManagement";
 import UserManagement from "./pages/UserManagement";
 import Results from "./pages/Results";
-// import CampaignManagement from "./pages/CampaignManagement"; // Désactivé temporairement
+import CampaignManagement from "./pages/CampaignManagement";
 import OperationDetail from "./pages/OperationDetail";
-// import Conversations from "./pages/Conversations"; // Désactivé temporairement
+import Conversations from "./pages/Conversations";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import VotingCenters from "./pages/VotingCenters";
@@ -42,12 +42,12 @@ const App = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/elections" element={<ElectionManagement />} />
                 <Route path="/centers" element={<VotingCenters />} />
+                <Route path="/voters" element={<Voters />} />
                 <Route path="/users" element={<UserManagement />} />
                 <Route path="/results" element={<Results />} />
-                {/* <Route path="/campaign" element={<CampaignManagement />} /> */}
-                {/* <Route path="/campaign/operation/:id" element={<OperationDetail />} /> */}
-                {/* <Route path="/conversations" element={<Conversations />} /> */}
-                <Route path="/voters" element={<Voters />} />
+                <Route path="/campaign" element={<CampaignManagement />} />
+                <Route path="/campaign/operation/:id" element={<OperationDetail />} />
+                <Route path="/conversations" element={<Conversations />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

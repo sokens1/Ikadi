@@ -32,3 +32,7 @@ WHERE tc.constraint_type = 'FOREIGN KEY'
 -- 4. Vérifier les données existantes
 SELECT COUNT(*) as total_bureaux FROM voting_bureaux;
 SELECT * FROM voting_bureaux LIMIT 5;
+
+
+
+

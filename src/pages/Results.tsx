@@ -19,7 +19,7 @@ import {
   Upload
 } from 'lucide-react';
 import DataEntrySection from '@/components/results/DataEntrySection';
-import ValidationSection from '@/components/results/ValidationSection';
+import PVValidationSection from '@/components/results/PVValidationSection';
 import PublishSection from '@/components/results/PublishSection';
 
 const Results = () => {
@@ -107,16 +107,35 @@ const Results = () => {
         const tauxSaisie = totalBureaux > 0 ? Math.round((pvsSaisis / totalBureaux) * 100) : 0;
 
         // Récupérer les résultats des candidats
-        const { data: resultsData, error: resultsError } = await supabase
-          .from('candidate_results')
-          .select('votes_received, candidate_id, candidates(name)')
-          .eq('election_id', selectedElection)
-          .order('votes_received', { ascending: false });
+        // Récupérer les candidats de l'élection d'abord
+        const { data: electionCandidates, error: candidatesError } = await supabase
+          .from('election_candidates')
+          .select('candidate_id')
+          .eq('election_id', selectedElection);
 
-        if (resultsError) {
-          console.error('Erreur lors du chargement des résultats:', resultsError);
+        if (candidatesError) {
+          console.error('Erreur lors du chargement des candidats:', candidatesError);
           return;
         }
+
+        const candidateIds = electionCandidates?.map(ec => ec.candidate_id) || [];
+        
+        let resultsData = [];
+        if (candidateIds.length > 0) {
+          const { data: results, error: resultsError } = await supabase
+            .from('candidate_results')
+            .select('votes_received, candidate_id, candidates(name)')
+            .in('candidate_id', candidateIds)
+            .order('votes_received', { ascending: false });
+          
+          if (resultsError) {
+            console.error('Erreur lors du chargement des résultats:', resultsError);
+            return;
+          }
+          
+          resultsData = results || [];
+        }
+
 
         const sortedResults = resultsData || [];
         const voixNotreCanidat = sortedResults[0]?.votes_received || 0;
@@ -226,11 +245,11 @@ const Results = () => {
                 </TabsContent>
 
                 <TabsContent value="validation" className="space-y-6 mt-0">
-                  <ValidationSection pendingCount={globalStats.pvsEnAttente} />
+                  <PVValidationSection />
                 </TabsContent>
 
                 <TabsContent value="publish" className="space-y-6 mt-0">
-                  <PublishSection />
+                  <PublishSection selectedElection={selectedElection} />
                 </TabsContent>
               </div>
             </Tabs>

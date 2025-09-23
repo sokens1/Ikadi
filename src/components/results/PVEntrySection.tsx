@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,15 +19,27 @@ import {
   Upload,
   FileText,
   Calculator,
-  ArrowLeft
+  ArrowLeft,
+  Calendar,
+  Users
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface PVEntrySectionProps {
   onClose: () => void;
+  selectedElection: string;
 }
 
-const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
+const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElection }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [electionInfo, setElectionInfo] = useState<any>(null);
+  const [candidatesData, setCandidatesData] = useState<any[]>([]);
+  const [votingCenters, setVotingCenters] = useState<any[]>([]);
+  const [votingBureaux, setVotingBureaux] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [formData, setFormData] = useState({
     province: '',
     ville: '',
@@ -41,30 +53,125 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // Mock data
-  const hierarchyData = {
-    provinces: ['Estuaire', 'Ogooué-Maritime', 'Haut-Ogooué'],
-    villes: {
-      'Estuaire': ['Libreville', 'Owendo', 'Akanda'],
-      'Ogooué-Maritime': ['Port-Gentil', 'Omboué'],
-      'Haut-Ogooué': ['Franceville', 'Moanda']
-    },
-    centres: {
-      'Libreville': ['Centre Libreville Nord', 'Centre Libreville Sud'],
-      'Owendo': ['Centre Owendo Principal'],
-      'Port-Gentil': ['Centre Port-Gentil Centre', 'Centre Port-Gentil Est']
-    },
-    bureaux: {
-      'Centre Libreville Nord': ['Bureau 001', 'Bureau 002', 'Bureau 003'],
-      'Centre Owendo Principal': ['Bureau 001', 'Bureau 002', 'Bureau 003', 'Bureau 004']
-    }
-  };
+  // Charger les centres et bureaux de vote depuis Supabase
+  useEffect(() => {
+    const loadVotingCenters = async () => {
+      if (!selectedElection) return;
+      
+      try {
+        // D'abord récupérer les détails de l'élection pour avoir sa localisation
+        const { data: electionData, error: electionError } = await supabase
+          .from('elections')
+          .select('province_id, department_id, commune_id, arrondissement_id')
+          .eq('id', selectedElection)
+          .single();
 
-  const candidatesData = [
-    { id: 'C001', name: 'ALLOGHO-OBIANG Marie', party: 'Parti Démocratique Gabonais' },
-    { id: 'C002', name: 'NDONG Jean-Baptiste', party: 'Union Nationale' },
-    { id: 'C003', name: 'OVONO-EBANG Claire', party: 'Rassemblement pour la Patrie' }
-  ];
+        if (electionError) {
+          console.error('Erreur lors du chargement de l\'élection:', electionError);
+          return;
+        }
+
+        // Construire la requête basée sur la localisation de l'élection
+        let centersQuery = supabase
+          .from('voting_centers')
+          .select(`
+            id, name,
+            voting_bureaux(id, name)
+          `);
+
+        // Filtrer par localisation si disponible
+        if (electionData.arrondissement_id) {
+          centersQuery = centersQuery.eq('arrondissement_id', electionData.arrondissement_id);
+        } else if (electionData.commune_id) {
+          centersQuery = centersQuery.eq('commune_id', electionData.commune_id);
+        } else if (electionData.department_id) {
+          centersQuery = centersQuery.eq('department_id', electionData.department_id);
+        } else if (electionData.province_id) {
+          centersQuery = centersQuery.eq('province_id', electionData.province_id);
+        }
+
+        const { data: centers, error: centersError } = await centersQuery;
+        
+        if (centersError) {
+          console.error('Erreur lors du chargement des centres:', centersError);
+          return;
+        }
+        
+        setVotingCenters(centers || []);
+        
+        // Charger tous les bureaux des centres trouvés
+        const centerIds = centers?.map(c => c.id) || [];
+        if (centerIds.length > 0) {
+          const { data: bureaux, error: bureauxError } = await supabase
+            .from('voting_bureaux')
+            .select('id, name, center_id')
+            .in('center_id', centerIds);
+          
+          if (bureauxError) {
+            console.error('Erreur lors du chargement des bureaux:', bureauxError);
+            return;
+          }
+          
+          setVotingBureaux(bureaux || []);
+        } else {
+          setVotingBureaux([]);
+        }
+        
+      } catch (error) {
+        console.error('Erreur lors du chargement des centres/bureaux:', error);
+        setVotingCenters([]);
+        setVotingBureaux([]);
+      }
+    };
+    
+    loadVotingCenters();
+  }, [selectedElection]);
+
+  // Charger les informations de l'élection et ses candidats
+  useEffect(() => {
+    const loadElectionData = async () => {
+      if (!selectedElection) return;
+      
+      try {
+        setLoading(true);
+        
+        // Récupérer les infos de l'élection
+        const { data: election, error: electionError } = await supabase
+          .from('elections')
+          .select('*')
+          .eq('id', selectedElection)
+          .single();
+        
+        if (electionError) throw electionError;
+        setElectionInfo(election);
+        
+        // Récupérer les candidats de l'élection
+        const { data: candidates, error: candidatesError } = await supabase
+          .from('election_candidates')
+          .select(`
+            candidates!candidate_id(id, name, party)
+          `)
+          .eq('election_id', selectedElection);
+        
+        if (candidatesError) throw candidatesError;
+        
+        const mappedCandidates = (candidates || []).map((item: any) => ({
+          id: item.candidates.id,
+          name: item.candidates.name,
+          party: item.candidates.party || 'Indépendant'
+        }));
+        
+        setCandidatesData(mappedCandidates);
+        
+      } catch (error) {
+        console.error('Erreur lors du chargement des données de l\'élection:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadElectionData();
+  }, [selectedElection]);
 
   // Validation en temps réel
   const validateParticipation = () => {
@@ -72,7 +179,7 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
     const votants = parseInt(formData.votants) || 0;
     const nuls = parseInt(formData.bulletinsNuls) || 0;
     const exprimes = parseInt(formData.suffragesExprimes) || 0;
-    const inscrits = 500; // Mock data - should come from bureau info
+    const inscrits = 0; // TODO: Récupérer depuis les données du bureau sélectionné
 
     if (votants > inscrits) {
       errors.votants = `Le nombre de votants (${votants}) ne peut pas dépasser le nombre d'inscrits (${inscrits})`;
@@ -123,6 +230,103 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
     }
   };
 
+  const ensureBucketExists = async (bucket: string) => {
+    // Supabase Storage n'a pas d'API REST directe listant les buckets via client JS v2,
+    // on tente createBucket (idempotent côté serveur si même nom), sinon on ignore si déjà existant.
+    try {
+      // @ts-ignore: createBucket disponible sur supabase.storage via admin policies si autorisé
+      await supabase.storage.createBucket(bucket, { public: true });
+    } catch (err: any) {
+      // Si existe déjà, on continue
+      if (!(`${err?.message || ''}`.toLowerCase().includes('already exists'))) {
+        // On ignore l'erreur, l'upload échouera s'il n'existe vraiment pas
+      }
+    }
+  };
+
+  const uploadPVFile = async (file: File, electionId: string, centerId: string, bureauId: string) => {
+    const bucket = 'pv-uploads';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
+    const relPath = `${electionId}/${centerId || 'center'}/${bureauId || 'bureau'}/${timestamp}_${safeName}`;
+
+    // Première tentative
+    let { data: uploadData, error: uploadErr } = await supabase.storage
+      .from(bucket)
+      .upload(relPath, file, { cacheControl: '3600', upsert: false });
+
+    // Si bucket introuvable, tenter de le créer puis réessayer
+    if (uploadErr && (`${uploadErr?.message || ''}`.toLowerCase().includes('bucket not found') || `${uploadErr?.error || ''}`.toLowerCase().includes('bucket'))) {
+      await ensureBucketExists(bucket);
+      ({ data: uploadData, error: uploadErr } = await supabase.storage
+        .from(bucket)
+        .upload(relPath, file, { cacheControl: '3600', upsert: false }));
+    }
+
+    if (uploadErr) throw uploadErr;
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(uploadData!.path);
+    return publicUrlData.publicUrl;
+  };
+
+  const handleSubmitPV = async () => {
+    if (!canSubmit() || !selectedElection) return;
+    try {
+      setSubmitting(true);
+      const bureauId = formData.bureau;
+      const centerId = formData.centre;
+
+      let pvPhotoUrl: string | null = null;
+      if (formData.uploadedFile) {
+        try {
+          pvPhotoUrl = await uploadPVFile(formData.uploadedFile, selectedElection, centerId, bureauId);
+        } catch (uploadErr: any) {
+          console.error('Upload PV échoué:', uploadErr);
+          toast.warning(`Upload du PV échoué: ${uploadErr?.message || 'erreur inconnue'}. Enregistrement sans fichier.`);
+        }
+      }
+
+      const total_voters = parseInt(formData.votants) || 0;
+      const null_votes = parseInt(formData.bulletinsNuls) || 0;
+      const votes_expressed = parseInt(formData.suffragesExprimes) || 0;
+
+      const { data: pv, error: pvErr } = await supabase
+        .from('procès_verbaux')
+        .insert({
+          election_id: selectedElection,
+          bureau_id: bureauId,
+          total_registered: 0,
+          total_voters,
+          null_votes,
+          votes_expressed,
+          status: 'entered',
+          entered_at: new Date().toISOString(),
+          pv_photo_url: pvPhotoUrl
+        })
+        .select()
+        .single();
+      if (pvErr) throw pvErr;
+
+      const candidateEntries = Object.entries(formData.candidateVotes)
+        .map(([candidateId, votes]) => ({
+          pv_id: pv.id,
+          candidate_id: candidateId,
+          votes: parseInt(votes) || 0
+        }));
+      if (candidateEntries.length > 0) {
+        const { error: crErr } = await supabase.from('candidate_results').insert(candidateEntries);
+        if (crErr) throw crErr;
+      }
+
+      toast.success('PV enregistré avec succès.');
+      onClose();
+    } catch (err) {
+      console.error('Erreur soumission PV:', err);
+      toast.error('Échec enregistrement PV');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const canSubmit = () => {
     const step2Valid = Object.keys(validateParticipation()).length === 0;
     const step3Valid = Object.keys(validateCandidateVotes()).length === 0;
@@ -142,91 +346,90 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Identification du Bureau de Vote</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="province">Province</Label>
-                <Select value={formData.province} onValueChange={(value) => setFormData({ ...formData, province: value, ville: '', centre: '', bureau: '' })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une province" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {hierarchyData.provinces.map((province) => (
-                      <SelectItem key={province} value={province}>{province}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Chargement des centres de vote...</p>
+                </div>
               </div>
-
-              <div>
-                <Label htmlFor="ville">Ville</Label>
-                <Select 
-                  value={formData.ville} 
-                  onValueChange={(value) => setFormData({ ...formData, ville: value, centre: '', bureau: '' })}
-                  disabled={!formData.province}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une ville" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formData.province && hierarchyData.villes[formData.province as keyof typeof hierarchyData.villes]?.map((ville) => (
-                      <SelectItem key={ville} value={ville}>{ville}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            ) : votingCenters.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-12 h-12 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <span className="text-yellow-600 text-xl">⚠️</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Aucun centre de vote trouvé
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Aucun centre de vote n'est configuré pour cette élection dans la zone géographique correspondante.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Veuillez d'abord configurer les centres de vote dans la section "Gestion des Élections".
+                </p>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="centre">Centre de Vote</Label>
+                  <Select 
+                    value={formData.centre} 
+                    onValueChange={(value) => setFormData({ ...formData, centre: value, bureau: '' })}
+                    disabled={loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un centre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {votingCenters.map((center) => (
+                        <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <Label htmlFor="centre">Centre de Vote</Label>
-                <Select 
-                  value={formData.centre} 
-                  onValueChange={(value) => setFormData({ ...formData, centre: value, bureau: '' })}
-                  disabled={!formData.ville}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un centre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formData.ville && hierarchyData.centres[formData.ville as keyof typeof hierarchyData.centres]?.map((centre) => (
-                      <SelectItem key={centre} value={centre}>{centre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="bureau">Bureau de Vote</Label>
-                <Select 
-                  value={formData.bureau} 
-                  onValueChange={(value) => setFormData({ ...formData, bureau: value })}
-                  disabled={!formData.centre}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un bureau" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formData.centre && hierarchyData.bureaux[formData.centre as keyof typeof hierarchyData.bureaux]?.map((bureau) => (
-                      <SelectItem key={bureau} value={bureau}>{bureau}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {formData.bureau && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">Information du Bureau</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-blue-700">Électeurs inscrits:</span>
-                    <span className="font-semibold ml-2">500</span>
-                  </div>
-                  <div>
-                    <span className="text-blue-700">Président:</span>
-                    <span className="font-semibold ml-2">ONDONG Michel</span>
-                  </div>
+                <div>
+                  <Label htmlFor="bureau">Bureau de Vote</Label>
+                  <Select 
+                    value={formData.bureau} 
+                    onValueChange={(value) => setFormData({ ...formData, bureau: value })}
+                    disabled={!formData.centre || loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un bureau" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.centre && votingBureaux
+                        .filter(bureau => bureau.center_id === formData.centre)
+                        .map((bureau) => (
+                          <SelectItem key={bureau.id} value={bureau.id}>{bureau.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
+
+            {formData.bureau && (() => {
+              const selectedBureau = votingBureaux.find(b => b.id === formData.bureau);
+              const selectedCenter = votingCenters.find(c => c.id === formData.centre);
+              
+              return (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Information du Bureau</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-blue-700">Centre:</span>
+                      <span className="font-semibold ml-2">{selectedCenter?.name || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-blue-700">Bureau:</span>
+                      <span className="font-semibold ml-2">{selectedBureau?.name || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         );
 
@@ -308,27 +511,39 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Saisie des Résultats par Candidat</h3>
             
             <div className="space-y-4">
-              {candidatesData.map((candidate) => (
-                <div key={candidate.id} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{candidate.name}</h4>
-                      <p className="text-sm text-gray-600">{candidate.party}</p>
-                    </div>
-                    <div className="w-32">
-                      <Input
-                        type="number"
-                        placeholder="Voix"
-                        value={formData.candidateVotes[candidate.id] || ''}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          candidateVotes: { ...formData.candidateVotes, [candidate.id]: e.target.value }
-                        })}
-                      />
+              {loading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-600">Chargement des candidats...</p>
+                </div>
+              ) : candidatesData.length > 0 ? (
+                candidatesData.map((candidate) => (
+                  <div key={candidate.id} className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{candidate.name}</h4>
+                        <p className="text-sm text-gray-600">{candidate.party}</p>
+                      </div>
+                      <div className="w-32">
+                        <Input
+                          type="number"
+                          placeholder="Voix"
+                          value={formData.candidateVotes[candidate.id] || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            candidateVotes: { ...formData.candidateVotes, [candidate.id]: e.target.value }
+                          })}
+                        />
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  <Users className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p>Aucun candidat trouvé pour cette élection</p>
                 </div>
-              ))}
+              )}
             </div>
 
             {validationErrors.candidateTotal && (
@@ -370,17 +585,19 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
               <p className="text-sm text-gray-600 mb-4">Formats acceptés: PDF, JPG, PNG (max. 10MB)</p>
               
               <input
+                ref={fileInputRef}
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
                 onChange={handleFileUpload}
                 className="hidden"
-                id="file-upload"
               />
-              <label htmlFor="file-upload">
-                <Button variant="outline" className="cursor-pointer">
-                  Choisir un fichier
-                </Button>
-              </label>
+              <Button
+                variant="outline"
+                className="cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Choisir un fichier
+              </Button>
               
               {formData.uploadedFile && (
                 <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -435,12 +652,16 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Résultats par Candidat</h4>
                     <div className="space-y-2">
-                      {candidatesData.map((candidate) => (
-                        <div key={candidate.id} className="flex justify-between text-sm">
-                          <span>{candidate.name}</span>
-                          <span className="font-semibold">{formData.candidateVotes[candidate.id] || 0} voix</span>
-                        </div>
-                      ))}
+                      {candidatesData.length > 0 ? (
+                        candidatesData.map((candidate) => (
+                          <div key={candidate.id} className="flex justify-between text-sm">
+                            <span>{candidate.name}</span>
+                            <span className="font-semibold">{formData.candidateVotes[candidate.id] || 0} voix</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">Aucun candidat chargé</p>
+                      )}
                     </div>
                   </div>
                   
@@ -481,6 +702,44 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
         </Button>
         <h2 className="text-xl font-bold text-gray-900">Assistant de Saisie PV</h2>
       </div>
+
+      {/* Informations de l'élection */}
+      {electionInfo && (
+        <Card className="gov-card border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{electionInfo.title}</h3>
+                  <div className="flex items-center space-x-4 mt-1">
+                    <div className="flex items-center space-x-1 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4" />
+                      <span>{new Date(electionInfo.election_date).toLocaleDateString('fr-FR', { 
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}</span>
+                    </div>
+                    <Badge variant={electionInfo.status === 'En cours' ? 'default' : 'secondary'}>
+                      {electionInfo.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="flex items-center space-x-1 text-sm text-gray-600">
+                  <Users className="w-4 h-4" />
+                  <span>{candidatesData.length} candidats</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Type: {electionInfo.type || 'Élection'}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Progress bar */}
       <Card className="gov-card">
@@ -527,15 +786,12 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose }) => {
               </Button>
             ) : (
               <Button 
-                onClick={() => {
-                  // Handle form submission
-                  onClose();
-                }}
-                disabled={!canSubmit()}
+                onClick={handleSubmitPV}
+                disabled={!canSubmit() || submitting}
                 className="bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Soumettre le PV
+                {submitting ? 'Soumission...' : 'Soumettre le PV'}
               </Button>
             )}
           </div>

@@ -33,3 +33,7 @@ FROM
       AND ccu.table_schema = tc.table_schema
 WHERE tc.constraint_type = 'FOREIGN KEY' 
   AND tc.table_name = 'voters';
+
+
+
+

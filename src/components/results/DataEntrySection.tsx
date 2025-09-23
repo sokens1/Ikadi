@@ -45,7 +45,21 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
     const fetchVotingCenters = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        
+        // D'abord récupérer les détails de l'élection pour avoir sa localisation
+        const { data: electionData, error: electionError } = await supabase
+          .from('elections')
+          .select('province_id, department_id, commune_id, arrondissement_id')
+          .eq('id', selectedElection)
+          .single();
+
+        if (electionError) {
+          console.error('Erreur lors du chargement de l\'élection:', electionError);
+          return;
+        }
+
+        // Construire la requête basée sur la localisation de l'élection
+        let centersQuery = supabase
           .from('voting_centers')
           .select(`
             *,
@@ -60,9 +74,20 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
                 anomalies
               )
             )
-          `)
-          .eq('election_id', selectedElection)
-          .order('name', { ascending: true });
+          `);
+
+        // Filtrer par localisation si disponible
+        if (electionData.arrondissement_id) {
+          centersQuery = centersQuery.eq('arrondissement_id', electionData.arrondissement_id);
+        } else if (electionData.commune_id) {
+          centersQuery = centersQuery.eq('commune_id', electionData.commune_id);
+        } else if (electionData.department_id) {
+          centersQuery = centersQuery.eq('department_id', electionData.department_id);
+        } else if (electionData.province_id) {
+          centersQuery = centersQuery.eq('province_id', electionData.province_id);
+        }
+
+        const { data, error } = await centersQuery.order('name', { ascending: true });
 
         if (error) {
           console.error('Erreur lors du chargement des centres de vote:', error);
@@ -171,7 +196,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
     : votingCenters;
 
   if (showPVEntry) {
-    return <PVEntrySection onClose={() => setShowPVEntry(false)} />;
+    return <PVEntrySection onClose={() => setShowPVEntry(false)} selectedElection={selectedElection} />;
   }
 
   return (
@@ -189,7 +214,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="gov-card border-l-4 border-l-blue-500">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
@@ -236,25 +261,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
           </CardContent>
         </Card>
 
-        <Card className="gov-card border-l-4 border-l-red-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                <span className="text-sm font-medium text-gray-600">Anomalies Détectées</span>
-              </div>
-              <span className="text-2xl font-bold text-red-600">{stats.anomaliesDetectees}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full text-red-600 border-red-200 hover:bg-red-50"
-              onClick={() => setShowAnomaliesOnly(!showAnomaliesOnly)}
-            >
-              {showAnomaliesOnly ? 'Voir tous' : 'Filtrer anomalies'}
-            </Button>
-          </CardContent>
-        </Card>
+        
       </div>
 
       {/* Vue hiérarchique */}
@@ -289,8 +296,8 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredCenters.map((center) => (
+          <div className="space-y-4">
+            {filteredCenters.map((center) => (
               <div key={center.id} className="border border-gray-200 rounded-lg">
                 <div 
                   className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
@@ -355,7 +362,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
                 )}
               </div>
             ))}
-            </div>
+          </div>
           )}
         </CardContent>
       </Card>

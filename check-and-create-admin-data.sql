@@ -68,3 +68,7 @@ JOIN communes c ON a.commune_id = c.id
 JOIN departments d ON c.department_id = d.id
 JOIN provinces p ON d.province_id = p.id
 WHERE a.name = '1er Arrondissement';
+
+
+
+
