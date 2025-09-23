@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import PublicHomePage from "./pages/PublicHomePage";
@@ -32,33 +33,35 @@ const queryClient = new QueryClient({
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <NotificationProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<PublicHomePage />} />
-                <Route path="/election/:electionId/results" element={<ElectionResults />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/elections" element={<ProtectedRoute><ElectionManagementUnified /></ProtectedRoute>} />
-                <Route path="/centers" element={<ProtectedRoute><VotingCenters /></ProtectedRoute>} />
-                <Route path="/voters" element={<ProtectedRoute><Voters /></ProtectedRoute>} />
-                <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
-                <Route path="/results" element={<Results />} />
-                <Route path="/campaign" element={<CampaignManagement />} />
-                <Route path="/campaign/operation/:id" element={<OperationDetail />} />
-                <Route path="/conversations" element={<Conversations />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-            <Toaster />
-            <Sonner />
-          </NotificationProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<PublicHomePage />} />
+                  <Route path="/election/:electionId/results" element={<ElectionResults />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/elections" element={<ProtectedRoute><ElectionManagementUnified /></ProtectedRoute>} />
+                  <Route path="/centers" element={<ProtectedRoute><VotingCenters /></ProtectedRoute>} />
+                  <Route path="/voters" element={<ProtectedRoute><Voters /></ProtectedRoute>} />
+                  <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+                  <Route path="/results" element={<Results />} />
+                  <Route path="/campaign" element={<CampaignManagement />} />
+                  <Route path="/campaign/operation/:id" element={<OperationDetail />} />
+                  <Route path="/conversations" element={<Conversations />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+              <Toaster />
+              <Sonner />
+            </NotificationProvider>
+          </AuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 };
 

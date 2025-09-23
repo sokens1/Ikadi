@@ -1,14 +1,26 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+
+# Sitemap
+Sitemap: https://ikadi.gabon.ga/sitemap.xml
+
+# Crawl-delay for better server performance
+Crawl-delay: 1
+
+# Block admin and private areas
+Disallow: /login
+Disallow: /dashboard
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_app/
+
+# Allow public pages
+Allow: /
+Allow: /elections
+Allow: /centers
+Allow: /voters
+Allow: /results
+Allow: /campaign
+
+# Host declaration
+Host: https://ikadi.gabon.ga
