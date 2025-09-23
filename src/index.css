@@ -1,9 +1,79 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import './styles/design-system.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Styles pour react-select (Select2) */
+.react-select-container {
+  @apply w-full;
+}
+
+.react-select__control {
+  @apply min-h-[44px] border border-gray-300 rounded-xl;
+}
+
+.react-select__control--is-focused {
+  @apply border-blue-500 ring-2 ring-blue-200;
+}
+
+.react-select__value-container {
+  @apply px-3 py-2;
+}
+
+.react-select__placeholder {
+  @apply text-gray-500 text-sm;
+}
+
+.react-select__single-value {
+  @apply text-gray-900 text-sm;
+}
+
+.react-select__menu {
+  @apply rounded-xl shadow-lg border border-gray-200 mt-1;
+}
+
+.react-select__menu-list {
+  @apply p-2 rounded-xl;
+}
+
+.react-select__option {
+  @apply rounded-lg mx-1 my-1 px-4 py-3 text-sm cursor-pointer;
+}
+
+.react-select__option--is-focused {
+  @apply bg-gray-100;
+}
+
+.react-select__option--is-selected {
+  @apply bg-blue-500 text-white;
+}
+
+.react-select__indicator-separator {
+  @apply hidden;
+}
+
+.react-select__dropdown-indicator {
+  @apply text-gray-500 p-2;
+}
+
+.react-select__dropdown-indicator:hover {
+  @apply text-gray-700;
+}
+
+.react-select__clear-indicator {
+  @apply text-gray-500 p-2;
+}
+
+.react-select__clear-indicator:hover {
+  @apply text-gray-700;
+}
+
+.react-select__loading-indicator {
+  @apply text-gray-500;
+}
 
 @layer base {
   :root {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
@@ -366,77 +367,175 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
   return (
     <Layout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={onBack}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-gov-gray">{election.title}</h1>
-              <p className="text-gray-600 mt-1">{election.description}</p>
-              <div className="flex items-center space-x-4 mt-2">
-                <Badge variant={getStatusVariant(election.status)}>{election.status}</Badge>
-                <span className="text-sm text-gray-500">
-                  {new Date(election.date).toLocaleDateString('fr-FR', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </span>
+      <div className="space-y-8 animate-fade-in">
+        {/* Header moderne avec gradient */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6">
+          <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <Button 
+                variant="ghost" 
+                onClick={onBack}
+                className="hover:bg-white/50 transition-all duration-300 rounded-lg px-3 py-2"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Retour aux élections
+              </Button>
+              <Badge 
+                variant={getStatusVariant(election.status)}
+                className="px-3 py-1 text-sm font-medium"
+              >
+                {election.status}
+              </Badge>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <h1 className="text-2xl font-bold text-gray-900 leading-tight">{election.title}</h1>
+                  <p className="text-sm text-gray-600 max-w-2xl">{election.description}</p>
+                  <div className="text-sm text-gray-500">
+                    <span className="font-medium">Date du scrutin:</span> {new Date(election.date).toLocaleDateString('fr-FR', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Statistiques compactes */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 bg-blue-500 rounded-lg">
+                      <Users className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-blue-700 uppercase tracking-wide">Électeurs</span>
+                  </div>
+                  <div className="text-xl font-bold text-blue-900">
+                    {statistics.totalVoters.toLocaleString('fr-FR')}
+                  </div>
+                </div>
+                
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 bg-green-500 rounded-lg">
+                      <Building className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-green-700 uppercase tracking-wide">Centres</span>
+                  </div>
+                  <div className="text-xl font-bold text-green-900">
+                    {statistics.totalCenters}
+                  </div>
+                </div>
+                
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 bg-indigo-500 rounded-lg">
+                      <MapPin className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">Bureaux</span>
+                  </div>
+                  <div className="text-xl font-bold text-indigo-900">
+                    {statistics.totalBureaux}
+                  </div>
+                </div>
+                
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 bg-purple-500 rounded-lg">
+                      <Star className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-purple-700 uppercase tracking-wide">Candidats</span>
+                  </div>
+                  <div className="text-xl font-bold text-purple-900">
+                    {statistics.totalCandidates}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="info" className="flex items-center space-x-2">
-              <Building className="w-4 h-4" />
-              <span>Informations</span>
-            </TabsTrigger>
-            <TabsTrigger value="centers" className="flex items-center space-x-2">
-              <MapPin className="w-4 h-4" />
-              <span>Centres et Bureaux</span>
-            </TabsTrigger>
-            <TabsTrigger value="candidates" className="flex items-center space-x-2">
-              <Users className="w-4 h-4" />
-              <span>Candidats</span>
-            </TabsTrigger>
-          </TabsList>
+        {/* Main Content avec onglets modernisés */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <Tabs defaultValue="info" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 bg-gray-50 p-1 rounded-none">
+              <TabsTrigger 
+                value="info" 
+                className="flex items-center space-x-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+              >
+                <div className="p-1.5 bg-blue-100 rounded-md data-[state=active]:bg-blue-500 transition-colors duration-300">
+                  <Building className="w-4 h-4 text-blue-600 data-[state=active]:text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium text-sm">Informations</div>
+                  <div className="text-xs text-gray-500">Détails généraux</div>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="centers" 
+                className="flex items-center space-x-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+              >
+                <div className="p-1.5 bg-green-100 rounded-md data-[state=active]:bg-green-500 transition-colors duration-300">
+                  <MapPin className="w-4 h-4 text-green-600 data-[state=active]:text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium text-sm">Centres & Bureaux</div>
+                  <div className="text-xs text-gray-500">Organisation territoriale</div>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="candidates" 
+                className="flex items-center space-x-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+              >
+                <div className="p-1.5 bg-purple-100 rounded-md data-[state=active]:bg-purple-500 transition-colors duration-300">
+                  <Users className="w-4 h-4 text-purple-600 data-[state=active]:text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium text-sm">Candidats</div>
+                  <div className="text-xs text-gray-500">Liste des candidats</div>
+                </div>
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Section Informations */}
-          <TabsContent value="info" className="space-y-6">
+          {/* Section Informations modernisée */}
+          <TabsContent value="info" className="p-6 space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Informations générales */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building className="w-5 h-5" />
+              <Card className="election-card group hover:shadow-lg transition-all duration-300">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Building className="w-5 h-5 text-blue-600" />
+                    </div>
                     Informations Générales
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Type d'élection</label>
-                      <p className="text-lg font-semibold">{election.type}</p>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Type d'élection</label>
+                      <p className="text-lg font-bold text-gray-900">{election.type}</p>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Statut</label>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Statut</label>
                       <div className="mt-1">
-                        <Badge variant={getStatusVariant(election.status)}>{election.status}</Badge>
+                        <Badge 
+                          variant={getStatusVariant(election.status)}
+                          className="px-2 py-1 text-xs font-medium"
+                        >
+                          {election.status}
+                        </Badge>
                       </div>
                     </div>
                   </div>
                   
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Date du scrutin</label>
-                    <p className="text-lg font-semibold">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date du scrutin</label>
+                    <p className="text-lg font-bold text-gray-900">
                       {new Date(election.date).toLocaleDateString('fr-FR', {
                         weekday: 'long',
                         year: 'numeric',
@@ -446,75 +545,109 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                     </p>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Description</label>
-                    <p className="text-gray-700">{election.description || 'Aucune description'}</p>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</label>
+                    <p className="text-sm text-gray-700 leading-relaxed">{election.description || 'Aucune description'}</p>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Sièges à pourvoir</label>
-                    <p className="text-lg font-semibold">{election.seatsAvailable}</p>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Sièges à pourvoir</label>
+                    <p className="text-xl font-bold text-blue-600">{election.seatsAvailable}</p>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Informations géographiques */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
+              {/* Informations géographiques modernisées */}
+              <Card className="election-card group hover:shadow-lg transition-all duration-300">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <MapPin className="w-5 h-5 text-green-600" />
+                    </div>
                     Circonscription Électorale
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Province</label>
-                    <p className="text-lg font-semibold">{election.province || 'Non spécifiée'}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Département</label>
-                    <p className="text-lg font-semibold">{election.department || 'Non spécifié'}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Commune</label>
-                    <p className="text-lg font-semibold">{election.commune || 'Non spécifiée'}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Arrondissement</label>
-                    <p className="text-lg font-semibold">{election.arrondissement || 'Non spécifié'}</p>
+                <CardContent className="space-y-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Province</label>
+                        <p className="text-sm font-bold text-gray-900 mt-1">{election.province || 'Non spécifiée'}</p>
+                      </div>
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Département</label>
+                        <p className="text-sm font-bold text-gray-900 mt-1">{election.department || 'Non spécifié'}</p>
+                      </div>
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Commune</label>
+                        <p className="text-sm font-bold text-gray-900 mt-1">{election.commune || 'Non spécifiée'}</p>
+                      </div>
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Arrondissement</label>
+                        <p className="text-sm font-bold text-gray-900 mt-1">{election.arrondissement || 'Non spécifié'}</p>
+                      </div>
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Objectifs et budget */}
+              {/* Objectifs et budget modernisés */}
               {(election.budget > 0 || election.voteGoal > 0) && (
-                <Card className="lg:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Star className="w-5 h-5" />
+                <Card className="lg:col-span-2 election-card group hover:shadow-lg transition-all duration-300">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <Star className="w-5 h-5 text-purple-600" />
+                      </div>
                       Objectifs et Budget
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {election.budget > 0 && (
-                        <div className="text-center p-4 bg-purple-50 rounded-lg">
-                          <div className="text-2xl font-bold text-purple-600">
-                            {election.budget.toLocaleString('fr-FR')} FCFA
+                        <div className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                          <div className="absolute top-0 right-0 w-12 h-12 bg-purple-200 rounded-full -translate-y-6 translate-x-6"></div>
+                          <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="p-1.5 bg-purple-500 rounded-md">
+                                <Star className="w-4 h-4 text-white" />
+                              </div>
+                              <span className="text-xs font-medium text-purple-700 uppercase tracking-wide">Budget alloué</span>
+                            </div>
+                            <div className="text-xl font-bold text-purple-900">
+                              {election.budget.toLocaleString('fr-FR')} FCFA
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-600">Budget alloué</div>
                         </div>
                       )}
                       
                       {election.voteGoal > 0 && (
-                        <div className="text-center p-4 bg-orange-50 rounded-lg">
-                          <div className="text-2xl font-bold text-orange-600">
-                            {election.voteGoal.toLocaleString('fr-FR')}
+                        <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                          <div className="absolute top-0 right-0 w-12 h-12 bg-orange-200 rounded-full -translate-y-6 translate-x-6"></div>
+                          <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="p-1.5 bg-orange-500 rounded-md">
+                                <Users className="w-4 h-4 text-white" />
+                              </div>
+                              <span className="text-xs font-medium text-orange-700 uppercase tracking-wide">Objectif de voix</span>
+                            </div>
+                            <div className="text-xl font-bold text-orange-900">
+                              {election.voteGoal.toLocaleString('fr-FR')}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-600">Objectif de voix</div>
                         </div>
                       )}
                     </div>
@@ -522,54 +655,21 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                 </Card>
               )}
 
-              {/* Statistiques */}
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Statistiques
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {statistics.totalVoters.toLocaleString('fr-FR')}
-                      </div>
-                      <div className="text-sm text-gray-600">Électeurs inscrits</div>
-                    </div>
-                    
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
-                        {statistics.totalCenters}
-                      </div>
-                      <div className="text-sm text-gray-600">Centres de vote</div>
-                    </div>
-                    
-                    <div className="text-center p-4 bg-indigo-50 rounded-lg">
-                      <div className="text-2xl font-bold text-indigo-600">
-                        {statistics.totalBureaux}
-                      </div>
-                      <div className="text-sm text-gray-600">Bureaux de vote</div>
-                    </div>
-                    
-                    <div className="text-center p-4 bg-pink-50 rounded-lg">
-                      <div className="text-2xl font-bold text-pink-600">
-                        {statistics.totalCandidates}
-                      </div>
-                      <div className="text-sm text-gray-600">Candidats</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              
             </div>
           </TabsContent>
 
-          {/* Section A: Centres et Bureaux */}
-          <TabsContent value="centers" className="space-y-6">
+          {/* Section Centres et Bureaux modernisée */}
+          <TabsContent value="centers" className="p-6 space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Centres de Vote</h3>
-              <Button onClick={() => setShowAddCenter(true)}>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Centres de Vote</h3>
+                <p className="text-sm text-gray-600 mt-1">Gérez les centres de vote et leurs bureaux</p>
+              </div>
+              <Button 
+                onClick={() => setShowAddCenter(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Ajouter un centre
               </Button>
@@ -579,43 +679,59 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               {centers.map((center) => (
                 <Card 
                   key={center.id} 
-                  className="gov-card hover:shadow-md transition-shadow cursor-pointer"
+                  className="election-card group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-md"
                   onClick={() => setSelectedCenter(center)}
                 >
-                  <CardHeader>
-                    <CardTitle className="text-lg">{center.name}</CardTitle>
-                    <p className="text-sm text-gray-600">{center.address}</p>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors duration-300">
+                          {center.name}
+                        </CardTitle>
+                        <p className="text-xs text-gray-600 line-clamp-2">{center.address}</p>
+                      </div>
+                      <div className="p-1.5 bg-green-100 rounded-md group-hover:bg-green-500 transition-colors duration-300">
+                        <MapPin className="w-4 h-4 text-green-600 group-hover:text-white" />
+                      </div>
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Responsable:</span>
-                        <span className="font-medium">{center.responsable}</span>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <span className="text-xs font-medium text-gray-600">Responsable:</span>
+                      <span className="text-sm font-semibold text-gray-900">{center.responsable}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <div className="text-lg font-bold text-orange-600">{center.bureaux}</div>
+                        <div className="text-xs text-orange-600 font-medium uppercase tracking-wide">Bureaux</div>
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-orange-600">{center.bureaux}</div>
-                          <div className="text-xs text-gray-500">Bureaux</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-blue-600">{center.voters}</div>
-                          <div className="text-xs text-gray-500">Électeurs</div>
-                        </div>
+                      <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="text-lg font-bold text-blue-600">{center.voters.toLocaleString('fr-FR')}</div>
+                        <div className="text-xs text-blue-600 font-medium uppercase tracking-wide">Électeurs</div>
                       </div>
+                    </div>
 
-                      <div className="flex space-x-2 pt-2">
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Eye className="w-4 h-4 mr-1" />
-                          Détails
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={(e) => {
+                    <div className="flex space-x-2 pt-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 bg-white border-gray-200 text-gray-700 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-300 text-xs"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        Détails
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveCenter(center.id);
-                        }}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                        }}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all duration-300"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -623,11 +739,17 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
             </div>
           </TabsContent>
 
-          {/* Section B: Candidats */}
-          <TabsContent value="candidates" className="space-y-6">
+          {/* Section Candidats modernisée */}
+          <TabsContent value="candidates" className="p-6 space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Candidats Validés</h3>
-              <Button onClick={() => setShowAddCandidate(true)}>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Candidats Validés</h3>
+                <p className="text-sm text-gray-600 mt-1">Gérez la liste des candidats à l'élection</p>
+              </div>
+              <Button 
+                onClick={() => setShowAddCandidate(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Ajouter un candidat
               </Button>
@@ -637,49 +759,81 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               {candidates.map((candidate) => (
                 <Card 
                   key={candidate.id} 
-                  className={`gov-card ${candidate.isOurCandidate ? 'border-2 border-gov-blue bg-blue-50' : ''}`}
+                  className={`election-card group hover:shadow-xl transition-all duration-300 ${
+                    candidate.isOurCandidate 
+                      ? 'border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100' 
+                      : 'border-0 shadow-md'
+                  }`}
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-center space-x-4">
-                      <img 
-                        src={candidate.photo || '/placeholder.svg'} 
-                        alt={candidate.name}
-                        className="w-16 h-16 rounded-full object-cover"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-semibold text-lg">{candidate.name}</h3>
+                    <div className="flex items-start space-x-3">
+                      <div className="relative">
+                        <img 
+                          src={candidate.photo || '/placeholder.svg'} 
+                          alt={candidate.name}
+                          className="w-16 h-16 rounded-xl object-cover border-2 border-white shadow-md"
+                        />
+                        {candidate.isOurCandidate && (
+                          <div className="absolute -top-1 -right-1 p-0.5 bg-purple-500 rounded-full">
+                            <Star className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-bold text-lg text-gray-900 group-hover:text-purple-600 transition-colors duration-300">
+                              {candidate.name}
+                            </h3>
+                            <p className="text-sm text-gray-600 font-medium">{candidate.party}</p>
+                          </div>
                           {candidate.isOurCandidate && (
-                            <Badge className="bg-gov-blue text-white">
+                            <Badge className="bg-purple-500 text-white px-2 py-1 text-xs font-medium">
                               <Star className="w-3 h-3 mr-1" />
                               Notre Candidat
                             </Badge>
                           )}
                         </div>
-                        <p className="text-gray-600 text-sm mb-2">{candidate.party}</p>
                         
                         {candidate.votes && (
-                          <div className="text-sm mb-2">
-                            <span className="font-medium">{candidate.votes.toLocaleString('fr-FR')} voix</span>
-                            <span className="text-gray-500 ml-2">({candidate.percentage}%)</span>
+                          <div className="p-2 bg-gray-50 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-gray-600">Voix obtenues</span>
+                              <div className="text-right">
+                                <div className="font-bold text-sm text-gray-900">
+                                  {candidate.votes.toLocaleString('fr-FR')}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  ({candidate.percentage}%)
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         )}
                         
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4 mr-1" />
+                        <div className="flex space-x-1 pt-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="flex-1 bg-white border-gray-200 text-gray-700 hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all duration-300 text-xs"
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
                             Profil
                           </Button>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="w-4 h-4 mr-1" />
-                            Modifier
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-gray-500 hover:text-purple-600 hover:bg-purple-50 transition-all duration-300"
+                          >
+                            <Edit className="w-3 h-3" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="sm"
                             onClick={() => handleRemoveCandidate(candidate.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all duration-300"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
                       </div>
@@ -689,7 +843,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               ))}
             </div>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
 
         {/* Modals */}
         {showAddCenter && (
