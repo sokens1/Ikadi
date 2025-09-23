@@ -624,6 +624,61 @@ const ElectionManagementUnified = () => {
       <ElectionDetailView 
         election={adaptedElection as any} 
         onBack={handleCloseDetail}
+        onDataChange={() => {
+          // Rafraîchir les données après modification
+          const refreshElections = async () => {
+            try {
+              setLoading(true);
+              const { data, error } = await supabase
+                .from('elections')
+                .select(`
+                  *,
+                  provinces(name),
+                  departments(name),
+                  communes(name),
+                  arrondissements(name)
+                `)
+                .order('created_at', { ascending: false });
+
+              if (error) {
+                console.error('Erreur lors du chargement des élections:', error);
+                setError(error.message);
+                return;
+              }
+
+              // Récupérer les compteurs de candidats et centres pour chaque élection
+              const electionsWithCounts = await Promise.all(
+                (data || []).map(async (election) => {
+                  // Compter les candidats
+                  const { data: candidatesData } = await supabase
+                    .from('election_candidates')
+                    .select('id')
+                    .eq('election_id', election.id);
+
+                  // Compter les centres
+                  const { data: centersData } = await supabase
+                    .from('election_centers')
+                    .select('id')
+                    .eq('election_id', election.id);
+
+                  return {
+                    ...election,
+                    candidates_count: candidatesData?.length || 0,
+                    centers_count: centersData?.length || 0
+                  };
+                })
+              );
+
+              setElections(electionsWithCounts);
+            } catch (err) {
+              console.error('Erreur lors du rafraîchissement:', err);
+              setError('Erreur lors du rafraîchissement des données');
+            } finally {
+              setLoading(false);
+            }
+          };
+          refreshElections();
+        }}
       />
     );
   }

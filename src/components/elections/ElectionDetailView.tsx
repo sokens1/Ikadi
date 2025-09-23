@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,9 +67,10 @@ interface Candidate {
 interface ElectionDetailViewProps {
   election: Election;
   onBack: () => void;
+  onDataChange?: () => void;
 }
 
-const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBack }) => {
+const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBack, onDataChange }) => {
   const [showAddCenter, setShowAddCenter] = useState(false);
   const [showAddCandidate, setShowAddCandidate] = useState(false);
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
@@ -83,9 +84,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     totalCandidates: 0
   });
 
-  // Charger les centres de vote liés à cette élection
-  useEffect(() => {
-    const fetchCenters = async () => {
+  // Fonction pour charger les centres de vote liés à cette élection
+  const fetchCenters = useCallback(async () => {
       try {
         setLoading(true);
         
@@ -130,14 +130,15 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
       } finally {
         setLoading(false);
       }
-    };
+    }, [election.id]);
 
-    fetchCenters();
-  }, [election.id]);
-
-  // Charger les candidats liés à cette élection
+  // Charger les centres de vote liés à cette élection
   useEffect(() => {
-    const fetchCandidates = async () => {
+    fetchCenters();
+  }, [fetchCenters]);
+
+  // Fonction pour charger les candidats liés à cette élection
+  const fetchCandidates = useCallback(async () => {
       try {
         const { data, error } = await supabase
           .from('election_candidates')
@@ -166,10 +167,12 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
       } catch (error) {
         console.error('Erreur lors du chargement des candidats:', error);
       }
-    };
+    }, [election.id]);
 
+  // Charger les candidats liés à cette élection
+  useEffect(() => {
     fetchCandidates();
-  }, [election.id]);
+  }, [fetchCandidates]);
 
   // Mettre à jour les statistiques quand les données changent
   useEffect(() => {
@@ -219,8 +222,14 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
       console.log('Centres liés avec succès:', data);
 
-      // Ajouter les centres à la liste locale
-      setCenters(prev => [...prev, ...centersData]);
+      // Recharger les centres depuis la base de données
+      await fetchCenters();
+      
+      // Notifier le parent pour rafraîchir les données
+      if (onDataChange) {
+        onDataChange();
+      }
+      
       setShowAddCenter(false);
       toast.success(`${centersData.length} centre${centersData.length > 1 ? 's' : ''} ajouté${centersData.length > 1 ? 's' : ''} et rattaché${centersData.length > 1 ? 's' : ''} à l'élection`);
     } catch (error) {
@@ -256,8 +265,14 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
       console.log('Candidats liés avec succès:', data);
 
-      // Ajouter les candidats à la liste locale
-      setCandidates(prev => [...prev, ...candidatesData]);
+      // Recharger les candidats depuis la base de données
+      await fetchCandidates();
+      
+      // Notifier le parent pour rafraîchir les données
+      if (onDataChange) {
+        onDataChange();
+      }
+      
       setShowAddCandidate(false);
       toast.success(`${candidatesData.length} candidat${candidatesData.length > 1 ? 's' : ''} ajouté${candidatesData.length > 1 ? 's' : ''} et rattaché${candidatesData.length > 1 ? 's' : ''} à l'élection`);
     } catch (error) {
@@ -285,7 +300,14 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               return;
             }
 
-            setCenters(prev => prev.filter(c => c.id !== id));
+            // Recharger les centres depuis la base de données
+            await fetchCenters();
+            
+            // Notifier le parent pour rafraîchir les données
+            if (onDataChange) {
+              onDataChange();
+            }
+            
             toast.success('Centre retiré de l\'élection');
           } catch (err) {
             console.error('Erreur lors de la suppression du centre:', err);
@@ -316,7 +338,14 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               return;
             }
 
-            setCandidates(prev => prev.filter(c => c.id !== id));
+            // Recharger les candidats depuis la base de données
+            await fetchCandidates();
+            
+            // Notifier le parent pour rafraîchir les données
+            if (onDataChange) {
+              onDataChange();
+            }
+            
             toast.success('Candidat retiré de l\'élection');
           } catch (err) {
             console.error('Erreur lors de la suppression du candidat:', err);
