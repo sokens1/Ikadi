@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Users, TrendingUp, RefreshCw, Flag, Landmark, Megaphone, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -51,6 +51,7 @@ const fallbackImages = [
 ];
 
 const PublicHomePage = () => {
+  const navigate = useNavigate();
   const [results, setResults] = useState<PublicResults>({
     election: null,
     participation: 0,
@@ -434,7 +435,11 @@ const PublicHomePage = () => {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <Button className="bg-white text-gov-blue hover:bg-blue-50" aria-label="Voir les résultats">
+            <Button 
+              className="bg-white text-gov-blue hover:bg-blue-50" 
+              aria-label="Voir les résultats"
+              onClick={() => nextElection && navigate(`/election/${nextElection.id}/results`)}
+            >
               Voir les résultats
             </Button>
           </div>
@@ -465,8 +470,9 @@ const PublicHomePage = () => {
               {(libraryTab === 'past' ? pastElections : upcomingElections).map((e, idx) => (
                 <div
                   key={e.id}
-                  className="relative rounded-lg overflow-hidden border shadow-sm min-h-[160px] transform transition-transform duration-200 hover:scale-[1.03]"
+                  className="relative rounded-lg overflow-hidden border shadow-sm min-h-[160px] transform transition-transform duration-200 hover:scale-[1.03] cursor-pointer"
                   style={getBgForIndex(idx)}
+                  onClick={() => navigate(`/election/${e.id}/results`)}
                 >
                   <div className="absolute inset-0 bg-black/35 hover:bg-black/25 transition-colors" />
                   <div className="relative p-4 text-white">
@@ -476,7 +482,11 @@ const PublicHomePage = () => {
                 </div>
               )).slice(0, 100)}
               {(libraryTab === 'past' ? pastElections : upcomingElections).length === 0 && (
-                <p className="text-gov-gray text-sm">Aucune élection à afficher.</p>
+                <div className="col-span-full text-center py-12">
+                  <div className="text-6xl mb-4">🗳️</div>
+                  <h3 className="text-xl font-semibold text-gov-dark mb-2">Aucune élection disponible</h3>
+                  <p className="text-gov-gray">Aucune élection {libraryTab === 'past' ? 'passée' : 'à venir'} à afficher pour le moment.</p>
+                </div>
               )}
             </div>
           </div>
