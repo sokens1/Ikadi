@@ -9,6 +9,7 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import PublicHomePage from "./pages/PublicHomePage";
 import ElectionResults from "./pages/ElectionResults";
 import Dashboard from "./pages/Dashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 import ElectionManagementUnified from "./pages/ElectionManagementUnified";
 import UserManagement from "./pages/UserManagement";
 import Results from "./pages/Results";
@@ -40,11 +41,11 @@ const App = () => {
                 <Route path="/" element={<PublicHomePage />} />
                 <Route path="/election/:electionId/results" element={<ElectionResults />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/elections" element={<ElectionManagementUnified />} />
-                <Route path="/centers" element={<VotingCenters />} />
-                <Route path="/voters" element={<Voters />} />
-                <Route path="/users" element={<UserManagement />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/elections" element={<ProtectedRoute><ElectionManagementUnified /></ProtectedRoute>} />
+                <Route path="/centers" element={<ProtectedRoute><VotingCenters /></ProtectedRoute>} />
+                <Route path="/voters" element={<ProtectedRoute><Voters /></ProtectedRoute>} />
+                <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
                 <Route path="/results" element={<Results />} />
                 <Route path="/campaign" element={<CampaignManagement />} />
                 <Route path="/campaign/operation/:id" element={<OperationDetail />} />

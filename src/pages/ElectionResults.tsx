@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Share2, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { fetchElectionById } from '@/lib/services/elections';
+import { fetchElectionSummary } from '@/lib/services/results';
 import { toast } from 'sonner';
 
 // Icone WhatsApp (SVG minimal)
@@ -60,27 +62,14 @@ const ElectionResults: React.FC = () => {
       setLoading(true);
       
       // Récupérer les données de l'élection
-      const { data: election, error: electionError } = await supabase
-        .from('elections')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (electionError) {
+      const election = await fetchElectionById(id);
+      if (!election) {
         throw new Error('Élection non trouvée');
       }
 
       // Récupérer les résultats depuis election_result_summary
-      // Utilise le nom de table correct et sélectionne toutes les colonnes pour éviter les erreurs de schéma
-      const { data: summaryData, error: summaryError } = await supabase
-        .from('election_results_summary')
-        .select('*')
-        .eq('election_id', id)
-        .order('rank', { ascending: true });
-
-      if (summaryError) {
-        throw new Error('Erreur lors de la récupération des résultats');
-      }
+      // Utilise le service de résultats
+      const summaryData = await fetchElectionSummary(id);
 
       // Calculer les totaux
       const totalVotes = summaryData?.reduce((sum, candidate) => sum + (candidate.total_votes || 0), 0) || 0;
@@ -92,7 +81,14 @@ const ElectionResults: React.FC = () => {
         total_voters: totalVoters,
         total_votes_cast: totalVotes,
         participation_rate: participationRate,
-        candidates: summaryData || [],
+        candidates: (summaryData || []).map((c: any) => ({
+          candidate_id: c.candidate_id,
+          candidate_name: c.candidate_name,
+          party_name: c.party_name ?? c.party ?? '',
+          total_votes: c.total_votes || 0,
+          percentage: c.percentage || 0,
+          rank: c.rank || 0
+        })),
         last_updated: new Date().toISOString()
       });
 

@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Users, TrendingUp, RefreshCw, Flag, Landmark, Megaphone, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { fetchAllElections, fetchRunningElection, fetchPublishedElection, fetchLatestElection } from '@/lib/services/elections';
+import { fetchGlobalMetrics } from '@/lib/services/metrics';
 import { toast } from 'sonner';
 
 // Icone WhatsApp (SVG minimal)
@@ -126,12 +128,8 @@ const PublicHomePage = () => {
 
       // Prochaine élection (client: plus proche >= aujourd'hui, sinon plus récente passée)
       try {
-        const { data: all, error: allError } = await supabase
-          .from('elections')
-          .select('*')
-          .order('election_date', { ascending: true });
-        if (allError) throw allError;
-        setAllElections((all || []) as any);
+        const all = await fetchAllElections();
+        setAllElections(all as any);
         if (all && all.length > 0) {
           const now = new Date();
           const withDates = all.map((e: any) => ({ ...e, _date: new Date(e.election_date) }));
@@ -140,44 +138,25 @@ const PublicHomePage = () => {
         } else {
           setNextElection(null);
         }
-      } catch (e) {
-        // ignore, déjà géré par setError si nécessaire
-      }
+      } catch (e) {}
 
       // 1) Priorité: élection "En cours"
       let currentElection: any = null;
       try {
-        const { data: running1 } = await supabase
-          .from('elections')
-          .select('*')
-          .ilike('status', '%en cours%')
-          .order('election_date', { ascending: false })
-          .limit(1);
-        currentElection = running1 && running1.length > 0 ? running1[0] : null;
+        currentElection = await fetchRunningElection();
       } catch {}
 
       // 2) Fallback: dernière publiée
       if (!currentElection) {
         try {
-          const { data: published } = await supabase
-            .from('elections')
-            .select('*')
-            .eq('is_published', true)
-            .order('election_date', { ascending: false })
-            .limit(1);
-          currentElection = published && published.length > 0 ? published[0] : null;
+          currentElection = await fetchPublishedElection();
         } catch {}
       }
 
       // 3) Fallback ultime: dernière par date
       if (!currentElection) {
         try {
-          const { data: anyElection } = await supabase
-            .from('elections')
-            .select('*')
-            .order('election_date', { ascending: false })
-            .limit(1);
-          currentElection = anyElection && anyElection.length > 0 ? anyElection[0] : null;
+          currentElection = await fetchLatestElection();
         } catch {}
       }
 
@@ -187,33 +166,19 @@ const PublicHomePage = () => {
         return;
       }
 
-      const [votersResult, centersResult, pvsResult, bureauxResult, candidatsCount, candidatesList, notificationsList] = await Promise.all([
-        supabase.from('voters').select('id', { count: 'exact' }),
-        supabase.from('voting_centers').select('id', { count: 'exact' }),
-        supabase.from('procès_verbaux').select('id', { count: 'exact' }),
-        supabase.from('voting_bureaux').select('id', { count: 'exact' }),
-        supabase.from('candidates').select('id', { count: 'exact' }),
-        supabase.from('candidates').select('party'),
-        supabase.from('notifications').select('title, message, created_at').order('created_at', { ascending: false }).limit(10)
-      ]);
+      const metrics = await fetchGlobalMetrics();
+      const totalVoters = metrics.totalVoters;
+      const totalCenters = metrics.totalCenters;
+      const totalPVs = metrics.totalPVs;
+      setTotalBureaux(metrics.totalBureaux);
+      setTotalCandidats(metrics.totalCandidats);
+      setDistinctParties(metrics.distinctParties);
 
-      if (votersResult.error) throw votersResult.error;
-      if (centersResult.error) throw centersResult.error;
-      if (pvsResult.error) throw pvsResult.error;
-      if (bureauxResult.error) throw bureauxResult.error;
-      if (candidatsCount.error) throw candidatsCount.error;
-
-      const totalVoters = votersResult.count || 0;
-      const totalCenters = centersResult.count || 0;
-      const totalPVs = pvsResult.count || 0;
-      setTotalBureaux(bureauxResult.count || 0);
-      setTotalCandidats(candidatsCount.count || 0);
-
-      const parties = new Set<string>();
-      (candidatesList.data || []).forEach((c: any) => {
-        if (c.party && String(c.party).trim().length > 0) parties.add(String(c.party).trim());
-      });
-      setDistinctParties(parties.size);
+      const { data: notificationsList } = await supabase
+        .from('notifications')
+        .select('title, message, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
       const ticker = (notificationsList.data || []).map((n: any) => n.title || n.message).filter(Boolean);
       setAnnouncements(ticker.length > 0 ? ticker : ['Aucune annonce disponible pour le moment']);
