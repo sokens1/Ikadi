@@ -13,10 +13,9 @@ export interface SummaryRow {
 
 export async function fetchElectionSummary(electionId: string): Promise<SummaryRow[]> {
   const { data, error } = await supabase
-    .from('election_result_summary')
+    .from('election_results_summary')
     .select('*')
-    .eq('election_id', electionId)
-    .order('rank', { ascending: true });
+    .eq('election_id', electionId);
   if (error) throw error;
   return (data || []) as SummaryRow[];
 }
