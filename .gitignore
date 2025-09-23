@@ -7,12 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Build & dependencies
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Editor config
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,3 +23,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*
+
+# Cursor-related files
+.cursor*
+
+# Optional: lock files (if using yarn/pnpm)
+package-lock.json
