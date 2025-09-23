@@ -37,6 +37,8 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
   const [loading, setLoading] = useState(false);
   const [finalResults, setFinalResults] = useState<any | null>(null);
   const [detailedResults, setDetailedResults] = useState<any[]>([]);
+  const [centerBreakdown, setCenterBreakdown] = useState<any[]>([]);
+  const [bureauBreakdown, setBureauBreakdown] = useState<any[]>([]);
 
   // Charger les résultats validés et calculer les agrégats (sans jointures PostgREST complexes)
   useEffect(() => {
@@ -65,7 +67,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         let filteredPvs = pvs || [];
         if (allowedCenterIds.size > 0) {
           const { data: bureauRows, error: bureauErr } = await supabase
-            .from('voting_bureaux')
+          .from('voting_bureaux')
             .select('id, center_id')
             .in('center_id', Array.from(allowedCenterIds));
           if (bureauErr) throw bureauErr;
@@ -135,10 +137,10 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
 
         // Agrégation locale à partir des candidate_results (respecte le filtre précédent)
         crRows.forEach((r: any) => {
-          const cid = r.candidates?.id || r.candidate_id;
+            const cid = r.candidates?.id || r.candidate_id;
           if (!votesByCandidate[cid]) return;
-          votesByCandidate[cid].votes += r.votes || 0;
-        });
+            votesByCandidate[cid].votes += r.votes || 0;
+          });
 
         (filteredPvs || []).forEach((pv: any) => {
           totalVotants += pv.total_voters || 0;
@@ -177,14 +179,27 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           return {
             center: c?.name || 'Centre',
             bureau: b?.name || 'Bureau',
-            inscrits: 0,
+          inscrits: 0,
             votants: pv.total_voters || 0,
-            notreCandidat: 0,
-            adversaire1: 0,
-            adversaire2: 0
+          notreCandidat: 0,
+          adversaire1: 0,
+          adversaire2: 0
           };
         });
         setDetailedResults(detailed);
+
+        // 6) Chargement des breakdowns par centre et bureau (vues SQL)
+        try {
+          const [{ data: centersSum }, { data: bureauxSum }] = await Promise.all([
+            supabase.from('center_results_summary').select('*').eq('election_id', selectedElection),
+            supabase.from('bureau_results_summary').select('*').eq('election_id', selectedElection)
+          ]);
+          setCenterBreakdown(centersSum || []);
+          setBureauBreakdown(bureauxSum || []);
+        } catch (_) {
+          setCenterBreakdown([]);
+          setBureauBreakdown([]);
+        }
       } catch (e) {
         console.error('Erreur chargement résultats finaux:', e);
         setFinalResults(null);
@@ -215,6 +230,72 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         }))
       : []
   ), [finalResults]);
+
+  const CenterAndBureauTables = () => (
+    <div className="mt-8 space-y-8">
+      {centerBreakdown.length > 0 && (
+        <Card className="gov-card">
+          <CardHeader>
+            <CardTitle className="text-gov-dark">Par Centre de Vote</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Centre</TableHead>
+                  <TableHead className="text-right">Votants</TableHead>
+                  <TableHead className="text-right">Nuls</TableHead>
+                  <TableHead className="text-right">Exprimés</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {centerBreakdown.map((row: any) => (
+                  <TableRow key={`${row.center_id}`}>
+                    <TableCell>{row.center_name}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_voters || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_null_votes || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_expressed_votes || 0).toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {bureauBreakdown.length > 0 && (
+        <Card className="gov-card">
+          <CardHeader>
+            <CardTitle className="text-gov-dark">Par Bureau</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Centre</TableHead>
+                  <TableHead>Bureau</TableHead>
+                  <TableHead className="text-right">Votants</TableHead>
+                  <TableHead className="text-right">Nuls</TableHead>
+                  <TableHead className="text-right">Exprimés</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bureauBreakdown.map((row: any) => (
+                  <TableRow key={`${row.bureau_id}`}>
+                    <TableCell>{centerBreakdown.find((c:any)=>c.center_id===row.center_id)?.center_name || 'Centre'}</TableCell>
+                    <TableCell>{row.bureau_name}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_voters || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_null_votes || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_expressed_votes || 0).toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 
   const handlePublish = async () => {
     try {
@@ -332,29 +413,32 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           </CardHeader>
           <CardContent>
             {pieChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={pieChartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  dataKey="value"
                     label={({ percentage }: any) => `${percentage}%`}
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+                >
+                  {pieChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
             ) : (
               <div className="text-sm text-gray-500">Aucune donnée à afficher</div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Détails par centre et par bureau */}
+      <CenterAndBureauTables />
 
       {/* Tableau récapitulatif */}
       <Card className="gov-card">
@@ -397,15 +481,15 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           {/* Graphique en barres */}
           <div className="mt-6">
             {barChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={barChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="votes" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={barChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="votes" fill="#3b82f6" />
+              </BarChart>
+            </ResponsiveContainer>
             ) : (
               <div className="text-sm text-gray-500">Aucune donnée à afficher</div>
             )}
@@ -414,74 +498,34 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
       </Card>
 
       {/* Actions principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {/* Publication */}
         <Card className="gov-card border-l-4 border-l-blue-500">
           <CardContent className="p-6">
-            <div className="text-center space-y-4">
+            <div className="space-y-4">
               <Upload className="w-12 h-12 text-blue-600 mx-auto" />
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
                   Publier les Résultats
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-gray-600 mb-4 text-center">
                   Rendre les résultats visibles publiquement sur le tableau de bord
                 </p>
-                <Button
-                  onClick={() => setShowPublishConfirm(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white w-full"
-                  size="lg"
-                >
-                  🚀 Publier les résultats
-                </Button>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => setShowPublishConfirm(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    size="lg"
+                  >
+                    🚀 Publier les résultats
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Vue détaillée et export */}
-        <Card className="gov-card border-l-4 border-l-purple-500">
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="text-center">
-                <FileText className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Données Détaillées
-                </h3>
-              </div>
-              
-              <Button
-                onClick={() => setShowDetailedView(true)}
-                variant="outline"
-                className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Voir le détail par bureau
-              </Button>
-              
-              <div className="flex space-x-2">
-                <Button
-                  onClick={exportToPDF}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  PDF
-                </Button>
-                <Button
-                  onClick={exportToCSV}
-                  variant="outline" 
-                  size="sm"
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  CSV
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Carte Données Détaillées retirée sur demande */}
       </div>
 
       {/* Modal de confirmation de publication */}

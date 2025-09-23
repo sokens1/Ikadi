@@ -1,8 +1,8 @@
 -- Vue pour agréger les résultats par candidat pour une élection
 -- Cette vue calcule les totaux de votes par candidat à partir des PV validés
 
--- Supprimer la table si elle existe déjà (pas une vue)
-DROP TABLE IF EXISTS election_results_summary;
+-- Supprimer la vue si elle existe déjà
+DROP VIEW IF EXISTS election_results_summary;
 
 CREATE VIEW election_results_summary AS
 SELECT 
@@ -38,3 +38,41 @@ ORDER BY e.id, total_votes DESC;
 
 -- Commentaire sur la vue
 COMMENT ON VIEW election_results_summary IS 'Vue agrégée des résultats par candidat pour chaque élection, basée sur les PV validés';
+
+-- Résultats agrégés par centre
+DROP VIEW IF EXISTS center_results_summary;
+CREATE VIEW center_results_summary AS
+SELECT 
+  pv.election_id,
+  vb.center_id,
+  vc.name AS center_name,
+  SUM(pv.total_registered) AS total_registered,
+  SUM(pv.total_voters) AS total_voters,
+  SUM(pv.null_votes) AS total_null_votes,
+  SUM(pv.votes_expressed) AS total_expressed_votes,
+  CASE WHEN SUM(pv.total_registered) > 0 THEN ROUND((SUM(pv.total_voters)::numeric / NULLIF(SUM(pv.total_registered),0)) * 100, 2) ELSE 0 END AS participation_pct,
+  CASE WHEN SUM(pv.total_voters) > 0 THEN ROUND((SUM(pv.votes_expressed)::numeric / NULLIF(SUM(pv.total_voters),0)) * 100, 2) ELSE 0 END AS score_pct
+FROM procès_verbaux pv
+JOIN voting_bureaux vb ON vb.id = pv.bureau_id
+JOIN voting_centers vc ON vc.id = vb.center_id
+WHERE pv.status = 'validated'
+GROUP BY pv.election_id, vb.center_id, vc.name;
+
+-- Résultats agrégés par bureau
+DROP VIEW IF EXISTS bureau_results_summary;
+CREATE VIEW bureau_results_summary AS
+SELECT 
+  pv.election_id,
+  pv.bureau_id,
+  vb.name AS bureau_name,
+  vb.center_id,
+  SUM(pv.total_registered) AS total_registered,
+  SUM(pv.total_voters) AS total_voters,
+  SUM(pv.null_votes) AS total_null_votes,
+  SUM(pv.votes_expressed) AS total_expressed_votes,
+  CASE WHEN SUM(pv.total_registered) > 0 THEN ROUND((SUM(pv.total_voters)::numeric / NULLIF(SUM(pv.total_registered),0)) * 100, 2) ELSE 0 END AS participation_pct,
+  CASE WHEN SUM(pv.total_voters) > 0 THEN ROUND((SUM(pv.votes_expressed)::numeric / NULLIF(SUM(pv.total_voters),0)) * 100, 2) ELSE 0 END AS score_pct
+FROM procès_verbaux pv
+JOIN voting_bureaux vb ON vb.id = pv.bureau_id
+WHERE pv.status = 'validated'
+GROUP BY pv.election_id, pv.bureau_id, vb.name, vb.center_id;

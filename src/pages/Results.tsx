@@ -132,9 +132,9 @@ const Results = () => {
         if (candidateIds.length > 0) {
           const { data: results, error: resultsError } = await supabase
             .from('candidate_results')
-            .select('votes_received, candidate_id, candidates(name)')
+            .select('votes, candidate_id, candidates(name)')
             .in('candidate_id', candidateIds)
-            .order('votes_received', { ascending: false });
+            .order('votes', { ascending: false });
           
           if (resultsError) {
             console.error('Erreur lors du chargement des résultats:', resultsError);
@@ -146,9 +146,9 @@ const Results = () => {
 
 
         const sortedResults = resultsData || [];
-        const voixNotreCanidat = sortedResults[0]?.votes_received || 0;
+        const voixNotreCanidat = sortedResults[0]?.votes || 0;
         const ecartDeuxieme = sortedResults.length > 1 
-          ? voixNotreCanidat - (sortedResults[1]?.votes_received || 0) 
+          ? voixNotreCanidat - (sortedResults[1]?.votes || 0) 
           : 0;
 
         setGlobalStats({

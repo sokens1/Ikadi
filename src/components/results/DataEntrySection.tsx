@@ -206,7 +206,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
   return (
     <div className="space-y-6">
       {/* Bouton d'action principal */}
-      <div className="flex justify-center">
+      <div className="flex justify-end">
         <Button 
           onClick={() => setShowPVEntry(true)}
           size="lg"
@@ -217,56 +217,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
         </Button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="gov-card border-l-4 border-l-blue-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5 text-blue-500" />
-                <span className="text-sm font-medium text-gray-600">Taux de Saisie</span>
-              </div>
-              <span className="text-2xl font-bold text-blue-600">{stats.tauxSaisie}%</span>
-            </div>
-            <Progress value={stats.tauxSaisie} className="mb-2" />
-            <p className="text-xs text-gray-500">
-              {stats.bureauxSaisis} bureaux saisis sur {stats.totalBureaux}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="gov-card border-l-4 border-l-green-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-green-500" />
-                <span className="text-sm font-medium text-gray-600">Voix Notre Candidat</span>
-              </div>
-              <span className="text-2xl font-bold text-green-600">{stats.voixNotreCanidat.toLocaleString()}</span>
-            </div>
-            <p className="text-xs text-gray-500">
-              Basé sur les PV déjà saisis
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="gov-card border-l-4 border-l-purple-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Flag className="h-5 w-5 text-purple-500" />
-                <span className="text-sm font-medium text-gray-600">Écart avec le 2ème</span>
-              </div>
-              <span className="text-2xl font-bold text-purple-600">+{stats.ecartDeuxieme}</span>
-            </div>
-            <p className="text-xs text-gray-500">
-              voix d'avance
-            </p>
-          </CardContent>
-        </Card>
-
-        
-      </div>
+      {/* KPIs retirés sur demande */}
 
       {/* Vue hiérarchique */}
       <Card className="gov-card">
