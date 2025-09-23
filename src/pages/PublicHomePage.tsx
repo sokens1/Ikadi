@@ -282,9 +282,16 @@ const PublicHomePage = () => {
 
   const nowDate = new Date();
   const electionsWithDates = allElections.map((e) => ({ ...e, _date: new Date(e.election_date) }));
-  const pastElections = electionsWithDates.filter(e => e._date < nowDate);
-  const upcomingElections = electionsWithDates.filter(e => e._date >= nowDate);
-  const currentElections = electionsWithDates.filter(e => (e.status || '').toLowerCase() === 'en cours');
+  const statusOf = (e: any) => String(e.status || '').toLowerCase();
+  const pastElections = electionsWithDates.filter(e => {
+    const s = statusOf(e);
+    return s === 'passé' || s === 'passe' || s === 'passée' || s === 'passer';
+  });
+  const upcomingElections = electionsWithDates.filter(e => {
+    const s = statusOf(e);
+    return s === 'a venir' || s === 'à venir' || s === 'avenir' || s === 'a-venir';
+  });
+  const currentElections = electionsWithDates.filter(e => statusOf(e) === 'en cours');
 
   // Tabs bibliothèque
   const [libraryTab, setLibraryTab] = useState<'past' | 'current' | 'upcoming'>('past');
