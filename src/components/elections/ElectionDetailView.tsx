@@ -373,89 +373,90 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
   return (
     <Layout>
       <div className="space-y-8 animate-fade-in">
-        {/* Header moderne avec gradient */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-gov-blue/5 via-gov-blue-light/5 to-purple-50 rounded-2xl p-6">
+        {/* Header moderne avec gradient - Mobile First */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-gov-blue/5 via-gov-blue-light/5 to-purple-50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
               <Button 
                 variant="ghost" 
                 onClick={onBack}
-                className="hover:bg-white/50 transition-all duration-300 rounded-lg px-3 py-2"
+                className="hover:bg-white/50 transition-all duration-300 rounded-lg px-2 sm:px-3 py-2 text-sm sm:text-base"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour aux élections
+                <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Retour aux élections</span>
+                <span className="xs:hidden">Retour</span>
               </Button>
               <Badge 
                 variant={getStatusVariant(election.status)}
-                className="px-3 py-1 text-sm font-medium"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium"
               >
                 {election.status}
               </Badge>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <h1 className="text-2xl font-bold text-gray-900 leading-tight">{election.title}</h1>
-                  <p className="text-sm text-gray-600 max-w-2xl">{election.description}</p>
-                  <div className="text-sm text-gray-500">
-                    <span className="font-medium">Date du scrutin:</span> {new Date(election.date).toLocaleDateString('fr-FR', {
-                      weekday: 'long',
+                <div className="space-y-2 flex-1 min-w-0">
+                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">{election.title}</h1>
+                  <p className="text-xs sm:text-sm text-gray-600 max-w-2xl line-clamp-2 sm:line-clamp-none">{election.description}</p>
+                  <div className="text-xs sm:text-sm text-gray-500">
+                    <span className="font-medium">Date:</span> {new Date(election.date).toLocaleDateString('fr-FR', {
+                      weekday: 'short',
                       year: 'numeric',
-                      month: 'long',
+                      month: 'short',
                       day: 'numeric'
                     })}
                   </div>
                 </div>
               </div>
               
-              {/* Statistiques compactes */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 bg-gov-blue rounded-lg">
-                      <Users className="w-4 h-4 text-white" />
+              {/* Statistiques compactes - Mobile First */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                <div className="bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/20">
+                  <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                    <div className="p-1 sm:p-1.5 bg-gov-blue rounded-md sm:rounded-lg">
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                     </div>
                     <span className="text-xs font-medium text-gov-blue uppercase tracking-wide">Électeurs</span>
                   </div>
-                  <div className="text-xl font-bold text-gov-blue">
+                  <div className="text-sm sm:text-xl font-bold text-gov-blue">
                     {statistics.totalVoters.toLocaleString('fr-FR')}
                   </div>
                 </div>
                 
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 bg-green-500 rounded-lg">
-                      <Building className="w-4 h-4 text-white" />
+                <div className="bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/20">
+                  <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                    <div className="p-1 sm:p-1.5 bg-green-500 rounded-md sm:rounded-lg">
+                      <Building className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                     </div>
                     <span className="text-xs font-medium text-green-700 uppercase tracking-wide">Centres</span>
                   </div>
-                  <div className="text-xl font-bold text-green-900">
+                  <div className="text-sm sm:text-xl font-bold text-green-900">
                     {statistics.totalCenters}
                   </div>
                 </div>
                 
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 bg-indigo-500 rounded-lg">
-                      <MapPin className="w-4 h-4 text-white" />
+                <div className="bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/20">
+                  <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                    <div className="p-1 sm:p-1.5 bg-indigo-500 rounded-md sm:rounded-lg">
+                      <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                     </div>
                     <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">Bureaux</span>
                   </div>
-                  <div className="text-xl font-bold text-indigo-900">
+                  <div className="text-sm sm:text-xl font-bold text-indigo-900">
                     {statistics.totalBureaux}
                   </div>
                 </div>
                 
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 bg-purple-500 rounded-lg">
-                      <Star className="w-4 h-4 text-white" />
+                <div className="bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/20">
+                  <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                    <div className="p-1 sm:p-1.5 bg-purple-500 rounded-md sm:rounded-lg">
+                      <Star className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                     </div>
                     <span className="text-xs font-medium text-purple-700 uppercase tracking-wide">Candidats</span>
                   </div>
-                  <div className="text-xl font-bold text-purple-900">
+                  <div className="text-sm sm:text-xl font-bold text-purple-900">
                     {statistics.totalCandidates}
                   </div>
                 </div>
@@ -464,44 +465,53 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
           </div>
         </div>
 
-        {/* Main Content avec onglets modernisés */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Main Content avec onglets modernisés - Mobile First */}
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <Tabs defaultValue="info" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-gray-50 p-1 rounded-none">
               <TabsTrigger 
                 value="info" 
-                className="flex items-center space-x-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
               >
-                <div className="p-1.5 bg-gov-blue/10 rounded-md data-[state=active]:bg-gov-blue transition-colors duration-300">
-                  <Building className="w-4 h-4 text-gov-blue data-[state=active]:text-white" />
+                <div className="p-1 sm:p-1.5 bg-gov-blue/10 rounded-md data-[state=active]:bg-gov-blue transition-colors duration-300">
+                  <Building className="w-3 h-3 sm:w-4 sm:h-4 text-gov-blue data-[state=active]:text-white" />
                 </div>
-                <div className="text-left">
-                  <div className="font-medium text-sm">Informations</div>
+                <div className="text-left hidden xs:block">
+                  <div className="font-medium text-xs sm:text-sm">Informations</div>
                   <div className="text-xs text-gray-500">Détails généraux</div>
+                </div>
+                <div className="text-left xs:hidden">
+                  <div className="font-medium text-xs">Info</div>
                 </div>
               </TabsTrigger>
               <TabsTrigger 
                 value="centers" 
-                className="flex items-center space-x-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
               >
-                <div className="p-1.5 bg-green-100 rounded-md data-[state=active]:bg-green-500 transition-colors duration-300">
-                  <MapPin className="w-4 h-4 text-green-600 data-[state=active]:text-white" />
+                <div className="p-1 sm:p-1.5 bg-green-100 rounded-md data-[state=active]:bg-green-500 transition-colors duration-300">
+                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 data-[state=active]:text-white" />
                 </div>
-                <div className="text-left">
-                  <div className="font-medium text-sm">Centres & Bureaux</div>
+                <div className="text-left hidden xs:block">
+                  <div className="font-medium text-xs sm:text-sm">Centres & Bureaux</div>
                   <div className="text-xs text-gray-500">Organisation territoriale</div>
+                </div>
+                <div className="text-left xs:hidden">
+                  <div className="font-medium text-xs">Centres</div>
                 </div>
               </TabsTrigger>
               <TabsTrigger 
                 value="candidates" 
-                className="flex items-center space-x-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
               >
-                <div className="p-1.5 bg-purple-100 rounded-md data-[state=active]:bg-purple-500 transition-colors duration-300">
-                  <Users className="w-4 h-4 text-purple-600 data-[state=active]:text-white" />
+                <div className="p-1 sm:p-1.5 bg-purple-100 rounded-md data-[state=active]:bg-purple-500 transition-colors duration-300">
+                  <Users className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 data-[state=active]:text-white" />
                 </div>
-                <div className="text-left">
-                  <div className="font-medium text-sm">Candidats</div>
+                <div className="text-left hidden xs:block">
+                  <div className="font-medium text-xs sm:text-sm">Candidats</div>
                   <div className="text-xs text-gray-500">Liste des candidats</div>
+                </div>
+                <div className="text-left xs:hidden">
+                  <div className="font-medium text-xs">Candidats</div>
                 </div>
               </TabsTrigger>
             </TabsList>
@@ -664,67 +674,69 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
             </div>
           </TabsContent>
 
-          {/* Section Centres et Bureaux modernisée */}
-          <TabsContent value="centers" className="p-6 space-y-6">
-            <div className="flex justify-between items-center">
+          {/* Section Centres et Bureaux modernisée - Mobile First */}
+          <TabsContent value="centers" className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Centres de Vote</h3>
-                <p className="text-sm text-gray-600 mt-1">Gérez les centres de vote et leurs bureaux</p>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">Centres de Vote</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Gérez les centres de vote et leurs bureaux</p>
               </div>
               <Button 
                 onClick={() => setShowAddCenter(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto text-sm sm:text-base"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un centre
+                <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Ajouter un centre</span>
+                <span className="xs:hidden">Ajouter</span>
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {centers.map((center) => (
                 <Card 
                   key={center.id} 
                   className="election-card group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-md"
                   onClick={() => setSelectedCenter(center)}
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors duration-300">
+                  <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <CardTitle className="text-sm sm:text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors duration-300 line-clamp-1">
                           {center.name}
                         </CardTitle>
                         <p className="text-xs text-gray-600 line-clamp-2">{center.address}</p>
                       </div>
-                      <div className="p-1.5 bg-green-100 rounded-md group-hover:bg-green-500 transition-colors duration-300">
-                        <MapPin className="w-4 h-4 text-green-600 group-hover:text-white" />
+                      <div className="p-1 sm:p-1.5 bg-green-100 rounded-md group-hover:bg-green-500 transition-colors duration-300 flex-shrink-0">
+                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 group-hover:text-white" />
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-6 pt-0">
                     <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                       <span className="text-xs font-medium text-gray-600">Responsable:</span>
-                      <span className="text-sm font-semibold text-gray-900">{center.responsable}</span>
+                      <span className="text-xs sm:text-sm font-semibold text-gray-900 truncate ml-2">{center.responsable}</span>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <div className="text-lg font-bold text-orange-600">{center.bureaux}</div>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <div className="text-center p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <div className="text-sm sm:text-lg font-bold text-orange-600">{center.bureaux}</div>
                         <div className="text-xs text-orange-600 font-medium uppercase tracking-wide">Bureaux</div>
                       </div>
-                      <div className="text-center p-3 bg-gov-blue/5 rounded-lg border border-gov-blue/20">
-                        <div className="text-lg font-bold text-gov-blue">{center.voters.toLocaleString('fr-FR')}</div>
+                      <div className="text-center p-2 sm:p-3 bg-gov-blue/5 rounded-lg border border-gov-blue/20">
+                        <div className="text-sm sm:text-lg font-bold text-gov-blue">{center.voters.toLocaleString('fr-FR')}</div>
                         <div className="text-xs text-gov-blue font-medium uppercase tracking-wide">Électeurs</div>
                       </div>
                     </div>
 
-                    <div className="flex space-x-2 pt-1">
+                    <div className="flex space-x-1 sm:space-x-2 pt-1">
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="flex-1 bg-white border-gray-200 text-gray-700 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-300 text-xs"
+                        className="flex-1 bg-white border-gray-200 text-gray-700 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-300 text-xs py-1 sm:py-2"
                       >
                         <Eye className="w-3 h-3 mr-1" />
-                        Détails
+                        <span className="hidden xs:inline">Détails</span>
+                        <span className="xs:hidden">Voir</span>
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -745,22 +757,23 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
           </TabsContent>
 
           {/* Section Candidats modernisée */}
-          <TabsContent value="candidates" className="p-6 space-y-6">
-            <div className="flex justify-between items-center">
+          <TabsContent value="candidates" className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Candidats Validés</h3>
-                <p className="text-sm text-gray-600 mt-1">Gérez la liste des candidats à l'élection</p>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">Candidats Validés</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Gérez la liste des candidats à l'élection</p>
               </div>
               <Button 
                 onClick={() => setShowAddCandidate(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto text-sm sm:text-base"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un candidat
+                <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Ajouter un candidat</span>
+                <span className="xs:hidden">Ajouter</span>
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {candidates.map((candidate) => (
                 <Card 
                   key={candidate.id} 
@@ -770,31 +783,31 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                       : 'border-0 shadow-md'
                   }`}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="relative">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-start space-x-2 sm:space-x-3">
+                      <div className="relative flex-shrink-0">
                         <img 
                           src={candidate.photo || '/placeholder.svg'} 
                           alt={candidate.name}
-                          className="w-16 h-16 rounded-xl object-cover border-2 border-white shadow-md"
+                          className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg sm:rounded-xl object-cover border-2 border-white shadow-md"
                         />
                         {candidate.isOurCandidate && (
                           <div className="absolute -top-1 -right-1 p-0.5 bg-purple-500 rounded-full">
-                            <Star className="w-3 h-3 text-white" />
+                            <Star className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
                           </div>
                         )}
                       </div>
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-900 group-hover:text-purple-600 transition-colors duration-300">
+                      <div className="flex-1 space-y-1 sm:space-y-2 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-sm sm:text-lg text-gray-900 group-hover:text-purple-600 transition-colors duration-300 line-clamp-1">
                               {candidate.name}
                             </h3>
-                            <p className="text-sm text-gray-600 font-medium">{candidate.party}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 font-medium line-clamp-1">{candidate.party}</p>
                           </div>
                           {candidate.isOurCandidate && (
-                            <Badge className="bg-purple-500 text-white px-2 py-1 text-xs font-medium">
-                              <Star className="w-3 h-3 mr-1" />
+                            <Badge className="bg-purple-500 text-white px-1.5 sm:px-2 py-1 text-xs font-medium flex-shrink-0">
+                              <Star className="w-2 h-2 sm:w-3 sm:h-3 mr-1" />
                               Notre Candidat
                             </Badge>
                           )}

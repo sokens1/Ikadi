@@ -106,22 +106,20 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Building className="w-5 h-5 text-green-600" />
+      <DialogContent className="max-w-2xl p-4 sm:p-6">
+        <DialogHeader className="pb-4 sm:pb-6">
+          <DialogTitle className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+              <Building className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
             </div>
-            <div>
-              <div className="text-xl font-bold text-gray-900">Sélection des Centres de Vote</div>
-              <div className="text-sm text-gray-600">Choisissez les centres de vote pour cette élection</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-lg sm:text-xl font-bold text-gray-900">Sélection des Centres de Vote</div>
+              <div className="text-xs sm:text-sm text-gray-600">Choisissez les centres de vote pour cette élection</div>
             </div>
-          </DialogTitle>
-          <DialogDescription>
-            <Button variant="ghost" onClick={onClose} className="absolute right-4 top-4" type="button">
-              <X className="w-5 h-5" />
+            <Button variant="ghost" onClick={onClose} className="flex-shrink-0 p-2" type="button">
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
-          </DialogDescription>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="pt-2">
@@ -140,9 +138,10 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
             </ModernFormSection>
 
             <ModernFormActions>
-              <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-              <Button type="submit" className="btn-primary" disabled={selectedCenters.length === 0}>
-                Ajouter {selectedCenters.length} centre{selectedCenters.length > 1 ? 's' : ''}
+              <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3">Annuler</Button>
+              <Button type="submit" className="btn-primary w-full sm:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3" disabled={selectedCenters.length === 0}>
+                <span className="hidden xs:inline">Ajouter {selectedCenters.length} centre{selectedCenters.length > 1 ? 's' : ''}</span>
+                <span className="xs:hidden">Ajouter {selectedCenters.length}</span>
               </Button>
             </ModernFormActions>
           </ModernForm>

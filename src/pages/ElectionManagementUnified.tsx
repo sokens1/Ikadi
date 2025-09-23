@@ -635,205 +635,202 @@ const ElectionManagementUnified = () => {
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
-        {/* Header avec statistiques */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-gov-blue/5 to-gov-blue-light/5 rounded-2xl p-8 mb-8">
+        {/* Header avec statistiques - Mobile First */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-gov-blue/5 to-gov-blue-light/5 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6 lg:mb-8">
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-              <div className="space-y-2">
-                <h1 className="heading-1 text-gray-900">Gestion des Élections</h1>
-                <p className="body-large text-gray-600">
+            <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="space-y-1 sm:space-y-2">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">Gestion des Élections</h1>
+                <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed">
                   Gérez et supervisez toutes les élections du système
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 w-full">
                 <Button 
                   onClick={() => setShowWizard(true)}
-                  className="btn-primary shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="btn-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full xs:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
                   size="lg"
                 >
-                  <Plus className="h-5 w-5" />
-                  Nouvelle Élection
+                  <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  <span className="hidden xs:inline">Nouvelle Élection</span>
+                  <span className="xs:hidden">Nouvelle</span>
                 </Button>
-                {/* <Button 
-                  variant="outline" 
-                  className="btn-secondary shadow-md hover:shadow-lg transition-all duration-300"
-                  size="lg"
-                  onClick={handleExportAllElections}
-                >
-                  <Download className="h-5 w-5" />
-                  Exporter
-                </Button> */}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Statistiques rapides */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Statistiques rapides - Mobile First */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           <Card className="election-card">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="caption text-gray-600 font-medium">Total Élections</p>
-                  <p className="heading-2 text-gov-blue">{statistics.total}</p>
-                  <div className="w-12 h-1 bg-gov-blue/20 rounded-full">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">Total Élections</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gov-blue">{statistics.total}</p>
+                  <div className="w-8 sm:w-10 lg:w-12 h-1 bg-gov-blue/20 rounded-full">
                     <div className="w-full h-full bg-gov-blue rounded-full"></div>
                   </div>
                 </div>
-                <div className="p-3 bg-gov-blue/10 rounded-full">
-                  <Calendar className="h-8 w-8 text-gov-blue" />
+                <div className="p-2 sm:p-3 bg-gov-blue/10 rounded-full flex-shrink-0 ml-2">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-gov-blue" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card className="election-card">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="caption text-gray-600 font-medium">En Cours</p>
-                  <p className="heading-2 text-orange-600">{statistics.byStatus['En cours'] || 0}</p>
-                  <div className="w-12 h-1 bg-orange-200 rounded-full">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">En Cours</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-600">{statistics.byStatus['En cours'] || 0}</p>
+                  <div className="w-8 sm:w-10 lg:w-12 h-1 bg-orange-200 rounded-full">
                     <div className="w-full h-full bg-orange-500 rounded-full"></div>
                   </div>
                 </div>
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <Users className="h-8 w-8 text-orange-600" />
+                <div className="p-2 sm:p-3 bg-orange-100 rounded-full flex-shrink-0 ml-2">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-orange-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card className="election-card">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="caption text-gray-600 font-medium">À Venir</p>
-                  <p className="heading-2 text-gray-600">{statistics.byStatus['À venir'] || 0}</p>
-                  <div className="w-12 h-1 bg-gray-200 rounded-full">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">À Venir</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-600">{statistics.byStatus['À venir'] || 0}</p>
+                  <div className="w-8 sm:w-10 lg:w-12 h-1 bg-gray-200 rounded-full">
                     <div className="w-full h-full bg-gray-500 rounded-full"></div>
                   </div>
                 </div>
-                <div className="p-3 bg-gray-100 rounded-full">
-                  <Calendar className="h-8 w-8 text-gray-600" />
+                <div className="p-2 sm:p-3 bg-gray-100 rounded-full flex-shrink-0 ml-2">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-gray-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card className="election-card">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="caption text-gray-600 font-medium">Terminées</p>
-                  <p className="heading-2 text-green-600">{statistics.byStatus['Terminée'] || 0}</p>
-                  <div className="w-12 h-1 bg-green-200 rounded-full">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">Terminées</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">{statistics.byStatus['Terminée'] || 0}</p>
+                  <div className="w-8 sm:w-10 lg:w-12 h-1 bg-green-200 rounded-full">
                     <div className="w-full h-full bg-green-500 rounded-full"></div>
                   </div>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <Building className="h-8 w-8 text-green-600" />
+                <div className="p-2 sm:p-3 bg-green-100 rounded-full flex-shrink-0 ml-2">
+                  <Building className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-green-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filtres et recherche */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  placeholder="Rechercher une élection, une commune, un département..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQueryLocal(e.target.value)}
-                  className="pl-12 pr-12 py-4 text-base border-0 focus:border-0 focus:ring-0 rounded-xl bg-gray-50 focus:bg-white transition-all duration-200"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQueryLocal('')}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+        {/* Filtres et recherche - Mobile First */}
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
+          <div className="flex flex-col gap-3 sm:gap-4">
+            {/* Barre de recherche */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+              <Input
+                placeholder="Rechercher une élection..."
+                value={searchQuery}
+                onChange={(e) => setSearchQueryLocal(e.target.value)}
+                className="pl-10 pr-10 py-3 sm:py-4 text-sm sm:text-base border-0 focus:border-0 focus:ring-0 rounded-lg sm:rounded-xl bg-gray-50 focus:bg-white transition-all duration-200"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQueryLocal('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48 py-4 border-0 focus:border-0 focus:ring-0 rounded-xl bg-gray-50 focus:bg-white transition-all duration-200">
-                  <div className="flex items-center gap-3">
-                    <Filter className="h-4 w-4 text-gray-500" />
-                    <SelectValue placeholder="Tous les statuts" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="À venir">À venir</SelectItem>
-                  <SelectItem value="En cours">En cours</SelectItem>
-                  <SelectItem value="Terminée">Terminée</SelectItem>
-                  <SelectItem value="Annulée">Annulée</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full sm:w-48 py-4 border-0 focus:border-0 focus:ring-0 rounded-xl bg-gray-50 focus:bg-white transition-all duration-200">
-                  <div className="flex items-center gap-3">
-                    <Building className="h-4 w-4 text-gray-500" />
-                    <SelectValue placeholder="Tous les types" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
-                  <SelectItem value="Législatives">Législatives</SelectItem>
-                  <SelectItem value="Locales">Locales</SelectItem>
-                  <SelectItem value="Présidentielle">Présidentielle</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setViewMode('grid')}
-                className={cn(
-                  "h-10 w-10 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
-                  viewMode === 'grid' && "bg-gov-blue/10 text-gov-blue hover:bg-gov-blue/20"
-                )}
-              >
-                <LayoutGrid className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  "h-10 w-10 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
-                  viewMode === 'list' && "bg-gov-blue/10 text-gov-blue hover:bg-gov-blue/20"
-                )}
-              >
-                <List className="h-5 w-5" />
-              </Button>
+            
+            {/* Filtres et contrôles */}
+            <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
+              <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 flex-1">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full xs:w-auto py-3 sm:py-4 border-0 focus:border-0 focus:ring-0 rounded-lg sm:rounded-xl bg-gray-50 focus:bg-white transition-all duration-200 text-sm sm:text-base">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Filter className="h-4 w-4 text-gray-500" />
+                      <SelectValue placeholder="Statut" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les statuts</SelectItem>
+                    <SelectItem value="À venir">À venir</SelectItem>
+                    <SelectItem value="En cours">En cours</SelectItem>
+                    <SelectItem value="Terminée">Terminée</SelectItem>
+                    <SelectItem value="Annulée">Annulée</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-full xs:w-auto py-3 sm:py-4 border-0 focus:border-0 focus:ring-0 rounded-lg sm:rounded-xl bg-gray-50 focus:bg-white transition-all duration-200 text-sm sm:text-base">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Building className="h-4 w-4 text-gray-500" />
+                      <SelectValue placeholder="Type" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les types</SelectItem>
+                    <SelectItem value="Législatives">Législatives</SelectItem>
+                    <SelectItem value="Locales">Locales</SelectItem>
+                    <SelectItem value="Présidentielle">Présidentielle</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Boutons de vue */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setViewMode('grid')}
+                  className={cn(
+                    "h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
+                    viewMode === 'grid' && "bg-gov-blue/10 text-gov-blue hover:bg-gov-blue/20"
+                  )}
+                >
+                  <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setViewMode('list')}
+                  className={cn(
+                    "h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
+                    viewMode === 'list' && "bg-gov-blue/10 text-gov-blue hover:bg-gov-blue/20"
+                  )}
+                >
+                  <List className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-        </div>
 
-        {/* Liste des élections */}
+        {/* Liste des élections - Mobile First */}
         {filteredElections.length === 0 ? (
           <Card className="election-card border-2 border-dashed border-gray-300">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="p-4 bg-gray-100 rounded-full mb-6">
-                <Calendar className="h-12 w-12 text-gray-400" />
+            <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 lg:py-16 px-4">
+              <div className="p-3 sm:p-4 bg-gray-100 rounded-full mb-4 sm:mb-6">
+                <Calendar className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 text-gray-400" />
               </div>
-              <h3 className="heading-3 mb-2 text-gray-700">
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold mb-2 text-gray-700 text-center">
                 {searchQuery || statusFilter !== 'all' || typeFilter !== 'all' 
                   ? 'Aucune élection trouvée' 
                   : 'Aucune élection trouvée'
                 }
               </h3>
-              <p className="body-regular text-gray-500 text-center mb-8 max-w-md">
+              <p className="text-sm sm:text-base text-gray-500 text-center mb-6 sm:mb-8 max-w-md">
                 {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
                   ? 'Essayez de modifier vos critères de recherche pour trouver des élections correspondantes.'
                   : 'Commencez par créer votre première élection pour gérer le processus électoral.'
@@ -841,31 +838,32 @@ const ElectionManagementUnified = () => {
               </p>
               <Button 
                 onClick={() => setShowWizard(true)}
-                className="btn-primary shadow-lg hover:shadow-xl transition-all duration-300"
+                className="btn-primary shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
                 size="lg"
               >
-                <Plus className="h-5 w-5 mr-2" />
-                Créer une élection
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                <span className="hidden xs:inline">Créer une élection</span>
+                <span className="xs:hidden">Créer</span>
               </Button>
             </CardContent>
           </Card>
         ) : (
           viewMode === 'grid' ? (
-            <div className="election-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {filteredElections.map((election) => (
                 <Card 
                   key={election.id} 
                   className="election-card group hover:shadow-lg transition-all duration-300"
                 >
-                  <CardHeader className="election-card-header">
-                    <div className="flex items-start justify-between">
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="heading-4 group-hover:text-primary-blue mb-3 line-clamp-2">
+                        <CardTitle className="text-base sm:text-lg font-semibold group-hover:text-primary-blue mb-2 sm:mb-3 line-clamp-2 leading-tight">
                           {election.title}
                         </CardTitle>
                         <Badge 
                           variant={getStatusVariant(getStatusColor(election.status))}
-                          className="status-badge"
+                          className="status-badge text-xs px-2 py-1"
                           data-status={getStatusColor(election.status)}
                         >
                           {election.status}
@@ -877,7 +875,7 @@ const ElectionManagementUnified = () => {
                             variant="ghost"
                             size="sm"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2"
+                            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1 sm:p-2 flex-shrink-0"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -891,14 +889,6 @@ const ElectionManagementUnified = () => {
                             <Edit className="mr-2 h-4 w-4" />
                             Modifier
                           </DropdownMenuItem>
-                          {/* <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateElection(election); }}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Dupliquer
-                          </DropdownMenuItem> */}
-                          {/* <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleExportElection(election); }}>
-                            <FileDown className="mr-2 h-4 w-4" />
-                            Exporter
-                          </DropdownMenuItem> */}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             onClick={(e) => { e.stopPropagation(); handleDeleteElection(election.id); }} 
@@ -912,46 +902,46 @@ const ElectionManagementUnified = () => {
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="election-card-content">
-                    <div className="space-y-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3 text-sm text-gray-600">
-                          <div className="p-2 bg-gov-blue/10 rounded-lg">
-                            <Calendar className="h-4 w-4 text-gov-blue" />
+                  <CardContent className="p-4 sm:p-6 pt-0">
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
+                          <div className="p-1.5 sm:p-2 bg-gov-blue/10 rounded-lg flex-shrink-0">
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gov-blue" />
                           </div>
-                          <span className="font-medium">
+                          <span className="font-medium truncate">
                             {election.date ? election.date.toLocaleDateString('fr-FR', {
-                              weekday: 'long',
+                              weekday: 'short',
                               year: 'numeric',
-                              month: 'long',
+                              month: 'short',
                               day: 'numeric'
                             }) : 'Date non définie'}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 text-sm text-gray-600">
-                          <div className="p-2 bg-green-100 rounded-lg">
-                            <MapPin className="h-4 w-4 text-green-600" />
+                        <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
+                          <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg flex-shrink-0">
+                            <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
                           </div>
                           <span className="font-medium line-clamp-1">{election.location.fullAddress}</span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-                        <div className="text-center p-3 bg-gov-blue/5 rounded-lg">
-                          <div className="flex items-center justify-center gap-2 text-gov-blue mb-2">
-                            <Users className="h-5 w-5" />
-                            <span className="text-sm font-semibold">Électeurs</span>
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-200">
+                        <div className="text-center p-2 sm:p-3 bg-gov-blue/5 rounded-lg">
+                          <div className="flex items-center justify-center gap-1 sm:gap-2 text-gov-blue mb-1 sm:mb-2">
+                            <Users className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
+                            <span className="text-xs sm:text-sm font-semibold">Électeurs</span>
                           </div>
-                          <p className="heading-3 text-gov-blue">
+                          <p className="text-sm sm:text-base lg:text-lg font-bold text-gov-blue">
                             {election.statistics.totalVoters.toLocaleString()}
                           </p>
                         </div>
-                        <div className="text-center p-3 bg-green-50 rounded-lg">
-                          <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
-                            <Building className="h-5 w-5" />
-                            <span className="text-sm font-semibold">Centres</span>
+                        <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg">
+                          <div className="flex items-center justify-center gap-1 sm:gap-2 text-green-600 mb-1 sm:mb-2">
+                            <Building className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
+                            <span className="text-xs sm:text-sm font-semibold">Centres</span>
                           </div>
-                          <p className="heading-3 text-green-700">
+                          <p className="text-sm sm:text-base lg:text-lg font-bold text-green-700">
                             {election.statistics.totalCenters}
                           </p>
                         </div>
@@ -959,14 +949,15 @@ const ElectionManagementUnified = () => {
 
                       <Button
                         variant="outline"
-                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-3 group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
+                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-2 sm:py-3 text-sm sm:text-base group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewElection(election);
                         }}
                       >
-                        Voir les détails
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        <span className="hidden xs:inline">Voir les détails</span>
+                        <span className="xs:hidden">Détails</span>
+                        <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" />
                       </Button>
                     </div>
                   </CardContent>
@@ -974,96 +965,109 @@ const ElectionManagementUnified = () => {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4">
               {filteredElections.map((election) => (
                 <Card
                   key={election.id}
-                  className="election-card group hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row items-center justify-between p-4 md:p-6"
+                  className="election-card group hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="flex-1 min-w-0 mb-4 md:mb-0 md:mr-6">
-                    <div className="flex items-start justify-between mb-2">
-                      <CardTitle className="heading-5 group-hover:text-primary-blue line-clamp-1 flex-1">
-                        {election.title}
-                      </CardTitle>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1 ml-2"
+                  <div className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                      {/* Contenu principal */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <CardTitle className="text-base sm:text-lg font-semibold group-hover:text-primary-blue line-clamp-1 flex-1 pr-2">
+                            {election.title}
+                          </CardTitle>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1 flex-shrink-0"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewElection(election); }}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Voir les détails
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditElection(election); }}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={(e) => { e.stopPropagation(); handleDeleteElection(election.id); }} 
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
+                          <Badge
+                            variant={getStatusVariant(getStatusColor(election.status))}
+                            className="status-badge text-xs px-2 py-1 w-fit"
+                            data-status={getStatusColor(election.status)}
                           >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewElection(election); }}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Voir les détails
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditElection(election); }}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Modifier
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateElection(election); }}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Dupliquer
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleExportElection(election); }}>
-                            <FileDown className="mr-2 h-4 w-4" />
-                            Exporter
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={(e) => { e.stopPropagation(); handleDeleteElection(election.id); }} 
-                            className="text-red-600 focus:text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    <Badge
-                      variant={getStatusVariant(getStatusColor(election.status))}
-                      className="status-badge"
-                      data-status={getStatusColor(election.status)}
-                    >
-                      {election.status}
-                    </Badge>
-                    <div className="flex items-center text-gray-600 body-small mt-2">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>{election.date ? election.date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date non définie'}</span>
-                    </div>
-                    <div className="flex items-center text-gray-600 body-small mt-1">
-                      <MapPin className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>{election.location.fullAddress}</span>
-                    </div>
-                  </div>
+                            {election.status}
+                          </Badge>
+                          
+                          <div className="flex items-center text-gray-600 text-xs sm:text-sm">
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-gray-500 flex-shrink-0" />
+                            <span className="truncate">
+                              {election.date ? election.date.toLocaleDateString('fr-FR', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              }) : 'Date non définie'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center text-gray-600 text-xs sm:text-sm mb-3">
+                          <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-gray-500 flex-shrink-0" />
+                          <span className="line-clamp-1">{election.location.fullAddress}</span>
+                        </div>
 
-                  <div className="flex items-center gap-6 text-gray-700 body-small mb-4 md:mb-0 md:mr-6">
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-gov-blue" />
-                      <span>{election.statistics.totalVoters.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Building className="h-4 w-4 text-green-500" />
-                      <span>{election.statistics.totalCenters}</span>
-                    </div>
-                  </div>
+                        {/* Statistiques */}
+                        <div className="flex items-center gap-4 sm:gap-6 text-gray-700 text-xs sm:text-sm mb-3">
+                          <div className="flex items-center gap-1">
+                            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-gov-blue" />
+                            <span className="font-medium">{election.statistics.totalVoters.toLocaleString()}</span>
+                            <span className="text-gray-500 hidden xs:inline">électeurs</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Building className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                            <span className="font-medium">{election.statistics.totalCenters}</span>
+                            <span className="text-gray-500 hidden xs:inline">centres</span>
+                          </div>
+                        </div>
+                      </div>
 
-                  <div className="w-full md:w-auto">
-                    <Button
-                      variant="outline"
-                      className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-3 group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewElection(election);
-                      }}
-                    >
-                      Voir les détails
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Button>
+                      {/* Bouton d'action */}
+                      <div className="w-full sm:w-auto">
+                        <Button
+                          variant="outline"
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-2 sm:py-3 text-sm group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewElection(election);
+                          }}
+                        >
+                          <span className="hidden xs:inline">Voir les détails</span>
+                          <span className="xs:hidden">Détails</span>
+                          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </Card>
               ))}
