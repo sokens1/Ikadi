@@ -217,8 +217,8 @@ const PVValidationSection = () => {
           <DialogHeader>
             <DialogTitle>Détails du PV</DialogTitle>
           </DialogHeader>
-          {selectedPVData ? (
-            <div className="space-y-6">
+            {selectedPVData ? (
+              <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   {getStatusIcon(selectedPVData.status)}
@@ -227,48 +227,48 @@ const PVValidationSection = () => {
                     const center = bureau ? centersMap.get(bureau.center_id) : undefined;
                     return `${center?.name || 'Centre'} - ${bureau?.name || 'Bureau'}`;
                   })()}</span>
-                </div>
+                          </div>
                 {getPriorityBadge(selectedPVData.status)}
-              </div>
+                      </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+                              <div>
                   <h4 className="font-medium text-gray-900 mb-3">Participation</h4>
                   <div className="p-3 bg-gray-50 rounded-lg space-y-1 text-sm">
                     <div className="flex justify-between"><span>Votants:</span><span className="font-medium">{selectedPVData.total_voters}</span></div>
                     <div className="flex justify-between"><span>Bulletins nuls:</span><span className="font-medium">{selectedPVData.null_votes ?? 0}</span></div>
                     <div className="flex justify-between"><span>Suffrages exprimés:</span><span className="font-medium">{selectedPVData.votes_expressed ?? 0}</span></div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">Document Scanné</h4>
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Document Scanné</h4>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
                     <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                     <h5 className="font-medium text-gray-900 mb-2">{selectedPVData.pv_photo_url ? 'Document attaché' : 'Aucun document'}</h5>
                     <Button variant="outline" size="sm" disabled={!selectedPVData.pv_photo_url} onClick={() => selectedPVData.pv_photo_url && window.open(selectedPVData.pv_photo_url, '_blank')}>
                       <Eye className="w-4 h-4 mr-2" /> Voir le document
-                    </Button>
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="comment">Commentaire de validation</Label>
+                <div>
+                  <Label htmlFor="comment">Commentaire de validation</Label>
                 <Textarea id="comment" placeholder="Ajouter un commentaire..." value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
-              </div>
+                </div>
 
-              <div className="flex space-x-4">
+                <div className="flex space-x-4">
                 <Button onClick={() => handleValidation('approve')} className="bg-green-600 hover:bg-green-700 text-white">
                   <CheckCircle className="w-4 h-4 mr-2" /> Approuver
-                </Button>
+                  </Button>
                 <Button onClick={() => handleValidation('correction')} variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
                   <MessageSquare className="w-4 h-4 mr-2" /> Demander Correction
-                </Button>
+                  </Button>
                 <Button onClick={() => handleValidation('reject')} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
                   <XCircle className="w-4 h-4 mr-2" /> Rejeter
-                </Button>
+                  </Button>
+                </div>
               </div>
-            </div>
           ) : null}
         </DialogContent>
       </Dialog>

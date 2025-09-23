@@ -104,7 +104,7 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
         if (centerIds.length > 0) {
           const { data: bureaux, error: bureauxError } = await supabase
             .from('voting_bureaux')
-            .select('id, name, center_id')
+            .select('id, name, center_id, registered_voters')
             .in('center_id', centerIds);
           
           if (bureauxError) {
@@ -179,7 +179,9 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     const votants = parseInt(formData.votants) || 0;
     const nuls = parseInt(formData.bulletinsNuls) || 0;
     const exprimes = parseInt(formData.suffragesExprimes) || 0;
-    const inscrits = 0; // TODO: Récupérer depuis les données du bureau sélectionné
+    // Récupérer inscrits depuis le bureau sélectionné si chargé
+    const selectedBureau = votingBureaux.find(b => b.id === formData.bureau);
+    const inscrits = selectedBureau?.registered_voters || 0;
 
     if (votants > inscrits) {
       errors.votants = `Le nombre de votants (${votants}) ne peut pas dépasser le nombre d'inscrits (${inscrits})`;
@@ -275,6 +277,21 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
       const bureauId = formData.bureau;
       const centerId = formData.centre;
 
+      // Récupérer les inscrits du bureau si possible
+      let registeredVoters = 0;
+      try {
+        const { data: bInfo, error: bErr } = await supabase
+          .from('voting_bureaux')
+          .select('registered_voters')
+          .eq('id', bureauId)
+          .single();
+        if (!bErr && bInfo) {
+          registeredVoters = bInfo.registered_voters || 0;
+        }
+      } catch (e) {
+        // ignore et rester à 0
+      }
+
       let pvPhotoUrl: string | null = null;
       if (formData.uploadedFile) {
         try {
@@ -294,7 +311,7 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
         .insert({
           election_id: selectedElection,
           bureau_id: bureauId,
-          total_registered: 0,
+          total_registered: registeredVoters,
           total_voters,
           null_votes,
           votes_expressed,
