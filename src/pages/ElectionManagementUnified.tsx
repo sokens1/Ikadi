@@ -75,7 +75,9 @@ const ElectionManagementUnified = () => {
             provinces(name),
             departments(name),
             communes(name),
-            arrondissements(name)
+            arrondissements(name),
+            election_candidates(count),
+            election_centers(count)
           `)
           .order('election_date', { ascending: false });
 
@@ -108,7 +110,7 @@ const ElectionManagementUnified = () => {
           });
           
           return {
-          id: election.id.toString(),
+          id: String(election.id),
           title: election.title,
           type: election.election_type || 'Législatives',
           status: election.status || 'À venir',
@@ -132,8 +134,8 @@ const ElectionManagementUnified = () => {
           },
           statistics: {
             totalVoters: election.nb_electeurs || election.registered_voters || 0,
-            totalCandidates: election.candidates_count || 0,
-            totalCenters: election.voting_centers_count || 0,
+            totalCandidates: election.election_candidates?.[0]?.count || 0,
+            totalCenters: election.election_centers?.[0]?.count || 0,
             totalBureaux: election.voting_bureaux_count || 0,
             completedSteps: 0,
             totalSteps: 5,
@@ -468,7 +470,7 @@ const ElectionManagementUnified = () => {
 
       // Créer l'objet Election complet
       const newElection: Election = {
-        id: data.id.toString(),
+        id: String(data.id),
         title: electionData.title,
         type: electionData.type,
         status: 'À venir',
@@ -521,7 +523,7 @@ const ElectionManagementUnified = () => {
     
     // Adapter notre type Election vers le type attendu par ElectionDetailView
     const adaptedElection = {
-      id: parseInt(selectedElection.id.replace(/\D/g, '')) || 1,
+      id: selectedElection.id, // UUID direct
       title: selectedElection.title,
       date: selectedElection.date.toISOString().split('T')[0],
       status: selectedElection.status,

@@ -23,7 +23,7 @@ import AddCandidateModal from './AddCandidateModal';
 import CenterDetailModal from './CenterDetailModal';
 
 interface Election {
-  id: number;
+  id: string; // UUID
   title: string;
   date: string;
   status: string;
@@ -163,7 +163,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
       try {
         const { data, error } = await supabase
           .from('candidates')
-          .select('*')
+          .select('id, name, party, photo_url, is_our_candidate')
           .order('name', { ascending: true });
 
         if (error) {
@@ -173,14 +173,12 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         }
 
         // Transformer les données Supabase en format Candidate
-        const transformedCandidates: Candidate[] = data?.map(candidate => ({
-          id: candidate.id.toString(),
+        const transformedCandidates: Candidate[] = data?.map((candidate: any) => ({
+          id: String(candidate.id),
           name: candidate.name || '',
           party: candidate.party || '',
-          isOurCandidate: candidate.is_priority || false,
+          isOurCandidate: candidate.is_our_candidate || false,
           photo: candidate.photo_url || '/placeholder.svg',
-          votes: candidate.votes_received || 0,
-          percentage: 0 // Calculé dynamiquement si nécessaire
         })) || [];
 
         setCandidates(transformedCandidates);

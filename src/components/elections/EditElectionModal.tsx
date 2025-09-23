@@ -1,15 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Election } from '@/types/elections';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import Select2, { Select2Option } from '@/components/ui/select2';
-import { X, Save, Calendar, MapPin, Users, Building, Vote, Target } from 'lucide-react';
+import { X, Save, Calendar, MapPin, Users, Building, Vote, Target, Star } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import FloatingInput from '@/components/ui/floating-input';
 import FloatingTextarea from '@/components/ui/floating-textarea';
 import FloatingSelect from '@/components/ui/floating-select';
 import { ModernForm, ModernFormSection, ModernFormGrid, ModernFormActions } from '@/components/ui/modern-form';
+import MultiSelect from '@/components/ui/multi-select';
 
 interface EditElectionModalProps {
   election: Election;
@@ -36,6 +40,8 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     budget: election.configuration.budget,
     voteGoal: election.configuration.voteGoal,
     nbElecteurs: election.statistics.totalVoters,
+    selectedCandidates: [] as string[],
+    selectedCenters: [] as string[],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,6 +57,10 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [selectedCommuneId, setSelectedCommuneId] = useState<string>('');
   const [selectedArrondissementId, setSelectedArrondissementId] = useState<string>('');
+
+  // États pour les données de candidats et centres
+  const [candidates, setCandidates] = useState<Array<{identifiant: string, nom: string, parti: string, est_notre_candidat: boolean}>>([]);
+  const [centers, setCenters] = useState<Array<{identifiant: string, nom: string, adresse: string, total_voters: number, total_bureaux: number}>>([]);
 
   // Charger les provinces
   const loadProvinces = async () => {
@@ -112,13 +122,95 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     }
   };
 
-  // Charger toutes les données de localisation
+  // Charger les candidats (essaie EN puis FR avec alias PostgREST)
+  const loadCandidates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('candidates')
+        .select('identifiant:id, nom:name, parti:party, est_notre_candidat:is_our_candidate')
+        .order('name');
+      if (!error) {
+        setCandidates(data || []);
+        return;
+      }
+      throw error;
+    } catch (_) {
+      try {
+        const { data, error } = await supabase
+          .from('candidats')
+          .select('identifiant, nom, parti, est_notre_candidat')
+          .order('nom');
+        if (error) throw error;
+        setCandidates(data || []);
+      } catch (error) {
+        console.error('Erreur lors du chargement des candidats:', error);
+        setCandidates([]);
+      }
+    }
+  };
+
+  // Charger les centres de vote (essaie EN puis FR)
+  const loadCenters = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('voting_centers')
+        .select('identifiant:id, nom:name, adresse:address, total_voters, total_bureaux')
+        .order('name');
+      if (!error) {
+        setCenters(data || []);
+        return;
+      }
+      throw error;
+    } catch (_) {
+      try {
+        const { data, error } = await supabase
+          .from('centres_de_vote')
+          .select('identifiant, nom, adresse, total_voters, total_bureaux')
+          .order('nom');
+        if (error) throw error;
+        setCenters(data || []);
+      } catch (error) {
+        console.error('Erreur lors du chargement des centres:', error);
+        setCenters([]);
+      }
+    }
+  };
+
+  // Charger toutes les données
   useEffect(() => {
     loadProvinces();
     loadDepartments();
     loadCommunes();
     loadArrondissements();
+    loadCandidates();
+    loadCenters();
   }, []);
+
+  // Pré-sélectionner candidats et centres liés à l'élection (via tables de jonction)
+  useEffect(() => {
+    const loadLinkedSelections = async () => {
+      try {
+        const [{ data: ec, error: ecError }, { data: ez, error: ezError }] = await Promise.all([
+          supabase.from('election_candidates').select('candidate_id').eq('election_id', election.id),
+          supabase.from('election_centers').select('center_id').eq('election_id', election.id)
+        ]);
+
+        if (!ecError && ec) {
+          const candidateIds = ec.map((r: any) => r.candidate_id as string);
+          setFormData(prev => ({ ...prev, selectedCandidates: candidateIds }));
+        }
+
+        if (!ezError && ez) {
+          const centerIds = ez.map((r: any) => r.center_id as string);
+          setFormData(prev => ({ ...prev, selectedCenters: centerIds }));
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des liaisons candidats/centres:', error);
+      }
+    };
+
+    loadLinkedSelections();
+  }, [election.id]);
 
   // Initialiser les IDs sélectionnés avec les valeurs actuelles
   useEffect(() => {
@@ -226,9 +318,9 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             </div>
             Modification de l'élection
           </DialogTitle>
-          {/* <DialogDescription className="text-gray-600 mt-2">
+          <DialogDescription className="text-gray-600 mt-2">
             Modifiez les informations de l'élection sélectionnée. Les champs marqués d'un astérisque (*) sont obligatoires.
-          </DialogDescription> */}
+          </DialogDescription>
         </DialogHeader>
 
         <ModernForm onSubmit={handleSubmit}>
@@ -428,6 +520,163 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 // helperText="Nombre de voix visées"
               />
             </ModernFormGrid>
+          </ModernFormSection>
+
+          {/* Configuration Électorale */}
+          <ModernFormSection
+            title="Configuration Électorale"
+            description="Sélectionnez les candidats et centres de vote pour cette élection"
+            icon={<Users className="w-5 h-5" />}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Sélection des candidats */}
+              <MultiSelect
+                options={candidates.map(candidate => ({
+                  value: candidate.identifiant,
+                  label: candidate.nom,
+                  subtitle: candidate.parti,
+                  metadata: { est_notre_candidat: candidate.est_notre_candidat }
+                }))}
+                selected={formData.selectedCandidates}
+                onSelectionChange={(selected) => setFormData({...formData, selectedCandidates: selected})}
+                placeholder="Rechercher et sélectionner des candidats..."
+                title="Candidats"
+                icon={<Users className="w-5 h-5 text-gov-blue" />}
+                emptyMessage="Aucun candidat sélectionné"
+                renderOption={(option) => (
+                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="w-10 h-10 bg-gov-blue/10 rounded-full flex items-center justify-center">
+                      <Users className="w-5 h-5 text-gov-blue" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{option.label}</p>
+                      <p className="text-sm text-gray-600">{option.subtitle}</p>
+                      {option.metadata?.est_notre_candidat && (
+                        <Badge className="bg-gov-blue text-white px-2 py-1 text-xs mt-1">
+                          <Star className="w-3 h-3 mr-1" />
+                          Notre Candidat
+                        </Badge>
+                      )}
+                    </div>
+                    <Checkbox
+                      checked={formData.selectedCandidates.includes(option.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          if (!formData.selectedCandidates.includes(option.value)) {
+                            setFormData({
+                              ...formData,
+                              selectedCandidates: [...formData.selectedCandidates, option.value]
+                            });
+                          }
+                        } else {
+                          setFormData({
+                            ...formData,
+                            selectedCandidates: formData.selectedCandidates.filter(id => id !== option.value)
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              />
+
+              {/* Sélection des centres */}
+              <MultiSelect
+                options={centers.map(center => ({
+                  value: center.identifiant,
+                  label: center.nom,
+                  subtitle: center.adresse,
+                  metadata: { 
+                    total_voters: center.total_voters, 
+                    total_bureaux: center.total_bureaux 
+                  }
+                }))}
+                selected={formData.selectedCenters}
+                onSelectionChange={(selected) => setFormData({...formData, selectedCenters: selected})}
+                placeholder="Rechercher et sélectionner des centres..."
+                title="Centres de Vote"
+                icon={<Building className="w-5 h-5 text-green-600" />}
+                emptyMessage="Aucun centre sélectionné"
+                renderOption={(option) => (
+                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Building className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{option.label}</p>
+                      <p className="text-sm text-gray-600">{option.subtitle}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {option.metadata?.total_bureaux || 0} bureaux
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {option.metadata?.total_voters || 0} électeurs
+                        </Badge>
+                      </div>
+                    </div>
+                    <Checkbox
+                      checked={formData.selectedCenters.includes(option.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          if (!formData.selectedCenters.includes(option.value)) {
+                            setFormData({
+                              ...formData,
+                              selectedCenters: [...formData.selectedCenters, option.value]
+                            });
+                          }
+                        } else {
+                          setFormData({
+                            ...formData,
+                            selectedCenters: formData.selectedCenters.filter(id => id !== option.value)
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              />
+            </div>
+
+            {/* Récapitulatif automatique */}
+            {(() => {
+              const selectedCandidatesData = formData.selectedCandidates.map(id => 
+                candidates.find(c => c.identifiant === id)
+              ).filter(Boolean);
+
+              const selectedCentersData = formData.selectedCenters.map(id => 
+                centers.find(c => c.identifiant === id)
+              ).filter(Boolean);
+
+              const totalBureaux = selectedCentersData.reduce((sum, center) => sum + (center.total_bureaux || 0), 0);
+              const totalElecteurs = selectedCentersData.reduce((sum, center) => sum + (center.total_voters || 0), 0);
+
+              return (
+                <div className="mt-8 p-6 bg-gradient-to-r from-gov-blue/5 to-green-50 rounded-xl border border-gov-blue/20">
+                  <h5 className="font-semibold text-gov-blue mb-4 flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    Récapitulatif Automatique
+                  </h5>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-white rounded-lg">
+                      <div className="text-2xl font-bold text-gov-blue">{selectedCandidatesData.length}</div>
+                      <div className="text-sm text-gov-blue">Candidats</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{selectedCentersData.length}</div>
+                      <div className="text-sm text-green-600">Centres</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">{totalBureaux}</div>
+                      <div className="text-sm text-purple-600">Bureaux</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">{totalElecteurs.toLocaleString('fr-FR')}</div>
+                      <div className="text-sm text-orange-600">Électeurs</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </ModernFormSection>
 
           {/* Actions */}
