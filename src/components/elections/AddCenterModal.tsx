@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -118,21 +119,14 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
           <ModernForm>
             <ModernFormSection title="Centres de Vote">
               <MultiSelect
-                options={centers?.map(c => ({
+                options={(centers || []).map(c => ({
                   value: c.id,
                   label: c.name,
-                  description: c.address,
-                  isPriority: false
-                })) || []}
-                selectedValues={selectedCenters}
+                  subtitle: c.address
+                }))}
+                selected={selectedCenters}
                 onSelectionChange={setSelectedCenters}
                 placeholder="Sélectionnez des centres..."
-                emptyState={{
-                  icon: Building,
-                  title: "Aucun centre sélectionné",
-                  description: "Cliquez sur 'Ajouter des éléments' pour choisir des centres"
-                }}
-                loading={loading}
               />
             </ModernFormSection>
 

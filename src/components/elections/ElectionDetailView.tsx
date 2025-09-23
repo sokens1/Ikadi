@@ -195,21 +195,29 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
   const handleAddCenter = async (centersData: Center[]) => {
     try {
+      console.log('handleAddCenter appelé avec:', centersData);
+      console.log('ID de l\'élection:', election.id);
+      
       // Lier les centres sélectionnés à l'élection
       const centerLinks = centersData.map(center => ({
         election_id: election.id,
         center_id: center.id
       }));
 
-      const { error: linkError } = await supabase
+      console.log('Liens centres à créer:', centerLinks);
+
+      const { data, error: linkError } = await supabase
         .from('election_centers')
-        .insert(centerLinks);
+        .insert(centerLinks)
+        .select();
 
       if (linkError) {
         console.error('Erreur lors de l\'association centres-élection:', linkError);
-        toast.error('Association des centres à l\'élection refusée');
+        toast.error(`Erreur lors de l'association des centres: ${linkError.message}`);
         return;
       }
+
+      console.log('Centres liés avec succès:', data);
 
       // Ajouter les centres à la liste locale
       setCenters(prev => [...prev, ...centersData]);
@@ -217,11 +225,15 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
       toast.success(`${centersData.length} centre${centersData.length > 1 ? 's' : ''} ajouté${centersData.length > 1 ? 's' : ''} et rattaché${centersData.length > 1 ? 's' : ''} à l'élection`);
     } catch (error) {
       console.error('Erreur lors de l\'ajout des centres:', error);
+      toast.error('Erreur lors de l\'ajout des centres');
     }
   };
 
   const handleAddCandidate = async (candidatesData: Candidate[]) => {
     try {
+      console.log('handleAddCandidate appelé avec:', candidatesData);
+      console.log('ID de l\'élection:', election.id);
+      
       // Lier les candidats sélectionnés à l'élection
       const candidateLinks = candidatesData.map(candidate => ({
         election_id: election.id,
@@ -229,15 +241,20 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         is_our_candidate: candidate.isOurCandidate
       }));
 
-      const { error: linkError } = await supabase
+      console.log('Liens candidats à créer:', candidateLinks);
+
+      const { data, error: linkError } = await supabase
         .from('election_candidates')
-        .insert(candidateLinks);
+        .insert(candidateLinks)
+        .select();
 
       if (linkError) {
         console.error('Erreur lors de l\'association candidats-élection:', linkError);
-        toast.error('Association des candidats à l\'élection refusée');
+        toast.error(`Erreur lors de l'association des candidats: ${linkError.message}`);
         return;
       }
+
+      console.log('Candidats liés avec succès:', data);
 
       // Ajouter les candidats à la liste locale
       setCandidates(prev => [...prev, ...candidatesData]);
@@ -245,6 +262,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
       toast.success(`${candidatesData.length} candidat${candidatesData.length > 1 ? 's' : ''} ajouté${candidatesData.length > 1 ? 's' : ''} et rattaché${candidatesData.length > 1 ? 's' : ''} à l'élection`);
     } catch (error) {
       console.error('Erreur lors de l\'ajout des candidats:', error);
+      toast.error('Erreur lors de l\'ajout des candidats');
     }
   };
 

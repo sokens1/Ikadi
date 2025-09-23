@@ -251,11 +251,31 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
   // Fonction pour mettre à jour les liens candidats/centres
   const updateElectionLinks = async (electionId: string, candidateIds: string[], centerIds: string[]) => {
     try {
+      console.log('updateElectionLinks appelé avec:', { electionId, candidateIds, centerIds });
+      
       // Supprimer les anciens liens
-      await Promise.all([
-        supabase.from('election_candidates').delete().eq('election_id', electionId),
-        supabase.from('election_centers').delete().eq('election_id', electionId)
-      ]);
+      console.log('Suppression des anciens liens...');
+      const { error: deleteCandidatesError } = await supabase
+        .from('election_candidates')
+        .delete()
+        .eq('election_id', electionId);
+
+      if (deleteCandidatesError) {
+        console.error('Erreur lors de la suppression des candidats:', deleteCandidatesError);
+        throw deleteCandidatesError;
+      }
+
+      const { error: deleteCentersError } = await supabase
+        .from('election_centers')
+        .delete()
+        .eq('election_id', electionId);
+
+      if (deleteCentersError) {
+        console.error('Erreur lors de la suppression des centres:', deleteCentersError);
+        throw deleteCentersError;
+      }
+
+      console.log('Anciens liens supprimés avec succès');
 
       // Créer les nouveaux liens candidats
       if (candidateIds.length > 0) {
@@ -265,14 +285,21 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
           is_our_candidate: false // Par défaut, sera mis à jour si nécessaire
         }));
 
-        const { error: candidateError } = await supabase
+        console.log('Insertion des nouveaux liens candidats:', candidateLinks);
+
+        const { data: candidateData, error: candidateError } = await supabase
           .from('election_candidates')
-          .insert(candidateLinks);
+          .insert(candidateLinks)
+          .select();
 
         if (candidateError) {
-          console.error('Erreur lors de la mise à jour des candidats:', candidateError);
+          console.error('Erreur lors de l\'insertion des candidats:', candidateError);
           throw candidateError;
         }
+
+        console.log('Candidats insérés avec succès:', candidateData);
+      } else {
+        console.log('Aucun candidat à insérer');
       }
 
       // Créer les nouveaux liens centres
@@ -282,14 +309,21 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
           center_id: centerId
         }));
 
-        const { error: centerError } = await supabase
+        console.log('Insertion des nouveaux liens centres:', centerLinks);
+
+        const { data: centerData, error: centerError } = await supabase
           .from('election_centers')
-          .insert(centerLinks);
+          .insert(centerLinks)
+          .select();
 
         if (centerError) {
-          console.error('Erreur lors de la mise à jour des centres:', centerError);
+          console.error('Erreur lors de l\'insertion des centres:', centerError);
           throw centerError;
         }
+
+        console.log('Centres insérés avec succès:', centerData);
+      } else {
+        console.log('Aucun centre à insérer');
       }
     } catch (error) {
       console.error('Erreur lors de la mise à jour des liens:', error);
@@ -350,6 +384,11 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
       };
 
       // Mettre à jour les liens candidats/centres
+      console.log('Données de sélection avant mise à jour des liens:', {
+        selectedCandidates: formData.selectedCandidates,
+        selectedCenters: formData.selectedCenters
+      });
+      
       await updateElectionLinks(election.id, formData.selectedCandidates, formData.selectedCenters);
 
       await onUpdate(updatedData);
