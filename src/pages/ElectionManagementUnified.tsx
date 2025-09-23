@@ -91,18 +91,25 @@ const ElectionManagementUnified = () => {
             const [candidatesResult, centersResult] = await Promise.all([
               supabase
                 .from('election_candidates')
-                .select('*', { count: 'exact', head: true })
+                .select('id')
                 .eq('election_id', election.id),
               supabase
                 .from('election_centers')
-                .select('*', { count: 'exact', head: true })
+                .select('id')
                 .eq('election_id', election.id)
             ]);
 
+            console.log(`Élection ${election.id}:`, {
+              candidates: candidatesResult.data?.length || 0,
+              centers: centersResult.data?.length || 0,
+              candidatesError: candidatesResult.error,
+              centersError: centersResult.error
+            });
+
             return {
               ...election,
-              candidates_count: candidatesResult.count || 0,
-              centers_count: centersResult.count || 0
+              candidates_count: candidatesResult.data?.length || 0,
+              centers_count: centersResult.data?.length || 0
             };
           }) || []
         );
@@ -498,6 +505,8 @@ const ElectionManagementUnified = () => {
           is_our_candidate: candidate.isOurCandidate || false
         }));
 
+        console.log('Candidats à lier:', candidateLinks);
+
         const { error: candidateError } = await supabase
           .from('election_candidates')
           .insert(candidateLinks);
@@ -505,7 +514,11 @@ const ElectionManagementUnified = () => {
         if (candidateError) {
           console.error('Erreur lors de la liaison des candidats:', candidateError);
           toast.error('Erreur lors de la liaison des candidats');
+        } else {
+          console.log('Candidats liés avec succès');
         }
+      } else {
+        console.log('Aucun candidat à lier pour cette élection');
       }
 
       // Lier les centres à l'élection
@@ -515,6 +528,8 @@ const ElectionManagementUnified = () => {
           center_id: center.id
         }));
 
+        console.log('Centres à lier:', centerLinks);
+
         const { error: centerError } = await supabase
           .from('election_centers')
           .insert(centerLinks);
@@ -522,7 +537,11 @@ const ElectionManagementUnified = () => {
         if (centerError) {
           console.error('Erreur lors de la liaison des centres:', centerError);
           toast.error('Erreur lors de la liaison des centres');
+        } else {
+          console.log('Centres liés avec succès');
         }
+      } else {
+        console.log('Aucun centre à lier pour cette élection');
       }
 
       // Créer l'objet Election complet
