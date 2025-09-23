@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,9 +20,12 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { addNotification } = useNotifications();
+  const hasNotifiedRef = useRef(false);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [dashboardData, setDashboardData] = useState({
     nextElection: {
@@ -39,7 +42,9 @@ const Dashboard = () => {
       centers: 0,
       provinces: 0,
       bureaux: 0,
-      average: 0
+      average: 0,
+      provinceName: null as string | null,
+      provinceDisplay: ""
     },
     pvsWaiting: {
       count: 0,
@@ -86,10 +91,10 @@ const Dashboard = () => {
           .from('voting_bureaux')
           .select('*', { count: 'exact', head: true });
 
-        // 5. Compter les provinces
-        const { count: provincesCount } = await supabase
+        // 5. Récupérer les provinces (nom + count)
+        const { data: provincesData, count: provincesCount } = await supabase
           .from('provinces')
-          .select('*', { count: 'exact', head: true });
+          .select('name', { count: 'exact' });
 
         // 6. Compter les PVs en attente
         const { count: pvsCount } = await supabase
@@ -169,7 +174,7 @@ const Dashboard = () => {
           nextElection: nextElection ? {
             title: nextElection.title,
             date: nextElection.election_date,
-            endTime: nextElection.end_time || "18h00",
+            endTime: nextElection.end_time || "",
             status: nextElection.status || "Programmée"
           } : {
             title: "Aucune élection programmée",
@@ -185,13 +190,41 @@ const Dashboard = () => {
             centers: centersCount || 0,
             provinces: provincesCount || 0,
             bureaux: bureauxCount || 0,
-            average: centersCount && bureauxCount ? Number((bureauxCount / centersCount).toFixed(1)) : 0
+            average: centersCount && bureauxCount ? Number((bureauxCount / centersCount).toFixed(1)) : 0,
+            provinceName: provincesData && provincesData.length === 1 ? provincesData[0].name : null,
+            provinceDisplay: provincesCount === 1 ? provincesData?.[0]?.name : `${provincesCount} provinces`
           },
           pvsWaiting: {
             count: pvsCount || 0,
             status: pvsCount > 0 ? "À valider" : "Aucun"
           }
         });
+
+        // Notifications via l'icône (éviter la duplication au premier chargement)
+        if (!hasNotifiedRef.current) {
+          if (pvsCount && pvsCount > 0) {
+            addNotification({
+              title: 'PV en attente de validation',
+              message: `${pvsCount} procès-verbaux nécessitent une action`,
+              type: 'warning'
+            });
+          }
+          if (nextElection) {
+            addNotification({
+              title: 'Prochaine élection programmée',
+              message: `${nextElection.title} • ${new Date(nextElection.election_date).toLocaleDateString('fr-FR')}`,
+              type: 'info'
+            });
+          }
+          if (recentVoters && recentVoters.length > 0) {
+            addNotification({
+              title: 'Nouveaux électeurs enregistrés',
+              message: `${recentVoters.length} inscription(s) récente(s)`,
+              type: 'success'
+            });
+          }
+          hasNotifiedRef.current = true;
+        }
 
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error);
@@ -252,7 +285,8 @@ const Dashboard = () => {
               </Badge>
             </div>
             
-            {/* Countdown Display */}
+            {/* Countdown Display masqué temporairement */}
+            {false && (
             <div className="flex items-center space-x-2 text-white">
               <div className="text-center">
                 <div className="bg-white/20 rounded-lg p-2 min-w-[60px]">
@@ -282,6 +316,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
 
@@ -299,9 +334,11 @@ const Dashboard = () => {
               <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
                 {dashboardData.votersRegistered.total.toLocaleString('fr-FR')}
               </div>
-              <p className="text-xs text-green-600 font-medium flex items-center">
-                <span className="mr-1">📈</span>
-                {dashboardData.votersRegistered.trend}
+              <p className="text-xs text-gray-500">
+                {dashboardData.infrastructure.bureaux > 0 
+                  ? `Moyenne: ${Math.round(dashboardData.votersRegistered.total / dashboardData.infrastructure.bureaux)} électeurs/bureau`
+                  : 'Aucun bureau configuré'
+                }
               </p>
             </CardContent>
           </Card>
@@ -319,7 +356,7 @@ const Dashboard = () => {
                 {dashboardData.infrastructure.centers.toLocaleString('fr-FR')}
               </div>
               <p className="text-xs text-gray-500">
-                Dans {dashboardData.infrastructure.provinces} provinces
+                Dans {dashboardData.infrastructure.provinceDisplay}
               </p>
             </CardContent>
           </Card>
@@ -337,7 +374,10 @@ const Dashboard = () => {
                 {dashboardData.infrastructure.bureaux.toLocaleString('fr-FR')}
               </div>
               <p className="text-xs text-gray-500">
-                Moyenne: {dashboardData.infrastructure.average}/centre
+                {dashboardData.infrastructure.centers > 0 
+                  ? `Répartis dans ${dashboardData.infrastructure.centers} centre${dashboardData.infrastructure.centers > 1 ? 's' : ''}`
+                  : 'Aucun centre configuré'
+                }
               </p>
             </CardContent>
           </Card>
@@ -361,7 +401,8 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Actions rapides */}
+        {/* Actions rapides masquées temporairement */}
+        {false && (
         <Card className="gov-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-gov-gray">
@@ -409,9 +450,10 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
-        {/* Activités récentes et alertes */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Activités récentes (pleine largeur) */}
+        <div className="grid grid-cols-1 gap-6">
           <Card className="gov-card">
             <CardHeader>
               <CardTitle className="flex items-center justify-between text-gov-gray">
@@ -453,6 +495,8 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
+          {/* Alertes & Notifications masquées temporairement */}
+          {false && (
           <Card className="gov-card">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-gov-gray">
@@ -511,6 +555,7 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
     </Layout>
