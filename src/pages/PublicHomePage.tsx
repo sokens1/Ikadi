@@ -296,7 +296,7 @@ const PublicHomePage = () => {
     }
   };
 
-  const electionTitle = 'Élection du premier arrondissement de Moanda';
+  const electionTitle = 'Élections - Transparence et Sécurité';
   const dynamicTitle = results.election?.title || electionTitle;
   const canSeeResults = results.election ? Date.now() >= new Date(results.election.election_date).getTime() : false;
 
@@ -342,7 +342,7 @@ const PublicHomePage = () => {
         }}
       >
         <div className="absolute inset-0 bg-[rgba(0,0,0,0.45)]" />
-        <div className="container mx-auto px-4 py-16 mb-16 md:py-20 relative">
+        <div className="container mx-auto px-4 py-16 mb-20 md:py-20 relative">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <div className="text-white animate-[fadeIn_0.6s_ease-out]">
               <p className="font-semibold tracking-wide text-blue-100">Commission Locale</p>
@@ -442,6 +442,11 @@ const PublicHomePage = () => {
                 <div className="mt-1 text-[10px] md:text-xs uppercase tracking-wide border-t border-white/40 pt-1 opacity-90">{t.label}</div>
               </div>
             ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Button className="bg-white text-gov-blue hover:bg-blue-50" aria-label="Voir les résultats">
+              Voir les résultats
+            </Button>
           </div>
         </div>
       </section>
