@@ -54,8 +54,27 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         const { data: pvs, error: pvError } = await fetchPVs('validated');
         if (pvError) throw pvError;
 
+        // Restreindre aux centres liés à l'élection via election_centers
+        const { data: ecRows, error: ecCentersErr } = await supabase
+          .from('election_centers')
+          .select('center_id')
+          .eq('election_id', selectedElection);
+        if (ecCentersErr) throw ecCentersErr;
+        const allowedCenterIds = new Set((ecRows || []).map((r: any) => r.center_id));
+
+        let filteredPvs = pvs || [];
+        if (allowedCenterIds.size > 0) {
+          const { data: bureauRows, error: bureauErr } = await supabase
+            .from('voting_bureaux')
+            .select('id, center_id')
+            .in('center_id', Array.from(allowedCenterIds));
+          if (bureauErr) throw bureauErr;
+          const allowedBureauIds = new Set((bureauRows || []).map((b: any) => b.id));
+          filteredPvs = filteredPvs.filter((pv: any) => allowedBureauIds.has(pv.bureau_id));
+        }
+
         // 2) Récupérer résultats par candidat pour ces PV
-        const pvIds = (pvs || []).map(p => p.id);
+        const pvIds = (filteredPvs || []).map(p => p.id);
         let crRows: any[] = [];
         if (pvIds.length > 0) {
           const { data: cr, error: crErr } = await supabase
@@ -66,15 +85,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           crRows = cr || [];
         }
 
-        // 2.bis) Utiliser la vue agrégée election_results_summary si disponible
-        const { data: summaryRows, error: summaryErr } = await supabase
-          .from('election_results_summary')
-          .select('*')
-          .eq('election_id', selectedElection);
-        
-        if (summaryErr) {
-          console.warn('Vue election_results_summary indisponible:', summaryErr.message || summaryErr);
-        }
+        // On n'utilise pas la vue agrégée ici pour respecter le filtre election_centers
 
         // 3) Récupérer la liste des candidats de l'élection (référence stricte)
         const { data: electionCands, error: ecErr } = await supabase
@@ -89,7 +100,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         }));
 
         // 4) Récupérer libellés bureaux/centres
-        const bureauIds = Array.from(new Set((pvs || []).map(p => p.bureau_id).filter(Boolean)));
+        const bureauIds = Array.from(new Set((filteredPvs || []).map(p => p.bureau_id).filter(Boolean)));
         let bureaux: any[] = [];
         let centers: any[] = [];
         if (bureauIds.length > 0) {
@@ -122,25 +133,14 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         let bulletinsNuls = 0;
         let totalInscrits = 0;
 
-        if (summaryRows && summaryRows.length > 0) {
-          // Utiliser directement les totaux de la vue election_results_summary
-          console.log('Utilisation de la vue election_results_summary:', summaryRows);
-          summaryRows.forEach((row: any) => {
-            const cid = row.candidate_id;
-            if (!votesByCandidate[cid]) return;
-            votesByCandidate[cid].votes = Number(row.total_votes) || 0;
-          });
-        } else {
-          // Fallback: calcul local à partir des candidate_results
-          console.log('Calcul local à partir des candidate_results');
-          crRows.forEach((r: any) => {
-            const cid = r.candidates?.id || r.candidate_id;
-            if (!votesByCandidate[cid]) return; // ignorer candidats non liés à l'élection
-            votesByCandidate[cid].votes += r.votes || 0;
-          });
-        }
+        // Agrégation locale à partir des candidate_results (respecte le filtre précédent)
+        crRows.forEach((r: any) => {
+          const cid = r.candidates?.id || r.candidate_id;
+          if (!votesByCandidate[cid]) return;
+          votesByCandidate[cid].votes += r.votes || 0;
+        });
 
-        (pvs || []).forEach((pv: any) => {
+        (filteredPvs || []).forEach((pv: any) => {
           totalVotants += pv.total_voters || 0;
           bulletinsNuls += pv.null_votes || 0;
         });
@@ -153,7 +153,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           color: ['#22c55e','#ef4444','#3b82f6','#a855f7','#f59e0b','#06b6d4'][idx % 6]
         }));
 
-        const validatedBureaux = (pvs || []).length;
+        const validatedBureaux = (filteredPvs || []).length;
         const totalBureaux = validatedBureaux; // fallback si total inconnu
 
         setFinalResults({
@@ -171,7 +171,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         });
 
         // 5) Résultats détaillés par bureau
-        const detailed = (pvs || []).map((pv: any) => {
+        const detailed = (filteredPvs || []).map((pv: any) => {
           const b = bureauMap.get(pv.bureau_id);
           const c = b ? centerMap.get(b.center_id) : undefined;
           return {

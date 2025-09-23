@@ -47,7 +47,7 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
           .order('created_at', { ascending: false })
           .limit(500);
         if (pvErr) throw pvErr;
-        setPvs(pvRows || []);
+        // Filtrer les PV aux centres liés à l'élection via election_centers
         const bureauIds = Array.from(new Set((pvRows || []).map(r => r.bureau_id).filter(Boolean)));
         if (bureauIds.length) {
           const { data: bureaus, error: bErr } = await supabase
@@ -56,11 +56,22 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
             .in('id', bureauIds);
           if (bErr) throw bErr;
           const centerIds = Array.from(new Set((bureaus || []).map(b => b.center_id)));
+          // Restreindre aux centers de election_centers
+          const { data: ecRows, error: ecErr } = await supabase
+            .from('election_centers')
+            .select('center_id')
+            .eq('election_id', selectedElection);
+          if (ecErr) throw ecErr;
+          const allowedCenterIds = new Set((ecRows || []).map((r: any) => r.center_id));
+          const filteredBureaus = (bureaus || []).filter(b => allowedCenterIds.has(b.center_id));
+          const filteredCenterIds = Array.from(new Set(filteredBureaus.map(b => b.center_id)));
+          const filteredPvRows = (pvRows || []).filter(r => filteredBureaus.some(b => b.id === r.bureau_id));
+          setPvs(filteredPvRows);
           const { data: centers, error: cErr } = centerIds.length
-            ? await supabase.from('voting_centers').select('id, name').in('id', centerIds)
+            ? await supabase.from('voting_centers').select('id, name').in('id', filteredCenterIds)
             : { data: [], error: null } as any;
           if (cErr) throw cErr;
-          setBureauxMap(new Map((bureaus || []).map(b => [b.id, b])));
+          setBureauxMap(new Map(filteredBureaus.map(b => [b.id, b])));
           setCentersMap(new Map((centers || []).map(c => [c.id, c])));
         } else {
           setBureauxMap(new Map());
@@ -388,7 +399,7 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                   setDetailOpen(false);
                 }} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
                   Supprimer
-                </Button>
+                  </Button>
                 <Button onClick={async () => {
                   if (!selectedPV) return;
                   const { error } = await supabase

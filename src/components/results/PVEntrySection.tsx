@@ -59,63 +59,53 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
       if (!selectedElection) return;
       
       try {
-        // D'abord récupérer les détails de l'élection pour avoir sa localisation
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('province_id, department_id, commune_id, arrondissement_id')
-          .eq('id', selectedElection)
-          .single();
+        // Filtrer STRICTEMENT par centres liés à l'élection via table de liaison election_centers
+        const { data: ecRows, error: ecError } = await supabase
+          .from('election_centers')
+          .select('center_id')
+          .eq('election_id', selectedElection);
 
-        if (electionError) {
-          console.error('Erreur lors du chargement de l\'élection:', electionError);
+        if (ecError) {
+          console.error('Erreur lors du chargement des election_centers:', ecError);
+          setVotingCenters([]);
+          setVotingBureaux([]);
           return;
         }
 
-        // Construire la requête basée sur la localisation de l'élection
-        let centersQuery = supabase
-          .from('voting_centers')
-          .select(`
-            id, name,
-            voting_bureaux(id, name)
-          `);
+        const centerIds = (ecRows || []).map((r: any) => r.center_id).filter(Boolean);
 
-        // Filtrer par localisation si disponible
-        if (electionData.arrondissement_id) {
-          centersQuery = centersQuery.eq('arrondissement_id', electionData.arrondissement_id);
-        } else if (electionData.commune_id) {
-          centersQuery = centersQuery.eq('commune_id', electionData.commune_id);
-        } else if (electionData.department_id) {
-          centersQuery = centersQuery.eq('department_id', electionData.department_id);
-        } else if (electionData.province_id) {
-          centersQuery = centersQuery.eq('province_id', electionData.province_id);
+        if (centerIds.length === 0) {
+          setVotingCenters([]);
+          setVotingBureaux([]);
+          return;
         }
 
-        const { data: centers, error: centersError } = await centersQuery;
-        
+        const { data: centers, error: centersError } = await supabase
+          .from('voting_centers')
+          .select('id, name')
+          .in('id', centerIds);
+
         if (centersError) {
           console.error('Erreur lors du chargement des centres:', centersError);
+          setVotingCenters([]);
+          setVotingBureaux([]);
           return;
         }
-        
+
         setVotingCenters(centers || []);
-        
-        // Charger tous les bureaux des centres trouvés
-        const centerIds = centers?.map(c => c.id) || [];
-        if (centerIds.length > 0) {
-          const { data: bureaux, error: bureauxError } = await supabase
-            .from('voting_bureaux')
-            .select('id, name, center_id, registered_voters')
-            .in('center_id', centerIds);
-          
-          if (bureauxError) {
-            console.error('Erreur lors du chargement des bureaux:', bureauxError);
-            return;
-          }
-          
-          setVotingBureaux(bureaux || []);
-        } else {
+
+        const { data: bureaux, error: bureauxError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, center_id, registered_voters')
+          .in('center_id', centerIds);
+
+        if (bureauxError) {
+          console.error('Erreur lors du chargement des bureaux:', bureauxError);
           setVotingBureaux([]);
+          return;
         }
+
+        setVotingBureaux(bureaux || []);
         
       } catch (error) {
         console.error('Erreur lors du chargement des centres/bureaux:', error);

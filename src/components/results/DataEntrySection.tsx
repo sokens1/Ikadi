@@ -43,20 +43,26 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
       try {
         setLoading(true);
         
-        // D'abord récupérer les détails de l'élection pour avoir sa localisation
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('province_id, department_id, commune_id, arrondissement_id')
-          .eq('id', selectedElection)
-          .single();
+        // Filtrer STRICTEMENT par les centres liés via la table de liaison election_centers
+        const { data: ecRows, error: ecError } = await supabase
+          .from('election_centers')
+          .select('center_id')
+          .eq('election_id', selectedElection);
 
-        if (electionError) {
-          console.error('Erreur lors du chargement de l\'élection:', electionError);
+        if (ecError) {
+          console.error('Erreur lors du chargement de election_centers:', ecError);
+          setVotingCenters([]);
           return;
         }
 
-        // Construire la requête basée sur la localisation de l'élection
-        let centersQuery = supabase
+        const centerIds = (ecRows || []).map((r: any) => r.center_id).filter(Boolean);
+
+        if (centerIds.length === 0) {
+          setVotingCenters([]);
+          return;
+        }
+
+        const { data, error } = await supabase
           .from('voting_centers')
           .select(`
             *,
@@ -72,20 +78,9 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
                 anomalies
               )
             )
-          `);
-
-        // Filtrer par localisation si disponible
-        if (electionData.arrondissement_id) {
-          centersQuery = centersQuery.eq('arrondissement_id', electionData.arrondissement_id);
-        } else if (electionData.commune_id) {
-          centersQuery = centersQuery.eq('commune_id', electionData.commune_id);
-        } else if (electionData.department_id) {
-          centersQuery = centersQuery.eq('department_id', electionData.department_id);
-        } else if (electionData.province_id) {
-          centersQuery = centersQuery.eq('province_id', electionData.province_id);
-        }
-
-        const { data, error } = await centersQuery.order('name', { ascending: true });
+          `)
+          .in('id', centerIds)
+          .order('name', { ascending: true });
 
         if (error) {
           console.error('Erreur lors du chargement des centres de vote:', error);

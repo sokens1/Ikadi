@@ -147,25 +147,54 @@ const PublicHomePage = () => {
         console.error('[HOME] Erreur récupération des élections:', e);
       }
 
-      // 1) Priorité: élection au statut "En cours" (insensible casse/espaces)
+      // 1) Priorité: élection avec PV validés les plus récents
       let currentElection: any = null;
       try {
-        const { data: running1, error: err1 } = await supabase
-          .from('elections')
-          .select('*')
-          .ilike('status', '%en cours%')
-          .order('election_date', { ascending: false })
+        const { data: lastValidatedPv, error: lastPvErr } = await supabase
+          .from('procès_verbaux')
+          .select('election_id, validated_at, created_at')
+          .eq('status', 'validated')
+          .order('validated_at', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
           .limit(1);
-        if (err1) throw err1;
-        currentElection = running1 && running1.length > 0 ? running1[0] : null;
-        // eslint-disable-next-line no-console
-        console.log('[HOME] Query running ilike=en cours ->', running1?.length || 0);
+        if (lastPvErr) throw lastPvErr;
+        if (lastValidatedPv && lastValidatedPv.length > 0) {
+          const electionId = lastValidatedPv[0].election_id;
+          const { data: elect, error: electErr } = await supabase
+            .from('elections')
+            .select('*')
+            .eq('id', electionId)
+            .single();
+          if (electErr) throw electErr;
+          currentElection = elect;
+          // eslint-disable-next-line no-console
+          console.log('[HOME] Selected by latest validated PV ->', elect?.title);
+        }
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('[HOME] Erreur requête running:', e);
+        console.error('[HOME] Erreur sélection par PV validés récents:', e);
       }
 
-      // 2) Fallback: dernière élection publiée
+      // 2) Fallback: élection au statut "En cours"
+      if (!currentElection) {
+        try {
+          const { data: running1, error: err1 } = await supabase
+            .from('elections')
+            .select('*')
+            .ilike('status', '%en cours%')
+            .order('election_date', { ascending: false })
+            .limit(1);
+          if (err1) throw err1;
+          currentElection = running1 && running1.length > 0 ? running1[0] : null;
+          // eslint-disable-next-line no-console
+          console.log('[HOME] Query running ilike=en cours ->', running1?.length || 0);
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('[HOME] Erreur requête running:', e);
+        }
+      }
+
+      // 3) Fallback: dernière élection publiée
       if (!currentElection) {
         try {
           const { data: published, error: err2 } = await supabase
@@ -184,7 +213,7 @@ const PublicHomePage = () => {
         }
       }
 
-      // 3) Fallback ultime: dernière élection par date
+      // 4) Fallback ultime: dernière élection par date
       if (!currentElection) {
         try {
           const { data: anyElection, error: err3 } = await supabase
