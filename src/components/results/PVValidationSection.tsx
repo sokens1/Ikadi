@@ -18,6 +18,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const PVValidationSection = () => {
   const [selectedPV, setSelectedPV] = useState<string | null>(null);
@@ -27,6 +28,7 @@ const PVValidationSection = () => {
   const [pvs, setPvs] = useState<any[]>([]);
   const [bureauxMap, setBureauxMap] = useState<Map<string, { id: string; name: string; center_id: string }>>(new Map());
   const [centersMap, setCentersMap] = useState<Map<string, { id: string; name: string }>>(new Map());
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -147,7 +149,7 @@ const PVValidationSection = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Liste des PV en attente */}
         <Card className="gov-card">
           <CardHeader>
@@ -163,7 +165,7 @@ const PVValidationSection = () => {
                       ? 'border-blue-500 bg-blue-50' 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => setSelectedPV(pv.id)}
+                  onClick={() => { setSelectedPV(pv.id); setDetailOpen(true); }}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
@@ -189,139 +191,70 @@ const PVValidationSection = () => {
           </CardContent>
         </Card>
 
-        {/* Interface de validation */}
-        <Card className="gov-card">
-          <CardHeader>
-            <CardTitle className="text-lg text-gov-gray">
-              {selectedPVData ? `Validation du ${selectedPVData.id}` : 'Sélectionner un PV à valider'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {selectedPVData ? (
-              <div className="space-y-6">
-                {/* Vue côte à côte */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Données saisies */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-3">Données Saisies</h4>
-                    <div className="space-y-4">
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <h5 className="font-medium text-gray-700 mb-2">Participation</h5>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <span>Votants:</span>
-                            <span className="font-medium">{selectedPVData.total_voters}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Bulletins nuls:</span>
-                            <span className="font-medium">{selectedPVData.null_votes ?? 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Suffrages exprimés:</span>
-                            <span className="font-medium">{selectedPVData.votes_expressed ?? 0}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Résultats par Candidat: à brancher si besoin depuis candidate_results */}
-
-                      {/* Vérifications automatiques */}
-                      <div className="p-3 bg-blue-50 rounded-lg">
-                        <h5 className="font-medium text-blue-900 mb-2">Vérifications</h5>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span>Total voix candidats (non chargé):</span>
-                            <span className="font-medium">0</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Suffrages exprimés:</span>
-                            <span className="font-medium">{selectedPVData.votes_expressed ?? 0}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {0 === (selectedPVData.votes_expressed ?? 0) ? (
-                              <>
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                <span className="text-green-700">Cohérence (en attente des résultats détaillés)</span>
-                              </>
-                            ) : (
-                              <>
-                                <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                                <span className="text-yellow-700">Résultats candidats non chargés</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Document scanné */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-3">Document Scanné</h4>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
-                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h5 className="font-medium text-gray-900 mb-2">{selectedPVData.pv_photo_url ? 'Document attaché' : 'Aucun document'}</h5>
-                      <Button variant="outline" size="sm" disabled={!selectedPVData.pv_photo_url} onClick={() => selectedPVData.pv_photo_url && window.open(selectedPVData.pv_photo_url, '_blank')}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        Voir le document
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section commentaires */}
-                <div>
-                  <Label htmlFor="comment">Commentaire de validation</Label>
-                  <Textarea
-                    id="comment"
-                    placeholder="Ajouter un commentaire sur cette validation..."
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                {/* Boutons d'action */}
-                <div className="flex space-x-4">
-                  <Button
-                    onClick={() => handleValidation('approve')}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Approuver
-                  </Button>
-                  
-                  <Button
-                    onClick={() => handleValidation('correction')}
-                    variant="outline"
-                    className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Demander Correction
-                  </Button>
-                  
-                  <Button
-                    onClick={() => handleValidation('reject')}
-                    variant="outline"
-                    className="border-red-300 text-red-700 hover:bg-red-50"
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Rejeter
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <FileCheck className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun PV sélectionné</h3>
-                <p className="text-gray-600">
-                  Cliquez sur un PV dans la liste de gauche pour commencer la validation
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        
       </div>
+
+      {/* Modal détails PV */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Détails du PV</DialogTitle>
+          </DialogHeader>
+          {selectedPVData ? (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {getStatusIcon(selectedPVData.status)}
+                  <span className="font-semibold">{(() => {
+                    const bureau = bureauxMap.get(pvs.find(p=>p.id===selectedPVData.id)?.bureau_id || '');
+                    const center = bureau ? centersMap.get(bureau.center_id) : undefined;
+                    return `${center?.name || 'Centre'} - ${bureau?.name || 'Bureau'}`;
+                  })()}</span>
+                </div>
+                {getPriorityBadge(selectedPVData.status)}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Participation</h4>
+                  <div className="p-3 bg-gray-50 rounded-lg space-y-1 text-sm">
+                    <div className="flex justify-between"><span>Votants:</span><span className="font-medium">{selectedPVData.total_voters}</span></div>
+                    <div className="flex justify-between"><span>Bulletins nuls:</span><span className="font-medium">{selectedPVData.null_votes ?? 0}</span></div>
+                    <div className="flex justify-between"><span>Suffrages exprimés:</span><span className="font-medium">{selectedPVData.votes_expressed ?? 0}</span></div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Document Scanné</h4>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+                    <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                    <h5 className="font-medium text-gray-900 mb-2">{selectedPVData.pv_photo_url ? 'Document attaché' : 'Aucun document'}</h5>
+                    <Button variant="outline" size="sm" disabled={!selectedPVData.pv_photo_url} onClick={() => selectedPVData.pv_photo_url && window.open(selectedPVData.pv_photo_url, '_blank')}>
+                      <Eye className="w-4 h-4 mr-2" /> Voir le document
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="comment">Commentaire de validation</Label>
+                <Textarea id="comment" placeholder="Ajouter un commentaire..." value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
+              </div>
+
+              <div className="flex space-x-4">
+                <Button onClick={() => handleValidation('approve')} className="bg-green-600 hover:bg-green-700 text-white">
+                  <CheckCircle className="w-4 h-4 mr-2" /> Approuver
+                </Button>
+                <Button onClick={() => handleValidation('correction')} variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
+                  <MessageSquare className="w-4 h-4 mr-2" /> Demander Correction
+                </Button>
+                <Button onClick={() => handleValidation('reject')} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+                  <XCircle className="w-4 h-4 mr-2" /> Rejeter
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
