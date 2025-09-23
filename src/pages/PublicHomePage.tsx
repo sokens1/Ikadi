@@ -298,7 +298,7 @@ const PublicHomePage = () => {
 
       {/* Hero Section (sans animation) */}
       <section
-        className="relative min-h-[460px]"
+        className="relative min-h-[460px] pb-10"
         style={{
           backgroundImage: heroOk
             ? `url(${HERO_IMAGE})`
@@ -338,52 +338,52 @@ const PublicHomePage = () => {
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Bande statique style Ghana: stations, partis, électeurs */}
-        <div className="w-full">
-          <div className="bg-slate-200 text-gov-dark">
-            <div className="container mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-white rounded-lg"><Landmark className="w-9 h-9 text-gov-blue" /></div>
-                <div>
-                  <div className="text-3xl font-bold">{totalBureaux.toLocaleString()}</div>
-                  <div className="uppercase tracking-wide text-sm opacity-90">Bureaux de vote</div>
-                </div>
+      {/* Bande statique style Ghana: stations, partis, électeurs — déplacée hors de la hero */}
+      <section className="w-full bg-slate-200 text-gov-dark">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-around gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white rounded-lg"><Landmark className="w-8 h-8 text-gov-blue" /></div>
+              <div>
+                <div className="text-2xl md:text-3xl font-bold">{totalBureaux.toLocaleString()}</div>
+                <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Bureaux de vote</div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-white rounded-lg"><Flag className="w-9 h-9 text-gov-blue" /></div>
-                <div>
-                  <div className="text-3xl font-bold">{distinctParties.toLocaleString()}</div>
-                  <div className="uppercase tracking-wide text-sm opacity-90">Partis politiques</div>
-                </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white rounded-lg"><Flag className="w-8 h-8 text-gov-blue" /></div>
+              <div>
+                <div className="text-2xl md:text-3xl font-bold">{distinctParties.toLocaleString()}</div>
+                <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Partis politiques</div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-white rounded-lg"><Users className="w-9 h-9 text-gov-blue" /></div>
-                <div>
-                  <div className="text-3xl font-bold">{results.totalVoters.toLocaleString()}</div>
-                  <div className="uppercase tracking-wide text-sm opacity-90">Électeurs inscrits</div>
-                </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white rounded-lg"><Users className="w-8 h-8 text-gov-blue" /></div>
+              <div>
+                <div className="text-2xl md:text-3xl font-bold">{results.totalVoters.toLocaleString()}</div>
+                <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Électeurs inscrits</div>
               </div>
             </div>
           </div>
-
-          {/* Ticker d'annonces */}
-          <div className="bg-red-600 text-white">
-            <div className="container mx-auto px-0">
-              <div className="flex items-center">
-                <div className="px-4 py-2 bg-red-700 text-xs md:text-sm font-semibold uppercase tracking-wide flex items-center gap-2"><Megaphone className="w-4 h-4" /> Dernières annonces</div>
-                <div className="overflow-hidden whitespace-nowrap flex-1">
-                  <div className="inline-block py-2 text-xs md:text-sm" style={{ animation: 'marquee 30s linear infinite' }}>
-                    {announcements.map((a, idx) => (
-                      <span key={idx} className="mx-6 opacity-95">{a}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
         </div>
+      </section>
+
+      {/* Ticker d'annonces (rouge) */}
+      <section className="bg-red-600 text-white">
+        <div className="container mx-auto px-0">
+          <div className="flex items-center">
+            <div className="px-4 py-2 bg-red-700 text-xs md:text-sm font-semibold uppercase tracking-wide flex items-center gap-2"><Megaphone className="w-4 h-4" /> Dernières annonces</div>
+            <div className="overflow-hidden whitespace-nowrap flex-1">
+              <div className="inline-block py-2 text-xs md:text-sm" style={{ animation: 'marquee 30s linear infinite' }}>
+                {announcements.map((a, idx) => (
+                  <span key={idx} className="mx-6 opacity-95">{a}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
       </section>
 
       {/* Section Résultats */}
@@ -513,9 +513,9 @@ const PublicHomePage = () => {
       {/* Footer bleu plateforme avec texte blanc */}
       <footer id="contact" className="border-t bg-gov-blue text-white">
         <div className="container mx-auto px-4 pt-10 pb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+          <div className="flex flex-col md:flex-row md:items-start justify-around gap-8">
             {/* Colonne gauche: logo + description */}
-            <div className="order-1">
+            <div className="order-1 max-w-sm">
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
                   <span className="text-gov-blue font-semibold">iK</span>
@@ -528,7 +528,7 @@ const PublicHomePage = () => {
             </div>
 
             {/* Ressources au milieu (non centré) */}
-            <div className="order-3 md:order-2 text-sm text-white/90">
+            <div className="order-3 md:order-2 text-sm text-white/90 max-w-sm w-full">
               <h4 className="font-semibold text-white mb-2">Ressources</h4>
               <ul className="space-y-1">
                 <li><a href="#candidats" className="hover:opacity-80">Candidats</a></li>
@@ -537,10 +537,10 @@ const PublicHomePage = () => {
               </ul>
             </div>
 
-            {/* Partage à droite (en ligne, responsive) */}
-            <div className="order-2 md:order-3 text-sm text-white/90 md:justify-self-end">
+            {/* Partage à droite (ligne) */}
+            <div className="order-2 md:order-3 text-sm text-white/90 md:justify-self-end max-w-sm">
               <h4 className="font-semibold text-white mb-2">Partager</h4>
-              <div className="flex flex-row flex-wrap gap-3 items-center md:justify-end">
+              <div className="flex flex-row flex-wrap gap-4 items-center">
                 <a
                   aria-label="Partager sur WhatsApp"
                   href={`https://wa.me/?text=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
@@ -549,7 +549,7 @@ const PublicHomePage = () => {
                   className="p-2 bg-white/10 rounded hover:bg-white/20"
                   title="WhatsApp"
                 >
-                  <WhatsAppIcon width={26} height={26} />
+                  <WhatsAppIcon width={28} height={28} />
                 </a>
                 <a
                   aria-label="Partager sur Facebook"
@@ -559,7 +559,7 @@ const PublicHomePage = () => {
                   className="p-2 bg-white/10 rounded hover:bg-white/20"
                   title="Facebook"
                 >
-                  <Facebook className="w-6 h-6" />
+                  <Facebook className="w-7 h-7" />
                 </a>
                 <button
                   aria-label="Copier le lien"
@@ -572,7 +572,7 @@ const PublicHomePage = () => {
                   className="p-2 bg-white/10 rounded hover:bg-white/20"
                   title="Copier le lien"
                 >
-                  <LinkIcon className="w-6 h-6" />
+                  <LinkIcon className="w-7 h-7" />
                 </button>
               </div>
             </div>
