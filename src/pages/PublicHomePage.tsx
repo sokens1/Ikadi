@@ -284,9 +284,12 @@ const PublicHomePage = () => {
   const electionsWithDates = allElections.map((e) => ({ ...e, _date: new Date(e.election_date) }));
   const pastElections = electionsWithDates.filter(e => e._date < nowDate);
   const upcomingElections = electionsWithDates.filter(e => e._date >= nowDate);
+  const currentElections = electionsWithDates.filter(e => (e.status || '').toLowerCase() === 'en cours');
 
   // Tabs bibliothèque
-  const [libraryTab, setLibraryTab] = useState<'past' | 'upcoming'>('past');
+  const [libraryTab, setLibraryTab] = useState<'past' | 'current' | 'upcoming'>('past');
+
+  const selectedLibrary = libraryTab === 'past' ? pastElections : libraryTab === 'current' ? currentElections : upcomingElections;
 
   return (
     <div className="min-h-screen bg-white">
@@ -458,6 +461,13 @@ const PublicHomePage = () => {
               Élections passées
             </button>
             <button
+              className={`px-4 py-2 rounded ${libraryTab === 'current' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
+              onClick={() => setLibraryTab('current')}
+              aria-pressed={libraryTab === 'current'}
+            >
+              En cours
+            </button>
+            <button
               className={`px-4 py-2 rounded ${libraryTab === 'upcoming' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
               onClick={() => setLibraryTab('upcoming')}
               aria-pressed={libraryTab === 'upcoming'}
@@ -467,7 +477,7 @@ const PublicHomePage = () => {
           </div>
           <div className="max-h-[600px] overflow-y-auto pr-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(libraryTab === 'past' ? pastElections : upcomingElections).map((e, idx) => (
+              {selectedLibrary.map((e, idx) => (
                 <div
                   key={e.id}
                   className="relative rounded-lg overflow-hidden border shadow-sm min-h-[160px] transform transition-transform duration-200 hover:scale-[1.03] cursor-pointer"
@@ -481,11 +491,11 @@ const PublicHomePage = () => {
                   </div>
                 </div>
               )).slice(0, 100)}
-              {(libraryTab === 'past' ? pastElections : upcomingElections).length === 0 && (
+              {selectedLibrary.length === 0 && (
                 <div className="col-span-full text-center py-12">
                   <div className="text-6xl mb-4">🗳️</div>
                   <h3 className="text-xl font-semibold text-gov-dark mb-2">Aucune élection disponible</h3>
-                  <p className="text-gov-gray">Aucune élection {libraryTab === 'past' ? 'passée' : 'à venir'} à afficher pour le moment.</p>
+                  <p className="text-gov-gray">Aucune élection {libraryTab === 'past' ? 'passée' : libraryTab === 'current' ? 'en cours' : 'à venir'} à afficher pour le moment.</p>
                 </div>
               )}
             </div>
