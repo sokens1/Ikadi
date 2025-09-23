@@ -59,6 +59,9 @@ const PublicHomePage = () => {
   const [distinctParties, setDistinctParties] = useState<number>(0);
   const [announcements, setAnnouncements] = useState<string[]>([]);
 
+  // Prochaine élection pour le compte à rebours
+  const [nextElection, setNextElection] = useState<ElectionData | null>(null);
+
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   const [heroOk, setHeroOk] = useState<boolean>(true);
@@ -78,8 +81,9 @@ const PublicHomePage = () => {
     fetchPublicResults();
   }, []);
 
+  // Tick basé sur la prochaine élection (ne “repart” pas, se base sur la date cible)
   useEffect(() => {
-    const targetDate = results.election ? new Date(results.election.election_date).getTime() : null;
+    const targetDate = nextElection ? new Date(nextElection.election_date).getTime() : null;
     if (!targetDate) return;
     const tick = () => {
       const now = Date.now();
@@ -93,7 +97,7 @@ const PublicHomePage = () => {
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [results.election]);
+  }, [nextElection]);
 
   // Log pour vérifier le titre dynamique
   useEffect(() => {
@@ -113,6 +117,35 @@ const PublicHomePage = () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Prochaine élection (en choisissant côté client la date la plus proche >= aujourd'hui)
+      try {
+        const { data: allElections, error: allError } = await supabase
+          .from('elections')
+          .select('*')
+          .order('election_date', { ascending: true });
+        if (allError) throw allError;
+        // eslint-disable-next-line no-console
+        console.log('[HOME] All elections count ->', allElections?.length || 0);
+        if (typeof window !== 'undefined') {
+          alert(`Total élections récupérées: ${allElections?.length || 0}`);
+        }
+        if (allElections && allElections.length > 0) {
+          const now = new Date();
+          const upcomingSorted = allElections
+            .map((e: any) => ({ ...e, _date: new Date(e.election_date) }))
+            .sort((a: any, b: any) => a._date.getTime() - b._date.getTime());
+          const next = upcomingSorted.find((e: any) => e._date.getTime() >= now.setHours(0,0,0,0)) || upcomingSorted[upcomingSorted.length - 1];
+          setNextElection(next as any);
+          // eslint-disable-next-line no-console
+          console.log('[HOME] Next election chosen ->', next);
+        } else {
+          setNextElection(null);
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('[HOME] Erreur récupération des élections:', e);
+      }
 
       // 1) Priorité: élection au statut "En cours" (insensible casse/espaces)
       let currentElection: any = null;
@@ -370,20 +403,47 @@ const PublicHomePage = () => {
       </section>
 
       {/* Ticker d'annonces (rouge) */}
-      <section className="bg-red-600 text-white">
-        <div className="container mx-auto px-0">
-          <div className="flex items-center">
-            <div className="px-4 py-2 bg-red-700 text-xs md:text-sm font-semibold uppercase tracking-wide flex items-center gap-2"><Megaphone className="w-4 h-4" /> Dernières annonces</div>
-            <div className="overflow-hidden whitespace-nowrap flex-1">
-              <div className="inline-block py-2 text-xs md:text-sm" style={{ animation: 'marquee 30s linear infinite' }}>
-                {announcements.map((a, idx) => (
-                  <span key={idx} className="mx-6 opacity-95">{a}</span>
-                ))}
+      <section className="bg-slate-300">
+        <div className="container mx-auto px-4 py-3">
+          <div className="bg-white rounded-sm shadow-sm border">
+            <div className="flex items-stretch">
+              <div className="px-4 py-2 bg-red-600 text-white text-[11px] md:text-xs lg:text-sm font-semibold uppercase tracking-wide flex items-center gap-2"><Megaphone className="w-4 h-4" /> Dernière annonce</div>
+              <div className="overflow-hidden whitespace-nowrap flex-1">
+                <div className="inline-block py-2 text-xs md:text-sm text-gov-dark" style={{ animation: 'marquee 30s linear infinite' }}>
+                  {announcements.map((a, idx) => (
+                    <span key={idx} className="mx-6 opacity-95">
+                      {idx > 0 && <span className="mx-4 align-middle text-gray-400">•</span>}
+                      {a}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
         <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
+      </section>
+
+      {/* Section compte à rebours type bannière verte */}
+      <section className="bg-gov-blue text-white mt-10">
+        <div className="container mx-auto px-4 py-16">
+          <h3 className="text-center text-2xl md:text-3xl font-semibold tracking-wide">Résultats en temps réel</h3>
+          <p className="text-center text-white/90 mt-2 max-w-3xl mx-auto">Suivez les résultats des élections en direct avec transparence et sécurité.</p>
+          {nextElection && (
+            <p className="text-center text-white/90 mt-1">Publication à venir: <span className="font-bold">{nextElection.title}</span></p>
+          )}
+          {!nextElection && (
+            <p className="text-center text-white/80 mt-1">Aucune élection programmée</p>
+          )}
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6">
+            {[{label:'Jours', value: timeLeft.days},{label:'Heures', value: timeLeft.hours},{label:'Minutes', value: timeLeft.minutes},{label:'Secondes', value: timeLeft.seconds}].map((t)=> (
+              <div key={t.label} className="text-center min-w-[80px]">
+                <div className="text-3xl md:text-4xl font-bold leading-none">{String(t.value).padStart(2,'0')}</div>
+                <div className="mt-1 text-[10px] md:text-xs uppercase tracking-wide border-t border-white/40 pt-1 opacity-90">{t.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Section Résultats */}
