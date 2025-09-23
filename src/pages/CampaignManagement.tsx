@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import CreateOperationWizard from '@/components/campaign/CreateOperationWizard';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
 
 const CampaignManagement = () => {
   const [activeView, setActiveView] = useState<'calendar' | 'list' | 'settings'>('calendar');
@@ -16,48 +17,36 @@ const CampaignManagement = () => {
   const [statusFilter, setStatusFilter] = useState('tous');
   const [typeFilter, setTypeFilter] = useState('tous');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [notifications, setNotifications] = useState(3); // Mock notification count
+  const [notifications, setNotifications] = useState(0);
+  const [operations, setOperations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Mock data pour les opérations de campagne
-  const operations = [
-    {
-      id: 1,
-      title: "Grande rencontre citoyenne à Akébé-Ville",
-      type: "Meeting",
-      date: "2025-01-15",
-      time: "14:00",
-      location: "Akébé-Ville, Lomé",
-      responsible: "Jean Dupont",
-      status: "Planifiée",
-      participants: 25,
-      description: "Rencontre avec les citoyens pour présenter le programme électoral"
-    },
-    {
-      id: 2,
-      title: "Porte-à-porte Quartier Nyékonakpoé",
-      type: "Porte-à-porte",
-      date: "2025-01-18",
-      time: "09:00",
-      location: "Nyékonakpoé, Lomé",
-      responsible: "Marie Koffi",
-      status: "En cours",
-      participants: 12,
-      description: "Canvassing dans le quartier résidentiel"
-    },
-    {
-      id: 3,
-      title: "Distribution de tracts Marché d'Assigamé",
-      type: "Distribution",
-      date: "2025-01-20",
-      time: "07:00",
-      location: "Marché d'Assigamé, Lomé",
-      responsible: "Paul Mensah",
-      status: "Terminée",
-      participants: 8,
-      description: "Distribution matinale au marché"
-    }
-  ];
+  // Charger les opérations de campagne depuis Supabase
+  useEffect(() => {
+    const loadOperations = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('campaign_operations')
+          .select('*')
+          .order('date', { ascending: true });
+
+        if (error) {
+          console.error('Erreur lors du chargement des opérations:', error);
+          return;
+        }
+
+        setOperations(data || []);
+      } catch (error) {
+        console.error('Erreur:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOperations();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {

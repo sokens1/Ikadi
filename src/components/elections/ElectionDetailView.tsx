@@ -82,18 +82,46 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     totalCandidates: 0
   });
 
-  // Charger les centres de vote pour cette élection
+  // Charger les centres de vote pour cette élection (basés sur la localisation)
   useEffect(() => {
     const fetchCenters = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        
+        // D'abord récupérer les détails de l'élection pour avoir sa localisation
+        const { data: electionData, error: electionError } = await supabase
+          .from('elections')
+          .select('province_id, department_id, commune_id, arrondissement_id')
+          .eq('id', election.id)
+          .single();
+
+        if (electionError) {
+          console.error('Erreur lors du chargement de l\'élection:', electionError);
+          setCenters([]);
+          setLoading(false);
+          return;
+        }
+
+        // Construire la requête basée sur la localisation de l'élection
+        let query = supabase
           .from('voting_centers')
           .select(`
             *,
             voting_bureaux!center_id(id, name)
-          `)
-          .order('name', { ascending: true });
+          `);
+
+        // Filtrer par localisation si disponible
+        if (electionData.arrondissement_id) {
+          query = query.eq('arrondissement_id', electionData.arrondissement_id);
+        } else if (electionData.commune_id) {
+          query = query.eq('commune_id', electionData.commune_id);
+        } else if (electionData.department_id) {
+          query = query.eq('department_id', electionData.department_id);
+        } else if (electionData.province_id) {
+          query = query.eq('province_id', electionData.province_id);
+        }
+
+        const { data, error } = await query.order('name', { ascending: true });
 
         if (error) {
           console.error('Erreur lors du chargement des centres:', error);
@@ -188,43 +216,19 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
   const handleAddCenter = async (centerData: Omit<Center, 'id'>) => {
     try {
-      // Récupérer l'ID du 1er arrondissement de Moanda
-      const { data: arrondissementData, error: arrondissementError } = await supabase
-        .from('arrondissements')
-        .select('id, commune_id, department_id, province_id')
-        .eq('name', '1er Arrondissement')
+      // Récupérer la localisation de l'élection courante
+      const { data: electionData, error: electionError } = await supabase
+        .from('elections')
+        .select('province_id, department_id, commune_id, arrondissement_id')
+        .eq('id', election.id)
         .single();
 
-      if (arrondissementError || !arrondissementData) {
-        console.error('Arrondissement non trouvé:', arrondissementError);
-        // Créer le centre sans les relations administratives pour l'instant
-        const { data, error } = await supabase
-          .from('voting_centers')
-          .insert([{
-            name: centerData.name,
-            address: centerData.address,
-            contact_name: centerData.responsable,
-            contact_phone: centerData.contact
-          }])
-          .select(`
-            *,
-            voting_bureaux!center_id(id, name),
-            provinces(name),
-            departments(name),
-            communes(name),
-            arrondissements(name)
-          `)
-          .single();
-
-        if (error) {
-          console.error('Erreur lors de l\'ajout du centre:', error);
-          return;
-        }
-
-        setCenters(prev => [...prev, data]);
+      if (electionError) {
+        console.error('Erreur lors de la récupération de l\'élection:', electionError);
         return;
       }
 
+      // Créer le centre avec la même localisation que l'élection
       const { data, error } = await supabase
         .from('voting_centers')
         .insert([{
@@ -232,18 +236,14 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
           address: centerData.address,
           contact_name: centerData.responsable,
           contact_phone: centerData.contact,
-          province_id: arrondissementData.province_id,
-          department_id: arrondissementData.department_id,
-          commune_id: arrondissementData.commune_id,
-          arrondissement_id: arrondissementData.id
+          province_id: electionData.province_id,
+          department_id: electionData.department_id,
+          commune_id: electionData.commune_id,
+          arrondissement_id: electionData.arrondissement_id
         }])
         .select(`
           *,
-          voting_bureaux!center_id(id, name),
-          provinces(name),
-          departments(name),
-          communes(name),
-          arrondissements(name)
+          voting_bureaux!center_id(id, name)
         `)
         .single();
 
@@ -252,12 +252,18 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         return;
       }
 
-      // Ajouter le nouveau centre à la liste locale
+      // Transformer les données pour l'ajouter à la liste locale
       const newCenter: Center = {
-        ...centerData,
-        id: data.id.toString()
+        id: data.id.toString(),
+        name: data.name,
+        address: data.address || '',
+        responsable: data.contact_name || '',
+        contact: data.contact_phone || '',
+        bureaux: 0, // Nouveau centre, pas encore de bureaux
+        voters: 0   // Nouveau centre, pas encore d'électeurs
       };
-      setCenters([...centers, newCenter]);
+
+      setCenters(prev => [...prev, newCenter]);
       setShowAddCenter(false);
     } catch (error) {
       console.error('Erreur lors de l\'ajout du centre:', error);

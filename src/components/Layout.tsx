@@ -63,7 +63,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const menuItems = [
     { icon: Home, label: 'Tableau de Bord', path: '/dashboard' },
     { icon: Calendar, label: 'Élections', path: '/elections' },
-    { icon: IdCard, label: 'Votants', path: '/voters' },
+    { icon: IdCard, label: 'Inscrits', path: '/voters' },
     { icon: BarChart3, label: 'Résultats', path: '/results' },
     { icon: Users, label: 'Gestion Utilisateurs', path: '/users' },
     // { icon: Megaphone, label: 'Gestion Campagne', path: '/campaign' }, // Désactivé
