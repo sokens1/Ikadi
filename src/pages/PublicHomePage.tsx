@@ -42,6 +42,14 @@ interface PublicResults {
 
 const HERO_IMAGE = 'https://www.vaticannews.va/content/dam/vaticannews/agenzie/images/afp/2024/08/30/17/1725030898403.jpg/_jcr_content/renditions/cq5dam.thumbnail.cropped.1500.844.jpeg';
 
+const fallbackImages = [
+  HERO_IMAGE,
+  '/placeholder.svg',
+  'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?q=80&w=1200&auto=format&fit=crop', // urne
+  'https://images.unsplash.com/photo-1570498839593-e565b39455fc?q=80&w=1200&auto=format&fit=crop', // foule
+  'https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=1200&auto=format&fit=crop'  // mains
+];
+
 const PublicHomePage = () => {
   const [results, setResults] = useState<PublicResults>({
     election: null,
@@ -61,6 +69,8 @@ const PublicHomePage = () => {
 
   // Prochaine élection pour le compte à rebours
   const [nextElection, setNextElection] = useState<ElectionData | null>(null);
+  // Toutes les élections (pour la bibliothèque)
+  const [allElections, setAllElections] = useState<ElectionData[]>([]);
 
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
@@ -81,7 +91,7 @@ const PublicHomePage = () => {
     fetchPublicResults();
   }, []);
 
-  // Tick basé sur la prochaine élection (ne “repart” pas, se base sur la date cible)
+  // Tick basé sur la prochaine élection
   useEffect(() => {
     const targetDate = nextElection ? new Date(nextElection.election_date).getTime() : null;
     if (!targetDate) return;
@@ -99,13 +109,6 @@ const PublicHomePage = () => {
     return () => clearInterval(interval);
   }, [nextElection]);
 
-  // Log pour vérifier le titre dynamique
-  useEffect(() => {
-    const title = results.election?.title || 'Élection du premier arrondissement de Moanda';
-    // eslint-disable-next-line no-console
-    console.log('Titre dynamique résolu =', title, 'Élection courante =', results.election);
-  }, [results.election]);
-
   useEffect(() => {
     const img = new Image();
     img.src = HERO_IMAGE;
@@ -118,88 +121,61 @@ const PublicHomePage = () => {
       setLoading(true);
       setError(null);
 
-      // Prochaine élection (en choisissant côté client la date la plus proche >= aujourd'hui)
+      // Prochaine élection (client: plus proche >= aujourd'hui, sinon plus récente passée)
       try {
-        const { data: allElections, error: allError } = await supabase
+        const { data: all, error: allError } = await supabase
           .from('elections')
           .select('*')
           .order('election_date', { ascending: true });
         if (allError) throw allError;
-        // eslint-disable-next-line no-console
-        console.log('[HOME] All elections count ->', allElections?.length || 0);
-        if (typeof window !== 'undefined') {
-          alert(`Total élections récupérées: ${allElections?.length || 0}`);
-        }
-        if (allElections && allElections.length > 0) {
+        setAllElections((all || []) as any);
+        if (all && all.length > 0) {
           const now = new Date();
-          const upcomingSorted = allElections
-            .map((e: any) => ({ ...e, _date: new Date(e.election_date) }))
-            .sort((a: any, b: any) => a._date.getTime() - b._date.getTime());
-          const next = upcomingSorted.find((e: any) => e._date.getTime() >= now.setHours(0,0,0,0)) || upcomingSorted[upcomingSorted.length - 1];
+          const withDates = all.map((e: any) => ({ ...e, _date: new Date(e.election_date) }));
+          const next = withDates.find((e: any) => e._date.getTime() >= new Date(now.setHours(0,0,0,0)).getTime()) || withDates[withDates.length - 1];
           setNextElection(next as any);
-          // eslint-disable-next-line no-console
-          console.log('[HOME] Next election chosen ->', next);
         } else {
           setNextElection(null);
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('[HOME] Erreur récupération des élections:', e);
+        // ignore, déjà géré par setError si nécessaire
       }
 
-      // 1) Priorité: élection au statut "En cours" (insensible casse/espaces)
+      // 1) Priorité: élection "En cours"
       let currentElection: any = null;
       try {
-        const { data: running1, error: err1 } = await supabase
+        const { data: running1 } = await supabase
           .from('elections')
           .select('*')
           .ilike('status', '%en cours%')
           .order('election_date', { ascending: false })
           .limit(1);
-        if (err1) throw err1;
         currentElection = running1 && running1.length > 0 ? running1[0] : null;
-        // eslint-disable-next-line no-console
-        console.log('[HOME] Query running ilike=en cours ->', running1?.length || 0);
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('[HOME] Erreur requête running:', e);
-      }
+      } catch {}
 
-      // 2) Fallback: dernière élection publiée
+      // 2) Fallback: dernière publiée
       if (!currentElection) {
         try {
-          const { data: published, error: err2 } = await supabase
+          const { data: published } = await supabase
             .from('elections')
             .select('*')
             .eq('is_published', true)
             .order('election_date', { ascending: false })
             .limit(1);
-          if (err2) throw err2;
           currentElection = published && published.length > 0 ? published[0] : null;
-          // eslint-disable-next-line no-console
-          console.log('[HOME] Query published=true ->', published?.length || 0);
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.error('[HOME] Erreur requête published:', e);
-        }
+        } catch {}
       }
 
-      // 3) Fallback ultime: dernière élection par date
+      // 3) Fallback ultime: dernière par date
       if (!currentElection) {
         try {
-          const { data: anyElection, error: err3 } = await supabase
+          const { data: anyElection } = await supabase
             .from('elections')
             .select('*')
             .order('election_date', { ascending: false })
             .limit(1);
-          if (err3) throw err3;
           currentElection = anyElection && anyElection.length > 0 ? anyElection[0] : null;
-          // eslint-disable-next-line no-console
-          console.log('[HOME] Query any by date ->', anyElection?.length || 0);
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.error('[HOME] Erreur requête any by date:', e);
-        }
+        } catch {}
       }
 
       if (!currentElection) {
@@ -223,8 +199,6 @@ const PublicHomePage = () => {
       if (pvsResult.error) throw pvsResult.error;
       if (bureauxResult.error) throw bureauxResult.error;
       if (candidatsCount.error) throw candidatsCount.error;
-      if ((candidatesList as any).error) throw (candidatesList as any).error;
-      if ((notificationsList as any).error) throw (notificationsList as any).error;
 
       const totalVoters = votersResult.count || 0;
       const totalCenters = centersResult.count || 0;
@@ -233,25 +207,24 @@ const PublicHomePage = () => {
       setTotalCandidats(candidatsCount.count || 0);
 
       const parties = new Set<string>();
-      ((candidatesList as any).data || []).forEach((c: any) => {
+      (candidatesList.data || []).forEach((c: any) => {
         if (c.party && String(c.party).trim().length > 0) parties.add(String(c.party).trim());
       });
       setDistinctParties(parties.size);
 
-      const ticker = ((notificationsList as any).data || []).map((n: any) => n.title || n.message).filter(Boolean);
+      const ticker = (notificationsList.data || []).map((n: any) => n.title || n.message).filter(Boolean);
       setAnnouncements(ticker.length > 0 ? ticker : ['Aucune annonce disponible pour le moment']);
 
       const participation = totalCenters > 0 ? Math.min((totalPVs / totalCenters) * 100, 100) : 0;
       const resultsProgress = totalCenters > 0 ? Math.min((totalPVs / totalCenters) * 100, 100) : 0;
 
-      const { data: candidatesAgg, error: candidatesError } = await supabase
+      const { data: candidatesAgg } = await supabase
         .from('election_candidates')
         .select(`
           candidates(id, name, party),
           candidate_results(votes)
         `)
         .eq('election_id', currentElection.id);
-      if (candidatesError) throw candidatesError;
 
       const processed: CandidateResult[] = [];
       if (candidatesAgg) {
@@ -289,7 +262,6 @@ const PublicHomePage = () => {
       });
 
     } catch (err) {
-      console.error('Erreur lors du chargement des résultats:', err);
       setError('Impossible de charger les résultats. Veuillez réessayer plus tard.');
     } finally {
       setLoading(false);
@@ -297,8 +269,23 @@ const PublicHomePage = () => {
   };
 
   const electionTitle = 'Élections - Transparence et Sécurité';
-  const dynamicTitle = results.election?.title || electionTitle;
+  const dynamicTitle = electionTitle;
   const canSeeResults = results.election ? Date.now() >= new Date(results.election.election_date).getTime() : false;
+
+  // Helpers pour la bibliothèque
+  const getBgForIndex = (i: number) => ({
+    backgroundImage: `url(https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(String(i))}&backgroundType=gradientLinear&randomizeIds=true)`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center'
+  });
+
+  const nowDate = new Date();
+  const electionsWithDates = allElections.map((e) => ({ ...e, _date: new Date(e.election_date) }));
+  const pastElections = electionsWithDates.filter(e => e._date < nowDate);
+  const upcomingElections = electionsWithDates.filter(e => e._date >= nowDate);
+
+  // Tabs bibliothèque
+  const [libraryTab, setLibraryTab] = useState<'past' | 'upcoming'>('past');
 
   return (
     <div className="min-h-screen bg-white">
@@ -316,13 +303,13 @@ const PublicHomePage = () => {
               </div>
             </div>
             <nav className="hidden md:flex items-center space-x-6">
-              <a href="#" className="hover:underline">Accueil</a>
-              <a href="#about" className="hover:underline">A propos</a>
-              <a href="#infos" className="hover:underline">Infos électorales</a>
-              <a href="#candidats" className="hover:underline">Candidats</a>
-              <a href="#resultats" className="hover:underline">Résultats</a>
-              <a href="#circonscriptions" className="hover:underline">Circonscriptions / Bureaux</a>
-              <a href="#contact" className="hover:underline">Contact</a>
+              <a href="#" className="hover:text-blue-200 transition-colors">Accueil</a>
+              <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
+              <a href="#infos" className="hover:text-blue-200 transition-colors">Infos électorales</a>
+              <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a>
+              <a href="#resultats" className="hover:text-blue-200 transition-colors">Résultats</a>
+              <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
+              <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a>
             </nav>
             {/* <Link to="/login"><Button className="bg-white text-gov-blue hover:bg-blue-50 shadow-sm">Accès admin</Button></Link> */}
           </div>
@@ -403,7 +390,7 @@ const PublicHomePage = () => {
       </section>
 
       {/* Ticker d'annonces (rouge) */}
-      <section className="bg-slate-300">
+      {/* <section className="bg-slate-300">
         <div className="container mx-auto px-4 py-3">
           <div className="bg-white rounded-sm shadow-sm border">
             <div className="flex items-stretch">
@@ -422,15 +409,18 @@ const PublicHomePage = () => {
           </div>
         </div>
         <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
-      </section>
+      </section> */}
 
       {/* Section compte à rebours type bannière verte */}
-      <section className="bg-gov-blue text-white mt-10">
+      <section className="bg-gov-blue text-white mt-20">
         <div className="container mx-auto px-4 py-16">
           <h3 className="text-center text-2xl md:text-3xl font-semibold tracking-wide">Résultats en temps réel</h3>
           <p className="text-center text-white/90 mt-2 max-w-3xl mx-auto">Suivez les résultats des élections en direct avec transparence et sécurité.</p>
           {nextElection && (
-            <p className="text-center text-white/90 mt-1">Publication à venir: <span className="font-bold">{nextElection.title}</span></p>
+            <>
+              <p className="text-center text-white/90 mt-1">Publication à venir: <span className="font-bold">{nextElection.title}</span></p>
+              <p className="text-center text-white/80 mt-1">Date prévue: <strong>{new Date(nextElection.election_date).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}</strong></p>
+            </>
           )}
           {!nextElection && (
             <p className="text-center text-white/80 mt-1">Aucune élection programmée</p>
@@ -451,132 +441,50 @@ const PublicHomePage = () => {
         </div>
       </section>
 
-      {/* Section Résultats */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mb-6">
-          <h3 className="text-2xl font-bold text-gov-dark">Résultats en temps réel</h3>
-          <p className="text-gov-gray">
-            Suivez les résultats des élections en direct avec transparence et sécurité.
-          </p>
-        </div>
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <RefreshCw className="w-8 h-8 animate-spin text-gov-blue" />
-            <span className="ml-2 text-gov-gray">Chargement des données...</span>
+      {/* Section “Bibliothèque des élections” (avec Tabs + scroll) */}
+      <section className="bg-slate-200 mt-20">
+        <div className="container mx-auto px-4 py-16">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <button
+              className={`px-4 py-2 rounded ${libraryTab === 'past' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
+              onClick={() => setLibraryTab('past')}
+              aria-pressed={libraryTab === 'past'}
+            >
+              Élections passées
+            </button>
+            <button
+              className={`px-4 py-2 rounded ${libraryTab === 'upcoming' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
+              onClick={() => setLibraryTab('upcoming')}
+              aria-pressed={libraryTab === 'upcoming'}
+            >
+              Élections à venir
+            </button>
           </div>
-        ) : error ? (
-          <div className="flex justify-center items-center py-12">
-            <TrendingUp className="w-8 h-8 text-red-500" />
-            <span className="ml-2 text-red-600">{error}</span>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-gov-dark">
-                    <Calendar className="w-5 h-5" />
-                    <span>Élection en cours</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {results.election ? (
-                    <>
-                      <h4 className="text-lg font-semibold mb-1">{results.election.title}</h4>
-                      <p className="text-gov-gray">
-                        {new Date(results.election.election_date).toLocaleDateString('fr-FR', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-gov-gray">Aucune élection en cours</p>
-                  )}
-                </CardContent>
-              </Card>
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-gov-dark">
-                    <Users className="w-5 h-5" />
-                    <span>Participation</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-emerald-600 mb-2">
-                    {results.participation}%
+          <div className="max-h-[600px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(libraryTab === 'past' ? pastElections : upcomingElections).map((e, idx) => (
+                <div
+                  key={e.id}
+                  className="relative rounded-lg overflow-hidden border shadow-sm min-h-[160px] transform transition-transform duration-200 hover:scale-[1.03]"
+                  style={getBgForIndex(idx)}
+                >
+                  <div className="absolute inset-0 bg-black/35 hover:bg-black/25 transition-colors" />
+                  <div className="relative p-4 text-white">
+                    <div className="text-sm opacity-90">{new Date(e.election_date).getFullYear()}</div>
+                    <div className="font-semibold line-clamp-2">{e.title}</div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-emerald-600 h-2 rounded-full transition-all duration-1000" style={{ width: `${results.participation}%` }} />
-                  </div>
-                  <p className="text-gov-gray text-sm mt-2">
-                    {results.totalVoters.toLocaleString()} électeurs inscrits
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-gov-dark">
-                    <TrendingUp className="w-5 h-5" />
-                    <span>Progression dépouillement</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-amber-600 mb-2">
-                    {results.resultsProgress}%
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-amber-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${results.resultsProgress}%` }} />
-                  </div>
-                  <p className="text-gov-gray text-sm mt-2">
-                    {results.totalCenters} centres de vote
-                  </p>
-                </CardContent>
-              </Card>
+                </div>
+              )).slice(0, 100)}
+              {(libraryTab === 'past' ? pastElections : upcomingElections).length === 0 && (
+                <p className="text-gov-gray text-sm">Aucune élection à afficher.</p>
+              )}
             </div>
-
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-gov-dark">Résultats provisoires</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {results.candidates.length > 0 ? (
-                  <div className="space-y-4">
-                    {results.candidates.map((candidate) => (
-                      <div key={candidate.id} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="font-medium text-gov-dark">{candidate.name}</span>
-                            <span className="text-sm text-gov-gray ml-2">({candidate.party})</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-bold text-lg" style={{ color: candidate.color }}>
-                              {candidate.percentage.toFixed(1)}%
-                            </span>
-                            <p className="text-sm text-gov-gray">{candidate.votes.toLocaleString()} voix</p>
-                          </div>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div className="h-3 rounded-full transition-all duration-1000" style={{ width: `${candidate.percentage}%`, backgroundColor: candidate.color }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gov-gray">Aucun candidat enregistré pour cette élection</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
-        )}
+          </div>
+        </div>
       </section>
 
       {/* Footer bleu plateforme avec texte blanc */}
-      <footer id="contact" className="border-t bg-gov-blue text-white">
+      <footer id="contact" className="border-t bg-gov-blue mt-20 text-white">
         <div className="container mx-auto px-4 pt-10 pb-6">
           <div className="flex flex-col md:flex-row md:items-start justify-around gap-8">
             {/* Colonne gauche: logo + description */}
