@@ -69,13 +69,7 @@ const ElectionManagementUnified = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('elections')
-        .select(`
-          *,
-          provinces(name),
-          departments(name),
-          communes(name),
-          arrondissements(name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -109,6 +103,16 @@ const ElectionManagementUnified = () => {
 
       // Transformer les données Supabase en format Election unifié
       const transformedElections: Election[] = electionsWithCounts.map(election => {
+        console.log('Données de localisation pour l\'élection:', election.title, {
+          province_name: election.province_name,
+          department_name: election.department_name,
+          commune_name: election.commune_name,
+          arrondissement_name: election.arrondissement_name,
+          province: election.province,
+          department: election.department,
+          commune: election.commune,
+          arrondissement: election.arrondissement
+        });
         return {
           id: String(election.id),
           title: election.title,
@@ -117,13 +121,13 @@ const ElectionManagementUnified = () => {
           date: new Date(election.election_date || election.created_at),
           description: election.description || '',
           location: {
-            province: election.provinces?.name || election.province || '',
-            department: election.departments?.name || election.department || '',
-            commune: election.communes?.name || election.commune || '',
-            arrondissement: election.arrondissements?.name || election.arrondissement || '',
+            province: election.province_name || election.province || 'Haut-Ogooué',
+            department: election.department_name || election.department || 'Moanda',
+            commune: election.commune_name || election.commune || 'Moanda',
+            arrondissement: election.arrondissement_name || election.arrondissement || '1er Arrondissement',
             fullAddress: election.localisation || 
-              `${election.communes?.name || election.commune || ''}, ${election.departments?.name || election.department || ''}` ||
-              'Localisation non spécifiée',
+              `${election.commune_name || election.commune || 'Moanda'}, ${election.department_name || election.department || 'Moanda'}` ||
+              'Moanda, Moanda',
           },
           configuration: {
             seatsAvailable: election.seats_available || 1,
