@@ -77,6 +77,8 @@ const PublicHomePage = () => {
 
   const [heroOk, setHeroOk] = useState<boolean>(true);
 
+  const isCountdownZero = timeLeft.days === 0 && timeLeft.hours === 0 && timeLeft.minutes === 0 && timeLeft.seconds === 0;
+
   const candidateColors = [
     "#1e40af",
     "#dc2626",
@@ -294,7 +296,7 @@ const PublicHomePage = () => {
   const currentElections = electionsWithDates.filter(e => statusOf(e) === 'en cours');
 
   // Tabs bibliothèque
-  const [libraryTab, setLibraryTab] = useState<'past' | 'current' | 'upcoming'>('past');
+  const [libraryTab, setLibraryTab] = useState<'past' | 'current' | 'upcoming'>('current');
 
   const selectedLibrary = libraryTab === 'past' ? pastElections : libraryTab === 'current' ? currentElections : upcomingElections;
 
@@ -329,7 +331,7 @@ const PublicHomePage = () => {
 
       {/* Hero Section (sans animation) */}
       <section
-        className="relative min-h-[460px] pb-10"
+        className="relative min-h-[380px] md:min-h-[460px] pb-10"
         style={{
           backgroundImage: heroOk
             ? `url(${HERO_IMAGE})`
@@ -436,46 +438,48 @@ const PublicHomePage = () => {
           {!nextElection && (
             <p className="text-center text-white/80 mt-1">Aucune élection programmée</p>
           )}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6">
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
             {[{label:'Jours', value: timeLeft.days},{label:'Heures', value: timeLeft.hours},{label:'Minutes', value: timeLeft.minutes},{label:'Secondes', value: timeLeft.seconds}].map((t)=> (
-              <div key={t.label} className="text-center min-w-[80px]">
-                <div className="text-3xl md:text-4xl font-bold leading-none">{String(t.value).padStart(2,'0')}</div>
-                <div className="mt-1 text-[10px] md:text-xs uppercase tracking-wide border-t border-white/40 pt-1 opacity-90">{t.label}</div>
+              <div key={t.label} className="text-center min-w-[64px] md:min-w-[80px]">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">{String(t.value).padStart(2,'0')}</div>
+                <div className="mt-1 text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wide border-t border-white/40 pt-1 opacity-90">{t.label}</div>
               </div>
             ))}
           </div>
-          <div className="mt-8 text-center">
-            <Button 
-              className="bg-white text-gov-blue hover:bg-blue-50" 
-              aria-label="Voir les résultats"
-              onClick={() => nextElection && navigate(`/election/${nextElection.id}/results`)}
-            >
-              Voir les résultats
-            </Button>
-          </div>
+          {isCountdownZero && (
+            <div className="mt-8 text-center">
+              <Button 
+                className="bg-white text-gov-blue hover:bg-blue-50" 
+                aria-label="Voir les résultats"
+                onClick={() => nextElection && navigate(`/election/${nextElection.id}/results`)}
+              >
+                Voir les résultats
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Section “Bibliothèque des élections” (avec Tabs + scroll) */}
       <section className="bg-slate-200 mt-20">
         <div className="container mx-auto px-4 py-16">
-          <div className="flex items-center justify-center gap-4 mb-6">
+          <div className="flex items-center justify-center gap-2 sm:gap-4 mb-6 flex-wrap">
             <button
-              className={`px-4 py-2 rounded ${libraryTab === 'past' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
+              className={`px-3 sm:px-4 py-2 rounded text-sm md:text-base ${libraryTab === 'past' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
               onClick={() => setLibraryTab('past')}
               aria-pressed={libraryTab === 'past'}
             >
               Élections passées
             </button>
             <button
-              className={`px-4 py-2 rounded ${libraryTab === 'current' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
+              className={`px-3 sm:px-4 py-2 rounded text-sm md:text-base ${libraryTab === 'current' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
               onClick={() => setLibraryTab('current')}
               aria-pressed={libraryTab === 'current'}
             >
               En cours
             </button>
             <button
-              className={`px-4 py-2 rounded ${libraryTab === 'upcoming' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
+              className={`px-3 sm:px-4 py-2 rounded text-sm md:text-base ${libraryTab === 'upcoming' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark'}`}
               onClick={() => setLibraryTab('upcoming')}
               aria-pressed={libraryTab === 'upcoming'}
             >
@@ -487,14 +491,14 @@ const PublicHomePage = () => {
               {selectedLibrary.map((e, idx) => (
                 <div
                   key={e.id}
-                  className="relative rounded-lg overflow-hidden border shadow-sm min-h-[160px] transform transition-transform duration-200 hover:scale-[1.03] cursor-pointer"
+                  className="relative rounded-lg overflow-hidden border shadow-sm min-h-[140px] md:min-h-[160px] transform transition-transform duration-200 motion-safe:md:hover:scale-[1.03] cursor-pointer"
                   style={getBgForIndex(idx)}
                   onClick={() => navigate(`/election/${e.id}/results`)}
                 >
                   <div className="absolute inset-0 bg-black/35 hover:bg-black/25 transition-colors" />
                   <div className="relative p-4 text-white">
-                    <div className="text-sm opacity-90">{new Date(e.election_date).getFullYear()}</div>
-                    <div className="font-semibold line-clamp-2">{e.title}</div>
+                    <div className="text-xs sm:text-sm opacity-90">{new Date(e.election_date).getFullYear()}</div>
+                    <div className="font-semibold line-clamp-2 text-sm sm:text-base">{e.title}</div>
                   </div>
                 </div>
               )).slice(0, 100)}

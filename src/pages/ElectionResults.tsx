@@ -73,7 +73,7 @@ const ElectionResults: React.FC = () => {
       // Récupérer les résultats depuis election_result_summary
       // Utilise le nom de table correct et sélectionne toutes les colonnes pour éviter les erreurs de schéma
       const { data: summaryData, error: summaryError } = await supabase
-        .from('election_result_summary')
+        .from('election_results_summary')
         .select('*')
         .eq('election_id', id)
         .order('rank', { ascending: true });
@@ -157,8 +157,8 @@ const ElectionResults: React.FC = () => {
       {/* Header */}
       <header className="bg-gov-blue text-white">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               <Button 
                 variant="ghost" 
                 onClick={() => navigate('/')}
@@ -167,12 +167,12 @@ const ElectionResults: React.FC = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Retour
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold">iKADI</h1>
-                <p className="text-white/80 text-sm">Résultats d'élection</p>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold truncate">iKADI</h1>
+                <p className="text-white/80 text-xs sm:text-sm truncate">Résultats d'élection</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -203,20 +203,20 @@ const ElectionResults: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-white py-8">
+      <section className="bg-white py-6 sm:py-8">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-gov-dark mb-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gov-dark mb-2">
               {results.election?.title}
             </h1>
             {results.election?.localisation && (
-              <p className="text-gov-gray flex items-center justify-center gap-2">
+              <p className="text-gov-gray flex items-center justify-center gap-2 text-sm sm:text-base">
                 <MapPin className="w-4 h-4" />
                 {results.election.localisation}
               </p>
             )}
-            <div className="flex items-center justify-center gap-4 mt-4 text-sm text-gov-gray">
-              <span className="flex items-center gap-1">
+            <div className="flex items-center justify-center gap-3 sm:gap-4 mt-4 text-xs sm:text-sm text-gov-gray flex-wrap">
+              <span className="flex items-center gap-1 min-w-0">
                 <Calendar className="w-4 h-4" />
                 {new Date(results.election?.election_date || '').toLocaleDateString('fr-FR', { 
                   weekday: 'long', 
@@ -234,30 +234,30 @@ const ElectionResults: React.FC = () => {
       </section>
 
       {/* Statistiques principales */}
-      <section className="bg-slate-200 py-8">
+      <section className="bg-slate-200 py-6 sm:py-8">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <Card className="text-center">
-              <CardContent className="pt-6">
-                <Users className="w-8 h-8 text-gov-blue mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gov-dark">{results.total_voters.toLocaleString()}</div>
-                <div className="text-sm text-gov-gray">Électeurs inscrits</div>
+              <CardContent className="pt-5 sm:pt-6">
+                <Users className="w-7 h-7 sm:w-8 sm:h-8 text-gov-blue mx-auto mb-2" />
+                <div className="text-xl sm:text-2xl font-bold text-gov-dark">{results.total_voters.toLocaleString()}</div>
+                <div className="text-xs sm:text-sm text-gov-gray">Électeurs inscrits</div>
               </CardContent>
             </Card>
             <Card className="text-center">
-              <CardContent className="pt-6">
-                <TrendingUp className="w-8 h-8 text-gov-blue mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gov-dark">{results.total_votes_cast.toLocaleString()}</div>
-                <div className="text-sm text-gov-gray">Bulletins exprimés</div>
+              <CardContent className="pt-5 sm:pt-6">
+                <TrendingUp className="w-7 h-7 sm:w-8 sm:h-8 text-gov-blue mx-auto mb-2" />
+                <div className="text-xl sm:text-2xl font-bold text-gov-dark">{results.total_votes_cast.toLocaleString()}</div>
+                <div className="text-xs sm:text-sm text-gov-gray">Bulletins exprimés</div>
               </CardContent>
             </Card>
             <Card className="text-center">
-              <CardContent className="pt-6">
-                <div className="w-8 h-8 bg-gov-blue rounded-full mx-auto mb-2 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">%</span>
+              <CardContent className="pt-5 sm:pt-6">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gov-blue rounded-full mx-auto mb-2 flex items-center justify-center">
+                  <span className="text-white font-bold text-xs sm:text-sm">%</span>
                 </div>
-                <div className="text-2xl font-bold text-gov-dark">{results.participation_rate.toFixed(1)}%</div>
-                <div className="text-sm text-gov-gray">Taux de participation</div>
+                <div className="text-xl sm:text-2xl font-bold text-gov-dark">{results.participation_rate.toFixed(1)}%</div>
+                <div className="text-xs sm:text-sm text-gov-gray">Taux de participation</div>
               </CardContent>
             </Card>
           </div>
@@ -265,9 +265,9 @@ const ElectionResults: React.FC = () => {
       </section>
 
       {/* Résultats des candidats */}
-      <section className="py-12">
+      <section className="py-8 sm:py-12">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-gov-dark mb-8 text-center">Résultats par candidat</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gov-dark mb-6 sm:mb-8 text-center">Résultats par candidat</h2>
           
           {results.candidates.length === 0 ? (
             <div className="text-center py-12">
@@ -276,34 +276,34 @@ const ElectionResults: React.FC = () => {
               <p className="text-gov-gray">Les résultats de cette élection ne sont pas encore publiés.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {results.candidates.map((candidate, index) => (
                 <Card key={candidate.candidate_id} className={`${index === 0 ? 'border-gov-blue border-2' : ''}`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-bold ${
                           index === 0 ? 'bg-gov-blue' : 'bg-slate-400'
                         }`}>
                           {candidate.rank}
                         </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gov-dark">{candidate.candidate_name}</h3>
-                          <p className="text-gov-gray">{(candidate as any).party_name || (candidate as any).party || ''}</p>
+                        <div className="min-w-0">
+                          <h3 className="text-base sm:text-lg font-semibold text-gov-dark truncate">{candidate.candidate_name}</h3>
+                          <p className="text-gov-gray text-sm truncate">{(candidate as any).party_name || (candidate as any).party || ''}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-gov-dark">
+                        <div className="text-xl sm:text-2xl font-bold text-gov-dark">
                           {candidate.total_votes.toLocaleString()}
                         </div>
-                        <div className="text-sm text-gov-gray">voix</div>
-                        <div className="text-lg font-semibold text-gov-blue">
+                        <div className="text-xs sm:text-sm text-gov-gray">voix</div>
+                        <div className="text-base sm:text-lg font-semibold text-gov-blue">
                           {candidate.percentage.toFixed(1)}%
                         </div>
                       </div>
                     </div>
                     {index === 0 && (
-                      <div className="mt-4 p-3 bg-gov-blue/10 rounded-lg">
+                      <div className="mt-3 sm:mt-4 p-3 bg-gov-blue/10 rounded-lg">
                         <div className="flex items-center justify-center text-gov-blue font-semibold">
                           🏆 Candidat en tête
                         </div>
