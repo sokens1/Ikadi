@@ -49,7 +49,7 @@ const ModernFormSection = React.forwardRef<HTMLDivElement, ModernFormSectionProp
       >
         <div className="flex items-center gap-3 mb-4">
           {icon && (
-            <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+            <div className="p-2 bg-gov-blue/10 rounded-lg text-gov-blue">
               {icon}
             </div>
           )}

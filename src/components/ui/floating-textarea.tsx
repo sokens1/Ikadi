@@ -69,7 +69,7 @@ const FloatingTextarea = React.forwardRef<HTMLTextAreaElement, FloatingTextareaP
           "relative w-full min-h-full",
           variantClasses[variant],
           error && "border-red-500",
-          isFocused && !error && "border-blue-500 ring-2 ring-blue-200",
+          isFocused && !error && "border-gov-blue ring-2 ring-gov-blue/20",
           "transition-all duration-200"
         )}>
           {icon && (
@@ -101,7 +101,7 @@ const FloatingTextarea = React.forwardRef<HTMLTextAreaElement, FloatingTextareaP
               "absolute left-3 transition-all duration-200 ease-in-out pointer-events-none",
               icon && "left-10",
               isLabelFloating 
-                ? "top-1 text-xs text-blue-600 font-medium" 
+                ? "top-1 text-xs text-gov-blue font-medium" 
                 : "top-3 text-gray-500",
               error && isLabelFloating && "text-red-500"
             )}

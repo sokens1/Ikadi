@@ -65,12 +65,12 @@ const FloatingCheckbox = React.forwardRef<HTMLDivElement, FloatingCheckboxProps>
                 "relative flex items-center justify-center rounded border-2 transition-all duration-200 cursor-pointer",
                 sizeClasses[size],
                 checked 
-                  ? "bg-blue-600 border-blue-600" 
+                  ? "bg-gov-blue border-gov-blue" 
                   : "bg-white border-gray-300",
-                isFocused && !disabled && "ring-2 ring-blue-200",
+                isFocused && !disabled && "ring-2 ring-gov-blue/20",
                 error && "border-red-500",
                 disabled && "opacity-50 cursor-not-allowed bg-gray-100",
-                "hover:border-blue-400"
+                "hover:border-gov-blue"
               )}
               onClick={() => !disabled && onChange(!checked)}
             >

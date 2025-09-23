@@ -125,8 +125,8 @@ const ElectionManagementUnified = () => {
           },
           configuration: {
             seatsAvailable: election.seats_available || 1,
-            budget: election.budget || 0,
-            voteGoal: election.vote_goal || 0,
+            budget: election.budget ,
+            voteGoal: election.vote_goal ,
             allowMultipleCandidates: true,
             requirePhotoValidation: false,
           },
@@ -253,7 +253,7 @@ const ElectionManagementUnified = () => {
         election_date: updatedData.date?.toISOString().split('T')[0],
         status: updatedData.status,
         description: updatedData.description || '',
-        nb_electeurs: updatedData.statistics?.totalVoters || 0,
+        nb_electeurs: updatedData.statistics?.totalVoters,
       };
 
       console.log('Données à envoyer à Supabase:', supabaseData);
@@ -448,9 +448,9 @@ const ElectionManagementUnified = () => {
         status: 'À venir',
         description: electionData.description || '',
         seats_available: electionData.configuration.seatsAvailable,
-        budget: electionData.configuration.budget || 0,
-        vote_goal: electionData.configuration.voteGoal || 0,
-        nb_electeurs: electionData.statistics?.totalVoters || 0,
+        budget: electionData.configuration.budget ,
+        vote_goal: electionData.configuration.voteGoal ,
+        nb_electeurs: electionData.statistics?.totalVoters ,
         // Note: Les relations géographiques seraient gérées séparément
       };
 
@@ -531,8 +531,8 @@ const ElectionManagementUnified = () => {
       candidates: selectedElection.statistics.totalCandidates,
       location: selectedElection.location.fullAddress,
       type: selectedElection.type,
-      budget: selectedElection.configuration.budget || 0,
-      voteGoal: selectedElection.configuration.voteGoal || 0,
+      budget: selectedElection.configuration.budget ,
+      voteGoal: selectedElection.configuration.voteGoal ,
       seatsAvailable: selectedElection.configuration.seatsAvailable,
       province: selectedElection.location.province,
       department: selectedElection.location.department,
@@ -555,7 +555,7 @@ const ElectionManagementUnified = () => {
       <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gov-blue mx-auto mb-4"></div>
             <p className="text-gray-600">Chargement des élections...</p>
           </div>
         </div>
@@ -584,7 +584,7 @@ const ElectionManagementUnified = () => {
     <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* Header avec statistiques */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 mb-8">
+        <div className="relative overflow-hidden bg-gradient-to-r from-gov-blue/5 to-gov-blue-light/5 rounded-2xl p-8 mb-8">
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           <div className="relative z-10">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -624,13 +624,13 @@ const ElectionManagementUnified = () => {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="caption text-gray-600 font-medium">Total Élections</p>
-                  <p className="heading-2 text-blue-600">{statistics.total}</p>
-                  <div className="w-12 h-1 bg-blue-200 rounded-full">
-                    <div className="w-full h-full bg-blue-500 rounded-full"></div>
+                  <p className="heading-2 text-gov-blue">{statistics.total}</p>
+                  <div className="w-12 h-1 bg-gov-blue/20 rounded-full">
+                    <div className="w-full h-full bg-gov-blue rounded-full"></div>
                   </div>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <Calendar className="h-8 w-8 text-blue-600" />
+                <div className="p-3 bg-gov-blue/10 rounded-full">
+                  <Calendar className="h-8 w-8 text-gov-blue" />
                 </div>
               </div>
             </CardContent>
@@ -747,7 +747,7 @@ const ElectionManagementUnified = () => {
                 onClick={() => setViewMode('grid')}
                 className={cn(
                   "h-10 w-10 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
-                  viewMode === 'grid' && "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  viewMode === 'grid' && "bg-gov-blue/10 text-gov-blue hover:bg-gov-blue/20"
                 )}
               >
                 <LayoutGrid className="h-5 w-5" />
@@ -758,7 +758,7 @@ const ElectionManagementUnified = () => {
                 onClick={() => setViewMode('list')}
                 className={cn(
                   "h-10 w-10 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors",
-                  viewMode === 'list' && "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  viewMode === 'list' && "bg-gov-blue/10 text-gov-blue hover:bg-gov-blue/20"
                 )}
               >
                 <List className="h-5 w-5" />
@@ -864,8 +864,8 @@ const ElectionManagementUnified = () => {
                     <div className="space-y-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-3 text-sm text-gray-600">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <Calendar className="h-4 w-4 text-blue-600" />
+                          <div className="p-2 bg-gov-blue/10 rounded-lg">
+                            <Calendar className="h-4 w-4 text-gov-blue" />
                           </div>
                           <span className="font-medium">
                             {election.date.toLocaleDateString('fr-FR', {
@@ -885,12 +885,12 @@ const ElectionManagementUnified = () => {
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-                        <div className="text-center p-3 bg-blue-50 rounded-lg">
-                          <div className="flex items-center justify-center gap-2 text-blue-600 mb-2">
+                        <div className="text-center p-3 bg-gov-blue/5 rounded-lg">
+                          <div className="flex items-center justify-center gap-2 text-gov-blue mb-2">
                             <Users className="h-5 w-5" />
                             <span className="text-sm font-semibold">Électeurs</span>
                           </div>
-                          <p className="heading-3 text-blue-700">
+                          <p className="heading-3 text-gov-blue">
                             {election.statistics.totalVoters.toLocaleString()}
                           </p>
                         </div>
@@ -907,7 +907,7 @@ const ElectionManagementUnified = () => {
 
                       <Button
                         variant="outline"
-                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-md transition-all duration-300 py-3 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 group-hover:shadow-md"
+                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-3 group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewElection(election);
@@ -991,7 +991,7 @@ const ElectionManagementUnified = () => {
 
                   <div className="flex items-center gap-6 text-gray-700 body-small mb-4 md:mb-0 md:mr-6">
                     <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-blue-500" />
+                      <Users className="h-4 w-4 text-gov-blue" />
                       <span>{election.statistics.totalVoters.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -1003,7 +1003,7 @@ const ElectionManagementUnified = () => {
                   <div className="w-full md:w-auto">
                     <Button
                       variant="outline"
-                      className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-md transition-all duration-300 py-3 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 group-hover:shadow-md"
+                      className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-3 group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleViewElection(election);

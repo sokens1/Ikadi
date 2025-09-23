@@ -221,8 +221,8 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
       <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
         <DialogHeader className="pb-6">
           <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-gray-900">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-gov-blue/10 rounded-lg">
+              <Calendar className="h-6 w-6 text-gov-blue" />
             </div>
             Modifier l'élection
           </DialogTitle>
@@ -445,7 +445,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50"
+              className="px-8 py-3 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications'}

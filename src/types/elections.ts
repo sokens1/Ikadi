@@ -124,6 +124,8 @@ export interface CreateElectionData {
   description?: string;
   location: Omit<GeographicLocation, 'fullAddress'>;
   configuration: Omit<ElectionConfig, 'allowMultipleCandidates' | 'requirePhotoValidation'>;
+  // Optionnel: utilisé lors de la création pour renseigner nb_electeurs
+  statistics?: Pick<ElectionStats, 'totalVoters'>;
 }
 
 export interface UpdateElectionData extends Partial<CreateElectionData> {

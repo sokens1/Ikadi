@@ -357,7 +357,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
       <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gov-blue mx-auto mb-4"></div>
             <p className="text-gray-600">Chargement des détails de l'élection...</p>
           </div>
         </div>
@@ -369,7 +369,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     <Layout>
       <div className="space-y-8 animate-fade-in">
         {/* Header moderne avec gradient */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6">
+        <div className="relative overflow-hidden bg-gradient-to-r from-gov-blue/5 via-gov-blue-light/5 to-purple-50 rounded-2xl p-6">
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
@@ -409,12 +409,12 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 bg-blue-500 rounded-lg">
+                    <div className="p-1.5 bg-gov-blue rounded-lg">
                       <Users className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-blue-700 uppercase tracking-wide">Électeurs</span>
+                    <span className="text-xs font-medium text-gov-blue uppercase tracking-wide">Électeurs</span>
                   </div>
-                  <div className="text-xl font-bold text-blue-900">
+                  <div className="text-xl font-bold text-gov-blue">
                     {statistics.totalVoters.toLocaleString('fr-FR')}
                   </div>
                 </div>
@@ -467,8 +467,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                 value="info" 
                 className="flex items-center space-x-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
               >
-                <div className="p-1.5 bg-blue-100 rounded-md data-[state=active]:bg-blue-500 transition-colors duration-300">
-                  <Building className="w-4 h-4 text-blue-600 data-[state=active]:text-white" />
+                <div className="p-1.5 bg-gov-blue/10 rounded-md data-[state=active]:bg-gov-blue transition-colors duration-300">
+                  <Building className="w-4 h-4 text-gov-blue data-[state=active]:text-white" />
                 </div>
                 <div className="text-left">
                   <div className="font-medium text-sm">Informations</div>
@@ -508,8 +508,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               <Card className="election-card group hover:shadow-lg transition-all duration-300">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Building className="w-5 h-5 text-blue-600" />
+                    <div className="p-2 bg-gov-blue/10 rounded-lg">
+                      <Building className="w-5 h-5 text-gov-blue" />
                     </div>
                     Informations Générales
                   </CardTitle>
@@ -552,7 +552,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
 
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Sièges à pourvoir</label>
-                    <p className="text-xl font-bold text-blue-600">{election.seatsAvailable}</p>
+                    <p className="text-xl font-bold text-gov-blue">{election.seatsAvailable}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -706,9 +706,9 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                         <div className="text-lg font-bold text-orange-600">{center.bureaux}</div>
                         <div className="text-xs text-orange-600 font-medium uppercase tracking-wide">Bureaux</div>
                       </div>
-                      <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="text-lg font-bold text-blue-600">{center.voters.toLocaleString('fr-FR')}</div>
-                        <div className="text-xs text-blue-600 font-medium uppercase tracking-wide">Électeurs</div>
+                      <div className="text-center p-3 bg-gov-blue/5 rounded-lg border border-gov-blue/20">
+                        <div className="text-lg font-bold text-gov-blue">{center.voters.toLocaleString('fr-FR')}</div>
+                        <div className="text-xs text-gov-blue font-medium uppercase tracking-wide">Électeurs</div>
                       </div>
                     </div>
 
