@@ -82,46 +82,22 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     totalCandidates: 0
   });
 
-  // Charger les centres de vote pour cette élection (basés sur la localisation)
+  // Charger les centres de vote liés à cette élection
   useEffect(() => {
     const fetchCenters = async () => {
       try {
         setLoading(true);
         
-        // D'abord récupérer les détails de l'élection pour avoir sa localisation
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('province_id, department_id, commune_id, arrondissement_id')
-          .eq('id', election.id)
-          .single();
-
-        if (electionError) {
-          console.error('Erreur lors du chargement de l\'élection:', electionError);
-          setCenters([]);
-          setLoading(false);
-          return;
-        }
-
-        // Construire la requête basée sur la localisation de l'élection
-        let query = supabase
-          .from('voting_centers')
+        // Récupérer les centres liés à cette élection via la table de jonction
+        const { data, error } = await supabase
+          .from('election_centers')
           .select(`
-            *,
-            voting_bureaux!center_id(id, name)
-          `);
-
-        // Filtrer par localisation si disponible
-        if (electionData.arrondissement_id) {
-          query = query.eq('arrondissement_id', electionData.arrondissement_id);
-        } else if (electionData.commune_id) {
-          query = query.eq('commune_id', electionData.commune_id);
-        } else if (electionData.department_id) {
-          query = query.eq('department_id', electionData.department_id);
-        } else if (electionData.province_id) {
-          query = query.eq('province_id', electionData.province_id);
-        }
-
-        const { data, error } = await query.order('name', { ascending: true });
+            voting_centers(
+              id, name, address, contact_name, contact_phone,
+              voting_bureaux!center_id(id, name, registered_voters)
+            )
+          `)
+          .eq('election_id', election.id);
 
         if (error) {
           console.error('Erreur lors du chargement des centres:', error);
@@ -131,7 +107,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         }
 
         // Transformer les données Supabase en format Center
-        const transformedCenters: Center[] = data?.map(center => {
+        const transformedCenters: Center[] = data?.map((link: any) => {
+          const center = link.voting_centers;
           const totalVoters = center.voting_bureaux?.reduce((sum: number, bureau: any) => 
             sum + (bureau.registered_voters || 0), 0) || 0;
           
@@ -157,14 +134,17 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     fetchCenters();
   }, [election.id]);
 
-  // Charger les candidats pour cette élection
+  // Charger les candidats liés à cette élection
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
         const { data, error } = await supabase
-          .from('candidates')
-          .select('id, name, party, photo_url, is_our_candidate')
-          .order('name', { ascending: true });
+          .from('election_candidates')
+          .select(`
+            candidates(id, name, party, photo_url, is_our_candidate),
+            is_our_candidate
+          `)
+          .eq('election_id', election.id);
 
         if (error) {
           console.error('Erreur lors du chargement des candidats:', error);
@@ -173,12 +153,12 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         }
 
         // Transformer les données Supabase en format Candidate
-        const transformedCandidates: Candidate[] = data?.map((candidate: any) => ({
-          id: String(candidate.id),
-          name: candidate.name || '',
-          party: candidate.party || '',
-          isOurCandidate: candidate.is_our_candidate || false,
-          photo: candidate.photo_url || '/placeholder.svg',
+        const transformedCandidates: Candidate[] = data?.map((link: any) => ({
+          id: String(link.candidates.id),
+          name: link.candidates.name || '',
+          party: link.candidates.party || '',
+          isOurCandidate: link.is_our_candidate || false,
+          photo: link.candidates.photo_url || '/placeholder.svg',
         })) || [];
 
         setCandidates(transformedCandidates);

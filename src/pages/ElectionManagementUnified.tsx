@@ -75,9 +75,7 @@ const ElectionManagementUnified = () => {
             provinces(name),
             departments(name),
             communes(name),
-            arrondissements(name),
-            election_candidates(count),
-            election_centers(count)
+            arrondissements(name)
           `)
           .order('election_date', { ascending: false });
 
@@ -87,8 +85,30 @@ const ElectionManagementUnified = () => {
           return;
         }
 
+        // Récupérer les comptes de candidats et centres pour chaque élection
+        const electionsWithCounts = await Promise.all(
+          data?.map(async (election) => {
+            const [candidatesResult, centersResult] = await Promise.all([
+              supabase
+                .from('election_candidates')
+                .select('*', { count: 'exact', head: true })
+                .eq('election_id', election.id),
+              supabase
+                .from('election_centers')
+                .select('*', { count: 'exact', head: true })
+                .eq('election_id', election.id)
+            ]);
+
+            return {
+              ...election,
+              candidates_count: candidatesResult.count || 0,
+              centers_count: centersResult.count || 0
+            };
+          }) || []
+        );
+
         // Transformer les données Supabase en format Election unifié
-        const transformedElections: Election[] = data?.map(election => {
+        const transformedElections: Election[] = electionsWithCounts.map(election => {
           console.log('Données brutes de l\'élection:', election);
           console.log('Données de localisation:', {
             // Champs directs
@@ -134,8 +154,8 @@ const ElectionManagementUnified = () => {
           },
           statistics: {
             totalVoters: election.nb_electeurs || election.registered_voters || 0,
-            totalCandidates: election.election_candidates?.[0]?.count || 0,
-            totalCenters: election.election_centers?.[0]?.count || 0,
+            totalCandidates: election.candidates_count || 0,
+            totalCenters: election.centers_count || 0,
             totalBureaux: election.voting_bureaux_count || 0,
             completedSteps: 0,
             totalSteps: 5,
@@ -466,6 +486,43 @@ const ElectionManagementUnified = () => {
         console.error('Erreur lors de la création de l\'élection:', error);
         toast.error(`Erreur lors de la création: ${error.message}`);
         return;
+      }
+
+      const electionId = String(data.id);
+
+      // Lier les candidats à l'élection
+      if (electionData.candidates && electionData.candidates.length > 0) {
+        const candidateLinks = electionData.candidates.map(candidate => ({
+          election_id: electionId,
+          candidate_id: candidate.id,
+          is_our_candidate: candidate.isOurCandidate || false
+        }));
+
+        const { error: candidateError } = await supabase
+          .from('election_candidates')
+          .insert(candidateLinks);
+
+        if (candidateError) {
+          console.error('Erreur lors de la liaison des candidats:', candidateError);
+          toast.error('Erreur lors de la liaison des candidats');
+        }
+      }
+
+      // Lier les centres à l'élection
+      if (electionData.centers && electionData.centers.length > 0) {
+        const centerLinks = electionData.centers.map(center => ({
+          election_id: electionId,
+          center_id: center.id
+        }));
+
+        const { error: centerError } = await supabase
+          .from('election_centers')
+          .insert(centerLinks);
+
+        if (centerError) {
+          console.error('Erreur lors de la liaison des centres:', centerError);
+          toast.error('Erreur lors de la liaison des centres');
+        }
       }
 
       // Créer l'objet Election complet

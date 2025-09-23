@@ -248,6 +248,55 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     }));
   };
 
+  // Fonction pour mettre à jour les liens candidats/centres
+  const updateElectionLinks = async (electionId: string, candidateIds: string[], centerIds: string[]) => {
+    try {
+      // Supprimer les anciens liens
+      await Promise.all([
+        supabase.from('election_candidates').delete().eq('election_id', electionId),
+        supabase.from('election_centers').delete().eq('election_id', electionId)
+      ]);
+
+      // Créer les nouveaux liens candidats
+      if (candidateIds.length > 0) {
+        const candidateLinks = candidateIds.map(candidateId => ({
+          election_id: electionId,
+          candidate_id: candidateId,
+          is_our_candidate: false // Par défaut, sera mis à jour si nécessaire
+        }));
+
+        const { error: candidateError } = await supabase
+          .from('election_candidates')
+          .insert(candidateLinks);
+
+        if (candidateError) {
+          console.error('Erreur lors de la mise à jour des candidats:', candidateError);
+          throw candidateError;
+        }
+      }
+
+      // Créer les nouveaux liens centres
+      if (centerIds.length > 0) {
+        const centerLinks = centerIds.map(centerId => ({
+          election_id: electionId,
+          center_id: centerId
+        }));
+
+        const { error: centerError } = await supabase
+          .from('election_centers')
+          .insert(centerLinks);
+
+        if (centerError) {
+          console.error('Erreur lors de la mise à jour des centres:', centerError);
+          throw centerError;
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des liens:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -299,6 +348,9 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
           totalVoters: formData.nbElecteurs,
         },
       };
+
+      // Mettre à jour les liens candidats/centres
+      await updateElectionLinks(election.id, formData.selectedCandidates, formData.selectedCenters);
 
       await onUpdate(updatedData);
     } catch (error) {
