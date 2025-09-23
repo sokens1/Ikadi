@@ -145,22 +145,21 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
         if (electionError) throw electionError;
         setElectionInfo(election);
         
-        // Récupérer les candidats de l'élection
-        const { data: candidates, error: candidatesError } = await supabase
+        // Récupérer uniquement les candidats liés à l'élection sélectionnée
+        const { data: candidatesLinked, error: candidatesError } = await supabase
           .from('election_candidates')
           .select(`
             candidates!candidate_id(id, name, party)
           `)
           .eq('election_id', selectedElection);
-        
         if (candidatesError) throw candidatesError;
-        
-        const mappedCandidates = (candidates || []).map((item: any) => ({
+
+        const mappedCandidates = (candidatesLinked || []).map((item: any) => ({
           id: item.candidates.id,
           name: item.candidates.name,
           party: item.candidates.party || 'Indépendant'
         }));
-        
+
         setCandidatesData(mappedCandidates);
         
       } catch (error) {
@@ -196,13 +195,12 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
 
   const validateCandidateVotes = () => {
     const errors: Record<string, string> = {};
+    if (!candidatesData || candidatesData.length === 0) return errors;
     const exprimes = parseInt(formData.suffragesExprimes) || 0;
     const totalVotes = Object.values(formData.candidateVotes).reduce((sum, votes) => sum + (parseInt(votes) || 0), 0);
-
     if (totalVotes !== exprimes && exprimes > 0) {
       errors.candidateTotal = `Total des voix des candidats (${totalVotes}) ≠ Suffrages exprimés (${exprimes})`;
     }
-
     return errors;
   };
 
@@ -306,22 +304,53 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
       const null_votes = parseInt(formData.bulletinsNuls) || 0;
       const votes_expressed = parseInt(formData.suffragesExprimes) || 0;
 
-      const { data: pv, error: pvErr } = await supabase
+      // Empêcher une double saisie: si un PV existe déjà pour (election_id, bureau_id), on met à jour au lieu d'insérer
+      const { data: existingPv, error: findPvErr } = await supabase
         .from('procès_verbaux')
-        .insert({
-          election_id: selectedElection,
-          bureau_id: bureauId,
-          total_registered: registeredVoters,
-          total_voters,
-          null_votes,
-          votes_expressed,
-          status: 'entered',
-          entered_at: new Date().toISOString(),
-          pv_photo_url: pvPhotoUrl
-        })
-        .select()
-        .single();
-      if (pvErr) throw pvErr;
+        .select('id')
+        .eq('election_id', selectedElection)
+        .eq('bureau_id', bureauId)
+        .limit(1)
+        .maybeSingle();
+      if (findPvErr) throw findPvErr;
+
+      let pv;
+      if (existingPv?.id) {
+        const { data: updated, error: updateErr } = await supabase
+          .from('procès_verbaux')
+          .update({
+            total_registered: registeredVoters,
+            total_voters,
+            null_votes,
+            votes_expressed,
+            status: 'entered',
+            entered_at: new Date().toISOString(),
+            pv_photo_url: pvPhotoUrl || undefined
+          })
+          .eq('id', existingPv.id)
+          .select()
+          .single();
+        if (updateErr) throw updateErr;
+        pv = updated;
+      } else {
+        const { data: inserted, error: insertErr } = await supabase
+          .from('procès_verbaux')
+          .insert({
+            election_id: selectedElection,
+            bureau_id: bureauId,
+            total_registered: registeredVoters,
+            total_voters,
+            null_votes,
+            votes_expressed,
+            status: 'entered',
+            entered_at: new Date().toISOString(),
+            pv_photo_url: pvPhotoUrl
+          })
+          .select()
+          .single();
+        if (insertErr) throw insertErr;
+        pv = inserted;
+      }
 
       const candidateEntries = Object.entries(formData.candidateVotes)
         .map(([candidateId, votes]) => ({
@@ -334,7 +363,7 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
         if (crErr) throw crErr;
       }
 
-      toast.success('PV enregistré avec succès.');
+      toast.success(existingPv?.id ? 'PV mis à jour avec succès.' : 'PV enregistré avec succès.');
       onClose();
     } catch (err) {
       console.error('Erreur soumission PV:', err);

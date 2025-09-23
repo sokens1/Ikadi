@@ -48,10 +48,35 @@ WHERE NOT EXISTS (
 
 COMMIT;
 
--- Pour lier ces candidats à une élection (locales), utilisez par exemple:
--- INSERT INTO public.election_candidates (election_id, candidate_id, is_our_candidate)
--- SELECT '<ELECTION_UUID>', c.id, false FROM public.candidates c WHERE c.name IN (
---   'MOULONDA Bernard','LEBOMO Arnaud Clobert','MBIOKO MANGOUMBA Edgard','BOUAMBA Maurice','NGOSSINGA Dieudonné','NDZOLE Paulin'
--- );
+-- Lier automatiquement ces candidats à l'élection locale la plus récente
+-- (type = 'Locales'). Si vous souhaitez une autre élection, remplacez la CTE target_election.
+
+BEGIN;
+WITH target_election AS (
+  SELECT id
+  FROM public.elections
+  WHERE type = 'Locales'
+  ORDER BY election_date DESC NULLS LAST
+  LIMIT 1
+), selected_candidates AS (
+  SELECT id FROM public.candidates 
+  WHERE name IN (
+    'MOULONDA Bernard',
+    'LEBOMO Arnaud Clobert',
+    'MBIOKO MANGOUMBA Edgard',
+    'BOUAMBA Maurice',
+    'NGOSSINGA Dieudonné',
+    'NDZOLE Paulin'
+  )
+)
+INSERT INTO public.election_candidates (election_id, candidate_id, is_our_candidate)
+SELECT te.id, sc.id, false
+FROM target_election te
+JOIN selected_candidates sc ON TRUE
+ON CONFLICT (election_id, candidate_id) DO NOTHING;
+COMMIT;
+
+-- Variante: pour une élection précise, remplacez target_election par
+-- WITH target_election AS (SELECT '<ELECTION_UUID>'::uuid AS id)
 
 

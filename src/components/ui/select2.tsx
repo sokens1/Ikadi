@@ -22,6 +22,8 @@ interface Select2Props {
   helpText?: string;
 }
 
+const CLEAR_VALUE = '__none__';
+
 const Select2: React.FC<Select2Props> = ({
   label,
   placeholder = "Sélectionner...",
@@ -35,10 +37,10 @@ const Select2: React.FC<Select2Props> = ({
   error,
   helpText,
 }) => {
-  const currentValue = value?.value ?? '';
+  const currentValue = value?.value; // ne jamais forcer ""
 
   const handleChange = (val: string) => {
-    if (val === '' && isClearable) {
+    if (isClearable && val === CLEAR_VALUE) {
       onChange(null);
       return;
     }
@@ -60,7 +62,7 @@ const Select2: React.FC<Select2Props> = ({
         </SelectTrigger>
         <SelectContent>
           {isClearable && (
-            <SelectItem value="">—</SelectItem>
+            <SelectItem value={CLEAR_VALUE}>—</SelectItem>
           )}
           {options.map(opt => (
             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>

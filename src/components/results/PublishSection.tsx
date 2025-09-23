@@ -44,20 +44,15 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
       if (!selectedElection) return;
       try {
         setLoading(true);
-        // 1) Récupérer PV avec statut validé (fallback: entered s'il n'y a pas encore de validés)
+        // 1) Récupérer PV avec statut validé UNIQUEMENT
         const fetchPVs = async (status: string) => supabase
           .from('procès_verbaux')
           .select('id, bureau_id, total_voters, null_votes, votes_expressed, status, entered_at')
           .eq('election_id', selectedElection)
           .eq('status', status);
 
-        let { data: pvs, error: pvError } = await fetchPVs('validated');
+        const { data: pvs, error: pvError } = await fetchPVs('validated');
         if (pvError) throw pvError;
-        if (!pvs || pvs.length === 0) {
-          const alt = await fetchPVs('entered');
-          if (alt.error) throw alt.error;
-          pvs = alt.data || [];
-        }
 
         // 2) Récupérer résultats par candidat pour ces PV
         const pvIds = (pvs || []).map(p => p.id);
@@ -71,7 +66,29 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           crRows = cr || [];
         }
 
-        // 3) Récupérer libellés bureaux/centres
+        // 2.bis) Utiliser la vue agrégée election_results_summary si disponible
+        const { data: summaryRows, error: summaryErr } = await supabase
+          .from('election_results_summary')
+          .select('*')
+          .eq('election_id', selectedElection);
+        
+        if (summaryErr) {
+          console.warn('Vue election_results_summary indisponible:', summaryErr.message || summaryErr);
+        }
+
+        // 3) Récupérer la liste des candidats de l'élection (référence stricte)
+        const { data: electionCands, error: ecErr } = await supabase
+          .from('election_candidates')
+          .select('candidates!inner(id, name, party)')
+          .eq('election_id', selectedElection);
+        if (ecErr) throw ecErr;
+        const electionCandidates = (electionCands || []).map((row: any) => ({
+          id: row.candidates.id,
+          name: row.candidates.name,
+          party: row.candidates.party || 'Indépendant'
+        }));
+
+        // 4) Récupérer libellés bureaux/centres
         const bureauIds = Array.from(new Set((pvs || []).map(p => p.bureau_id).filter(Boolean)));
         let bureaux: any[] = [];
         let centers: any[] = [];
@@ -96,21 +113,32 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         const bureauMap = new Map(bureaux.map(b => [b.id, b]));
         const centerMap = new Map(centers.map(c => [c.id, c]));
 
-        // 4) Agrégations
+        // 5) Agrégations (n'afficher que les candidats de cette élection, même à 0 voix)
         const votesByCandidate: Record<string, { id: string; name: string; party: string; votes: number }> = {};
+        electionCandidates.forEach(c => {
+          votesByCandidate[c.id] = { id: c.id, name: c.name, party: c.party, votes: 0 };
+        });
         let totalVotants = 0;
         let bulletinsNuls = 0;
         let totalInscrits = 0;
 
-        crRows.forEach((r: any) => {
-          const cid = r.candidates?.id || r.candidate_id;
-          const cname = r.candidates?.name || 'Candidat';
-          const cparty = r.candidates?.party || 'Indépendant';
-          if (!votesByCandidate[cid]) {
-            votesByCandidate[cid] = { id: cid, name: cname, party: cparty, votes: 0 };
-          }
-          votesByCandidate[cid].votes += r.votes || 0;
-        });
+        if (summaryRows && summaryRows.length > 0) {
+          // Utiliser directement les totaux de la vue election_results_summary
+          console.log('Utilisation de la vue election_results_summary:', summaryRows);
+          summaryRows.forEach((row: any) => {
+            const cid = row.candidate_id;
+            if (!votesByCandidate[cid]) return;
+            votesByCandidate[cid].votes = Number(row.total_votes) || 0;
+          });
+        } else {
+          // Fallback: calcul local à partir des candidate_results
+          console.log('Calcul local à partir des candidate_results');
+          crRows.forEach((r: any) => {
+            const cid = r.candidates?.id || r.candidate_id;
+            if (!votesByCandidate[cid]) return; // ignorer candidats non liés à l'élection
+            votesByCandidate[cid].votes += r.votes || 0;
+          });
+        }
 
         (pvs || []).forEach((pv: any) => {
           totalVotants += pv.total_voters || 0;
@@ -168,17 +196,25 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
     loadFinalResults();
   }, [selectedElection]);
 
-  const pieChartData = useMemo(() => (finalResults ? finalResults.candidates.map((candidate: any) => ({
-    name: candidate.name,
-    value: candidate.votes,
-    percentage: candidate.percentage,
-    color: candidate.color
-  })) : []), [finalResults]);
+  const pieChartData = useMemo(() => (
+    finalResults && Array.isArray(finalResults.candidates)
+      ? finalResults.candidates.map((candidate: any) => ({
+          name: candidate.name || '—',
+          value: Number(candidate.votes) || 0,
+          percentage: Number(candidate.percentage) || 0,
+          color: candidate.color || '#3b82f6'
+        }))
+      : []
+  ), [finalResults]);
 
-  const barChartData = useMemo(() => (finalResults ? finalResults.candidates.map((candidate: any) => ({
-    name: candidate.name.split(' ')[0] + (candidate.name.split(' ')[1] ? (' ' + candidate.name.split(' ')[1]) : ''),
-    votes: candidate.votes
-  })) : []), [finalResults]);
+  const barChartData = useMemo(() => (
+    finalResults && Array.isArray(finalResults.candidates)
+      ? finalResults.candidates.map((candidate: any) => ({
+          name: (candidate.name || '—').split(' ').slice(0, 2).join(' '),
+          votes: Number(candidate.votes) || 0
+        }))
+      : []
+  ), [finalResults]);
 
   const handlePublish = async () => {
     try {
@@ -295,23 +331,27 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={pieChartData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="value"
-                  label={({percentage}) => `${percentage}%`}
-                >
-                  {pieChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {pieChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ percentage }: any) => `${percentage}%`}
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-sm text-gray-500">Aucune donnée à afficher</div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -356,15 +396,19 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
 
           {/* Graphique en barres */}
           <div className="mt-6">
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={barChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="votes" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
+            {barChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={barChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="votes" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-sm text-gray-500">Aucune donnée à afficher</div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -20,7 +20,9 @@ import {
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-const PVValidationSection = () => {
+interface PVValidationSectionProps { selectedElection: string }
+
+const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElection }) => {
   const [selectedPV, setSelectedPV] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'entered' | 'validated' | 'anomaly' | 'published'>('all');
@@ -29,14 +31,19 @@ const PVValidationSection = () => {
   const [bureauxMap, setBureauxMap] = useState<Map<string, { id: string; name: string; center_id: string }>>(new Map());
   const [centersMap, setCentersMap] = useState<Map<string, { id: string; name: string }>>(new Map());
   const [detailOpen, setDetailOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editValues, setEditValues] = useState<{ total_registered: number; total_voters: number; null_votes: number; votes_expressed: number }>({ total_registered: 0, total_voters: 0, null_votes: 0, votes_expressed: 0 });
+  const [candidateResults, setCandidateResults] = useState<Array<{ id: string; name: string; votes: number }>>([]);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
+        if (!selectedElection) { setPvs([]); setBureauxMap(new Map()); setCentersMap(new Map()); setLoading(false); return; }
         const { data: pvRows, error: pvErr } = await supabase
           .from('procès_verbaux')
-          .select('id, bureau_id, total_voters, null_votes, votes_expressed, status, entered_at, pv_photo_url')
+          .select('id, bureau_id, total_registered, total_voters, null_votes, votes_expressed, status, entered_at, pv_photo_url')
+          .eq('election_id', selectedElection)
           .order('created_at', { ascending: false })
           .limit(500);
         if (pvErr) throw pvErr;
@@ -67,7 +74,7 @@ const PVValidationSection = () => {
       }
     };
     load();
-  }, []);
+  }, [selectedElection]);
 
   const displayedPVs = useMemo(() => {
     const enriched = pvs.map(pv => {
@@ -78,6 +85,7 @@ const PVValidationSection = () => {
         status: pv.status,
         bureauLabel: `${center?.name || 'Centre'} - ${bureau?.name || 'Bureau'}`,
         timestamp: pv.entered_at ? new Date(pv.entered_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
+        total_registered: pv.total_registered,
         total_voters: pv.total_voters,
         votes_expressed: pv.votes_expressed,
         null_votes: pv.null_votes,
@@ -139,6 +147,31 @@ const PVValidationSection = () => {
   };
 
   const selectedPVData = useMemo(() => filteredPVs.find(pv => pv.id === selectedPV), [filteredPVs, selectedPV]);
+
+  // Charger les résultats par candidat pour le PV sélectionné
+  useEffect(() => {
+    const loadCandidateResults = async () => {
+      if (!selectedPV) { setCandidateResults([]); return; }
+      const { data, error } = await supabase
+        .from('candidate_results')
+        .select('id, votes, candidates(id, name)')
+        .eq('pv_id', selectedPV);
+      if (error) { console.error('Erreur chargement résultats candidats:', error); setCandidateResults([]); return; }
+      const mapped = (data || []).map((r: any) => ({ id: r.candidates?.id || r.id, name: r.candidates?.name || 'Candidat', votes: r.votes || 0 }));
+      setCandidateResults(mapped);
+    };
+    loadCandidateResults();
+  }, [selectedPV]);
+
+  useEffect(() => {
+    if (!selectedPVData) return;
+    setEditValues({
+      total_registered: selectedPVData.total_registered || 0,
+      total_voters: selectedPVData.total_voters || 0,
+      null_votes: selectedPVData.null_votes || 0,
+      votes_expressed: selectedPVData.votes_expressed || 0,
+    });
+  }, [selectedPVData]);
 
   return (
     <div className="space-y-6">
@@ -212,8 +245,8 @@ const PVValidationSection = () => {
       </div>
 
       {/* Modal détails PV */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-4xl">
+      <Dialog open={detailOpen} onOpenChange={(open) => { setDetailOpen(open); if (!open) setEditMode(false); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Détails du PV</DialogTitle>
           </DialogHeader>
@@ -235,11 +268,35 @@ const PVValidationSection = () => {
                               <div>
                   <h4 className="font-medium text-gray-900 mb-3">Participation</h4>
                   <div className="p-3 bg-gray-50 rounded-lg space-y-1 text-sm">
-                    <div className="flex justify-between"><span>Votants:</span><span className="font-medium">{selectedPVData.total_voters}</span></div>
-                    <div className="flex justify-between"><span>Bulletins nuls:</span><span className="font-medium">{selectedPVData.null_votes ?? 0}</span></div>
-                    <div className="flex justify-between"><span>Suffrages exprimés:</span><span className="font-medium">{selectedPVData.votes_expressed ?? 0}</span></div>
-                    </div>
-                  </div>
+                    {editMode ? (
+                        <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Inscrits:</span>
+                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.total_registered} onChange={e => setEditValues(v => ({ ...v, total_registered: parseInt(e.target.value) || 0 }))} />
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Votants:</span>
+                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.total_voters} onChange={e => setEditValues(v => ({ ...v, total_voters: parseInt(e.target.value) || 0 }))} />
+                              </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Bulletins nuls:</span>
+                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.null_votes} onChange={e => setEditValues(v => ({ ...v, null_votes: parseInt(e.target.value) || 0 }))} />
+                            </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Suffrages exprimés:</span>
+                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.votes_expressed} onChange={e => setEditValues(v => ({ ...v, votes_expressed: parseInt(e.target.value) || 0 }))} />
+                        </div>
+                      </div>
+                            ) : (
+                              <>
+                        <div className="flex justify-between"><span>Inscrits:</span><span className="font-medium">{editValues.total_registered || 0}</span></div>
+                        <div className="flex justify-between"><span>Votants:</span><span className="font-medium">{editValues.total_voters || 0}</span></div>
+                        <div className="flex justify-between"><span>Bulletins nuls:</span><span className="font-medium">{editValues.null_votes || 0}</span></div>
+                        <div className="flex justify-between"><span>Suffrages exprimés:</span><span className="font-medium">{editValues.votes_expressed || 0}</span></div>
+                              </>
+                            )}
+                          </div>
+                        </div>
                   <div>
                     <h4 className="font-medium text-gray-900 mb-3">Document Scanné</h4>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
@@ -252,20 +309,100 @@ const PVValidationSection = () => {
                   </div>
                 </div>
 
+              {/* Résultats par candidat */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Résultats par Candidat</h4>
+                {candidateResults.length > 0 ? (
+                  <div className="space-y-2">
+                    {candidateResults.map(cr => (
+                      <div key={cr.id} className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700">{cr.name}</span>
+                        <span className="font-semibold">{cr.votes}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">Aucun résultat détaillé saisi</div>
+                )}
+              </div>
+
                 <div>
                   <Label htmlFor="comment">Commentaire de validation</Label>
                 <Textarea id="comment" placeholder="Ajouter un commentaire..." value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
                 </div>
 
-                <div className="flex space-x-4">
-                <Button onClick={() => handleValidation('approve')} className="bg-green-600 hover:bg-green-700 text-white">
-                  <CheckCircle className="w-4 h-4 mr-2" /> Approuver
+              <div className="flex space-x-4 justify-end">
+                {!editMode && (
+                  <Button onClick={() => {
+                    setEditValues({
+                      total_registered: (editValues.total_registered || 0),
+                      total_voters: (selectedPVData.total_voters || 0),
+                      null_votes: (selectedPVData.null_votes || 0),
+                      votes_expressed: (selectedPVData.votes_expressed || 0)
+                    });
+                    setEditMode(true);
+                  }} variant="outline">
+                    Modifier
                   </Button>
-                <Button onClick={() => handleValidation('correction')} variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
-                  <MessageSquare className="w-4 h-4 mr-2" /> Demander Correction
+                )}
+                {editMode && (
+                  <Button onClick={async () => {
+                    if (!selectedPV) return;
+                    const { error } = await supabase
+                      .from('procès_verbaux')
+                      .update({
+                        total_registered: editValues.total_registered || 0,
+                        total_voters: editValues.total_voters || 0,
+                        null_votes: editValues.null_votes || 0,
+                        votes_expressed: editValues.votes_expressed || 0,
+                      })
+                      .eq('id', selectedPV);
+                    if (!error) {
+                      // Refléter en local
+                      setPvs(prev => prev.map(p => p.id === selectedPV ? { ...p, total_voters: editValues.total_voters, null_votes: editValues.null_votes, votes_expressed: editValues.votes_expressed } : p));
+                      setEditMode(false);
+                    } else {
+                      console.error('Erreur maj PV:', error);
+                    }
+                  }} className="bg-green-600 hover:bg-green-700 text-white">
+                    Enregistrer
                   </Button>
-                <Button onClick={() => handleValidation('reject')} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
-                  <XCircle className="w-4 h-4 mr-2" /> Rejeter
+                )}
+                <Button onClick={async () => {
+                  if (!selectedPV) return;
+                  if (!confirm('Supprimer ce PV ? Cette action est irréversible.')) return;
+                  // Supprimer d'abord les résultats liés
+                  const { error: crErr } = await supabase
+                    .from('candidate_results')
+                    .delete()
+                    .eq('pv_id', selectedPV);
+                  if (crErr) { console.error('Erreur suppression résultats:', crErr); return; }
+                  // Supprimer le PV
+                  const { error: pvErr } = await supabase
+                    .from('procès_verbaux')
+                    .delete()
+                    .eq('id', selectedPV);
+                  if (pvErr) { console.error('Erreur suppression PV:', pvErr); return; }
+                  // Mettre à jour l'état local
+                  setPvs(prev => prev.filter(p => p.id !== selectedPV));
+                  setDetailOpen(false);
+                }} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+                  Supprimer
+                </Button>
+                <Button onClick={async () => {
+                  if (!selectedPV) return;
+                  const { error } = await supabase
+                    .from('procès_verbaux')
+                    .update({ status: 'validated', validated_at: new Date().toISOString() })
+                    .eq('id', selectedPV);
+                  if (error) {
+                    console.error('Erreur validation PV:', error);
+                  } else {
+                    setPvs(prev => prev.map(p => p.id === selectedPV ? { ...p, status: 'validated' } : p));
+                    setDetailOpen(false);
+                  }
+                }} className="bg-green-600 hover:bg-green-700 text-white">
+                  <CheckCircle className="w-4 h-4 mr-2" /> Valider
                   </Button>
                 </div>
               </div>

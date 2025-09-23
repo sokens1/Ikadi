@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -38,11 +38,8 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
   const [votingCenters, setVotingCenters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Charger les centres de vote et leurs PV depuis Supabase
-  useEffect(() => {
+  const fetchVotingCenters = useCallback(async () => {
     if (!selectedElection) return;
-
-    const fetchVotingCenters = async () => {
       try {
         setLoading(true);
         
@@ -71,6 +68,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
                 status,
                 entered_by,
                 entered_at,
+                election_id,
                 anomalies
               )
             )
@@ -97,7 +95,8 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
         // Transformer les données Supabase
         const transformedCenters = data?.map(center => {
           const bureaux = center.voting_bureaux?.map((bureau: any) => {
-            const pv = bureau.procès_verbaux?.[0]; // Prendre le premier PV
+            const pvsForElection = (bureau.procès_verbaux || []).filter((pv: any) => pv.election_id === selectedElection);
+            const pv = pvsForElection.sort((a: any, b: any) => new Date(b.entered_at || 0).getTime() - new Date(a.entered_at || 0).getTime())[0];
             return {
               id: bureau.id.toString(),
               name: bureau.name,
@@ -112,7 +111,7 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
           }) || [];
 
           const bureauxSaisis = bureaux.filter((b: any) => 
-            b.status === 'saisi' || b.status === 'validé' || b.status === 'anomaly'
+            b.status === 'entered' || b.status === 'validated' || b.status === 'anomaly'
           ).length;
 
           return {
@@ -132,10 +131,20 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchVotingCenters();
   }, [selectedElection]);
+
+  // Charger initialement et à chaque changement d'élection
+  useEffect(() => {
+    fetchVotingCenters();
+  }, [fetchVotingCenters]);
+
+  // Rafraîchir après fermeture de la saisie PV
+  useEffect(() => {
+    if (!showPVEntry) {
+      fetchVotingCenters();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPVEntry]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
