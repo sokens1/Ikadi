@@ -76,6 +76,10 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('AddCandidateModal - handleSubmit appelé');
+    console.log('selectedCandidates:', selectedCandidates);
+    console.log('candidates disponibles:', candidates);
+    
     if (selectedCandidates.length > 0) {
       const candidatesToAdd = candidates
         .filter(c => selectedCandidates.includes(c.id))
@@ -86,32 +90,35 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
           isOurCandidate: c.isOurCandidate,
           photo: '/placeholder.svg'
         }));
+      
+      console.log('candidatesToAdd:', candidatesToAdd);
       onSubmit(candidatesToAdd);
+    } else {
+      console.log('Aucun candidat sélectionné');
+      toast.error('Veuillez sélectionner au moins un candidat');
     }
   };
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="p-2 bg-gov-blue/10 rounded-lg">
-              <Users className="w-5 h-5 text-gov-blue" />
+      <DialogContent className="max-w-2xl p-4 sm:p-6">
+        <DialogHeader className="pb-4 sm:pb-6">
+          <DialogTitle className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-gov-blue/10 rounded-lg">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-gov-blue" />
             </div>
-            <div>
-              <div className="text-xl font-bold text-gray-900">Sélection des Candidats</div>
-              <div className="text-sm text-gray-600">Choisissez les candidats qui participeront à cette élection</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-lg sm:text-xl font-bold text-gray-900">Sélection des Candidats</div>
+              <div className="text-xs sm:text-sm text-gray-600">Choisissez les candidats qui participeront à cette élection</div>
             </div>
-          </DialogTitle>
-          <DialogDescription>
-            <Button variant="ghost" onClick={onClose} className="absolute right-4 top-4" type="button">
-              <X className="w-5 h-5" />
+            <Button variant="ghost" onClick={onClose} className="flex-shrink-0 p-2" type="button">
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
-          </DialogDescription>
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="pt-2">
-          <ModernForm>
+        <div className="pt-2">
+          <ModernForm onSubmit={handleSubmit}>
             <ModernFormSection title="Candidats">
               <MultiSelect
                 options={(candidates || []).map(c => ({
@@ -126,13 +133,14 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
             </ModernFormSection>
 
             <ModernFormActions>
-              <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-              <Button type="submit" className="btn-primary" disabled={selectedCandidates.length === 0}>
-                Ajouter {selectedCandidates.length} candidat{selectedCandidates.length > 1 ? 's' : ''}
+              <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3">Annuler</Button>
+              <Button type="submit" className="btn-primary w-full sm:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3" disabled={selectedCandidates.length === 0}>
+                <span className="hidden xs:inline">Ajouter {selectedCandidates.length} candidat{selectedCandidates.length > 1 ? 's' : ''}</span>
+                <span className="xs:hidden">Ajouter {selectedCandidates.length}</span>
               </Button>
             </ModernFormActions>
           </ModernForm>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

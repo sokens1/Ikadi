@@ -762,22 +762,25 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                     <Users className="w-4 h-4" />
                     Candidats Sélectionnés
                   </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {selectedCandidatesData.map(candidate => (
                       <div key={candidate.identifiant} className="flex items-center justify-between p-2 bg-white rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-gov-blue rounded-full flex items-center justify-center">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <div className="w-6 h-6 bg-gov-blue rounded-full flex items-center justify-center flex-shrink-0">
                             <Users className="w-3 h-3 text-white" />
                           </div>
-                          <span className="text-sm font-medium text-gray-900">{candidate.nom}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-900 line-clamp-1">{candidate.nom}</span>
+                            <span className="text-xs text-gray-500 block">{candidate.parti}</span>
+                          </div>
                           {candidate.est_notre_candidat && (
-                            <Badge className="bg-gov-blue text-white px-2 py-1 text-xs">
-                              <Star className="w-3 h-3 mr-1" />
-                              Notre Candidat
+                            <Badge className="bg-gov-blue text-white px-1.5 py-1 text-xs flex-shrink-0">
+                              <Star className="w-2 h-2 mr-1" />
+                              <span className="hidden xs:inline">Notre Candidat</span>
+                              <span className="xs:hidden">Notre</span>
                             </Badge>
                           )}
                         </div>
-                        <span className="text-xs text-gray-500">{candidate.parti}</span>
                       </div>
                     ))}
                   </div>
@@ -791,18 +794,20 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                     <Building className="w-4 h-4" />
                     Centres de Vote Sélectionnés
                   </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {selectedCentersData.map(center => (
                       <div key={center.identifiant} className="flex items-center justify-between p-2 bg-white rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                             <Building className="w-3 h-3 text-white" />
                           </div>
-                          <span className="text-sm font-medium text-gray-900">{center.nom}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className="text-xs">{center.total_bureaux} bureaux</Badge>
-                          <Badge variant="outline" className="text-xs">{center.total_voters} électeurs</Badge>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-900 line-clamp-1">{center.nom}</span>
+                            <div className="flex items-center space-x-1 mt-1">
+                              <Badge variant="outline" className="text-xs">{center.total_bureaux} bureaux</Badge>
+                              <Badge variant="outline" className="text-xs">{center.total_voters} électeurs</Badge>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -820,45 +825,45 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
-        {/* Header moderne */}
-        <div className="relative bg-gradient-to-r from-gov-blue to-gov-blue-light p-6 text-white">
-          <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
+        {/* Header moderne - Mobile First */}
+        <div className="relative bg-gradient-to-r from-gov-blue to-gov-blue-light p-4 sm:p-6 text-white">
+          <div className="absolute inset-0 bg-black/10 rounded-t-xl sm:rounded-t-2xl"></div>
           <div className="relative flex items-center justify-between">
-          <div>
-              <h2 className="text-2xl font-bold">Configurer une nouvelle élection</h2>
-              <p className="text-gov-blue-light/80 mt-1">Étape {currentStep} sur 5 : {steps[currentStep - 1]}</p>
+          <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold leading-tight">Configurer une nouvelle élection</h2>
+              <p className="text-gov-blue-light/80 mt-1 text-sm sm:text-base">Étape {currentStep} sur 5 : {steps[currentStep - 1]}</p>
             </div>
             <Button 
               variant="ghost" 
               onClick={onClose} 
-              className="text-white hover:bg-white/20 rounded-xl p-2"
+              className="text-white hover:bg-white/20 rounded-xl p-2 flex-shrink-0 ml-2"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </Button>
           </div>
         </div>
 
-        {/* Progress moderne */}
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        {/* Progress moderne - Mobile First */}
+        <div className="px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between overflow-x-auto">
             {steps.map((step, index) => (
               <div key={index} className="flex items-center flex-shrink-0">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all duration-300 ${
                   index + 1 <= currentStep 
                     ? 'bg-gov-blue text-white shadow-lg' 
                     : 'bg-gray-200 text-gray-600'
                 }`}>
                   {index + 1}
                 </div>
-                <span className={`ml-3 text-sm font-medium hidden sm:inline transition-colors duration-300 ${
+                <span className={`ml-2 sm:ml-3 text-xs sm:text-sm font-medium hidden xs:inline transition-colors duration-300 ${
                   index + 1 <= currentStep ? 'text-gov-blue' : 'text-gray-500'
                 }`}>
                   {step}
                 </span>
                 {index < steps.length - 1 && (
-                  <div className={`w-12 h-1 mx-4 rounded-full transition-all duration-300 ${
+                  <div className={`w-8 sm:w-12 h-1 mx-2 sm:mx-4 rounded-full transition-all duration-300 ${
                     index + 1 < currentStep ? 'bg-gov-blue' : 'bg-gray-200'
                   }`} />
                 )}
@@ -867,36 +872,36 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
           </div>
         </div>
 
-        {/* Content avec scroll */}
-        <div className="flex-1 overflow-y-auto p-6">
+        {/* Content avec scroll - Mobile First */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6">
           <ModernForm>
             {renderStep()}
           </ModernForm>
         </div>
 
-        {/* Footer moderne */}
-        <div className="bg-gray-50 border-t border-gray-200 p-6">
-          <div className="flex items-center justify-between">
+        {/* Footer moderne - Mobile First */}
+        <div className="bg-gray-50 border-t border-gray-200 p-3 sm:p-6">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
           <Button
             variant="outline"
             onClick={handlePrevious}
             disabled={currentStep === 1}
-              className="flex items-center px-6 py-3 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300"
+              className="flex items-center px-3 sm:px-6 py-2 sm:py-3 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300 text-sm sm:text-base"
           >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Précédent</span>
-            <span className="sm:hidden">Préc.</span>
+              <ChevronLeft className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden xs:inline">Précédent</span>
+            <span className="xs:hidden">Préc.</span>
           </Button>
           
-            <div className="flex space-x-3">
+            <div className="flex space-x-2 sm:space-x-3">
             {currentStep < 5 && (
               <Button
                 onClick={handleNext}
                   disabled={!canProceed()}
-                  className="flex items-center px-8 py-3 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center px-4 sm:px-8 py-2 sm:py-3 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
-                <span className="hidden sm:inline">Suivant</span>
-                <span className="sm:hidden">Suiv.</span>
+                <span className="hidden xs:inline">Suivant</span>
+                <span className="xs:hidden">Suiv.</span>
                   <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             )}
