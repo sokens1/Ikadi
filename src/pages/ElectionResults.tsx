@@ -61,6 +61,7 @@ const ElectionResults: React.FC = () => {
   const [candidateBureaux, setCandidateBureaux] = useState<any[]>([]);
   const [centerNameById, setCenterNameById] = useState<Record<string, string>>({});
   const [candidateCenterNameById, setCandidateCenterNameById] = useState<Record<string, string>>({});
+  const [resultsMenuOpen, setResultsMenuOpen] = useState(false);
 
   // Build center name map for global views (must be declared before any early returns)
   React.useEffect(() => {
@@ -208,12 +209,33 @@ const ElectionResults: React.FC = () => {
             </div>
             <nav className="hidden md:flex items-center space-x-6">
               <Link to="/" className="hover:text-blue-200 transition-colors">Accueil</Link>
-              <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
+              {/* <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
               <a href="#infos" className="hover:text-blue-200 transition-colors">Infos électorales</a>
-              <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a>
-              <a href="#resultats" className="hover:text-blue-200 transition-colors">Résultats</a>
-              <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
-              <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a>
+              <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a> */}
+              <div className="relative text-left" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
+                <button className="hover:text-blue-200 transition-colors" onClick={() => setResultsMenuOpen(v=>!v)}>Résultats</button>
+                {resultsMenuOpen && (
+                <div className="absolute left-0 right-auto mt-2 bg-white rounded shadow-lg border min-w-[260px] z-50 py-2">
+                  <div className="px-3 pb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Accès rapide</div>
+                  <button
+                    className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-gray-800"
+                    onClick={() => navigate('/')}
+                  >
+                    Tous les résultats (accueil)
+                  </button>
+                  {results?.election && (
+                    <button
+                      className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-gray-800"
+                      onClick={() => navigate(`/election/${results.election.id}/results`)}
+                    >
+                      Résultats courants
+                    </button>
+                  )}
+                </div>
+                )}
+              </div>
+              {/* <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
+              <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a> */}
             </nav>
             <button className="md:hidden p-2 rounded hover:bg-white/10" aria-label="Ouvrir le menu" onClick={() => setMobileOpen(v => !v)}>
               {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -223,12 +245,12 @@ const ElectionResults: React.FC = () => {
             <div className="mt-3 md:hidden border-t border-white/10 pt-3 space-y-2">
               {[
                 { href: '#', label: 'Accueil' },
-                { href: '#about', label: 'A propos' },
-                { href: '#infos', label: 'Infos électorales' },
-                { href: '#candidats', label: 'Candidats' },
+                // { href: '#about', label: 'A propos' },
+                // { href: '#infos', label: 'Infos électorales' },
+                // { href: '#candidats', label: 'Candidats' },
                 { href: '#resultats', label: 'Résultats' },
-                { href: '#circonscriptions', label: 'Circonscriptions / Bureaux' },
-                { href: '#contact', label: 'Contact' },
+                // { href: '#circonscriptions', label: 'Circonscriptions / Bureaux' },
+                // { href: '#contact', label: 'Contact' },
               ].map(link => (
                 <a key={link.label} href={link.href} className="block px-2 py-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(false)}>
                   {link.label}
@@ -578,7 +600,18 @@ const ElectionResults: React.FC = () => {
               <ul className="space-y-1">
                 <li><a href="#candidats" className="hover:opacity-80">Candidats</a></li>
                 <li><a href="#circonscriptions" className="hover:opacity-80">Circonscriptions / Bureaux</a></li>
-                <li><a href="#resultats" className="hover:opacity-80">Résultats</a></li>
+                <li>
+                  <div className="relative" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
+                    <button className="hover:opacity-80">{results?.election?.status?.toLowerCase() === 'terminée' ? results.election.title : 'Résultats'}</button>
+                    {resultsMenuOpen && (
+                      <div className="absolute left-0 mt-2 bg-white text-gov-dark rounded shadow-lg border min-w-[260px] z-50 py-2 max-h-[96px] overflow-y-auto">
+                        <button className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm" onClick={() => navigate(`/election/${results.election.id}/results`)}>
+                          {results.election.title}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </li>
               </ul>
             </div>
 
