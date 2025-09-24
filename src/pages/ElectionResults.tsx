@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Menu, X, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fetchElectionById } from '../api/elections';
-import { fetchElectionSummary } from '../api/results';
+import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary } from '../api/results';
 import { toast } from 'sonner';
 
 // Icone WhatsApp (SVG minimal)
@@ -51,6 +51,9 @@ const ElectionResults: React.FC = () => {
   const [results, setResults] = useState<ElectionResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'center' | 'bureau'>('bureau');
+  const [centerRows, setCenterRows] = useState<any[]>([]);
+  const [bureauRows, setBureauRows] = useState<any[]>([]);
 
   useEffect(() => {
     if (electionId) {
@@ -70,12 +73,19 @@ const ElectionResults: React.FC = () => {
 
       // Récupérer les résultats depuis election_result_summary
       // Utilise le service de résultats
-      const summaryData = await fetchElectionSummary(id);
+      const [summaryData, centers, bureaux] = await Promise.all([
+        fetchElectionSummary(id),
+        fetchCenterSummary(id),
+        fetchBureauSummary(id)
+      ]);
 
       // Calculer les totaux
       const totalVotes = summaryData?.reduce((sum, candidate) => sum + (candidate.total_votes || 0), 0) || 0;
       const totalVoters = election.nb_electeurs || 0;
       const participationRate = totalVoters > 0 ? (totalVotes / totalVoters) * 100 : 0;
+
+      setCenterRows(centers || []);
+      setBureauRows(bureaux || []);
 
       setResults({
         election,
@@ -85,7 +95,7 @@ const ElectionResults: React.FC = () => {
         candidates: (summaryData || []).map((c: any) => ({
           candidate_id: c.candidate_id,
           candidate_name: c.candidate_name,
-          party_name: c.party_name ?? c.party ?? '',
+          party_name: c.candidate_party ?? c.party ?? '',
           total_votes: c.total_votes || 0,
           percentage: c.percentage || 0,
           rank: c.rank || 0
@@ -307,6 +317,69 @@ const ElectionResults: React.FC = () => {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Vue détaillée par centre / par bureau */}
+      <section className="py-8 sm:py-12 bg-slate-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <button onClick={() => setViewMode('center')} className={`px-3 py-2 rounded ${viewMode==='center' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark border'}`}>Par centre</button>
+            <button onClick={() => setViewMode('bureau')} className={`px-3 py-2 rounded ${viewMode==='bureau' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark border'}`}>Par bureau</button>
+          </div>
+
+          {viewMode === 'center' ? (
+            <div className="space-y-3">
+              {centerRows.map((c, idx) => (
+                <details key={`${c.center_id}-${idx}`} className="bg-white rounded border">
+                  <summary className="cursor-pointer px-4 py-3 flex items-center justify-between">
+                    <span className="font-semibold">{c.center_name}</span>
+                    <span className="text-sm text-gov-gray">Bureaux: {c.total_bureaux} • Votes: {c.total_votes?.toLocaleString?.() || c.total_votes} • Participation: {typeof c.participation === 'number' ? `${c.participation.toFixed(2)}%` : (c.participation || '-')}</span>
+                  </summary>
+                  <div className="px-4 pb-4 text-sm text-gov-gray">
+                    {typeof c.score === 'number' && <div>Score moyen: {c.score.toFixed(2)}%</div>}
+                  </div>
+                </details>
+              ))}
+              {centerRows.length === 0 && (
+                <div className="text-center text-gov-gray">Aucun centre à afficher.</div>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white border">
+                <thead className="bg-slate-100 text-gov-dark">
+                  <tr>
+                    <th className="text-left px-3 py-2 border">Centre</th>
+                    <th className="text-left px-3 py-2 border">Bureau</th>
+                    <th className="text-right px-3 py-2 border">Inscrits</th>
+                    <th className="text-right px-3 py-2 border">Votants</th>
+                    <th className="text-right px-3 py-2 border">Votes</th>
+                    <th className="text-right px-3 py-2 border">Participation</th>
+                    <th className="text-right px-3 py-2 border">Score</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {bureauRows.map((b, idx) => (
+                    <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="odd:bg-white even:bg-slate-50">
+                      <td className="px-3 py-2 border">{b.center_name}</td>
+                      <td className="px-3 py-2 border">{b.bureau_number}</td>
+                      <td className="px-3 py-2 border text-right">{b.registered ?? '-'}</td>
+                      <td className="px-3 py-2 border text-right">{b.voters ?? '-'}</td>
+                      <td className="px-3 py-2 border text-right">{b.total_votes?.toLocaleString?.() || b.total_votes}</td>
+                      <td className="px-3 py-2 border text-right">{typeof b.participation === 'number' ? `${b.participation.toFixed(2)}%` : (b.participation || '-')}</td>
+                      <td className="px-3 py-2 border text-right">{typeof b.score === 'number' ? `${b.score.toFixed(2)}%` : (b.score || '-')}</td>
+                    </tr>
+                  ))}
+                  {bureauRows.length === 0 && (
+                    <tr>
+                      <td className="px-3 py-4 text-center text-gov-gray" colSpan={7}>Aucun bureau à afficher.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
