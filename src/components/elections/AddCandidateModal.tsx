@@ -117,9 +117,10 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
           </DialogTitle>
         </DialogHeader>
 
-        <div className="pt-2">
-          <ModernForm onSubmit={handleSubmit}>
-            <ModernFormSection title="Candidats">
+        <div className="space-y-4">
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Candidats</h3>
               <MultiSelect
                 options={(candidates || []).map(c => ({
                   value: c.id,
@@ -130,16 +131,16 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
                 onSelectionChange={setSelectedCandidates}
                 placeholder="Sélectionnez des candidats..."
               />
-            </ModernFormSection>
+            </div>
+          </div>
 
-            <ModernFormActions>
-              <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3">Annuler</Button>
-              <Button type="submit" className="btn-primary w-full sm:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3" disabled={selectedCandidates.length === 0}>
-                <span className="hidden xs:inline">Ajouter {selectedCandidates.length} candidat{selectedCandidates.length > 1 ? 's' : ''}</span>
-                <span className="xs:hidden">Ajouter {selectedCandidates.length}</span>
-              </Button>
-            </ModernFormActions>
-          </ModernForm>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <Button type="button" variant="outline" onClick={onClose} className="text-sm px-4 py-2">Annuler</Button>
+            <Button type="button" onClick={handleSubmit} className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm px-4 py-2" disabled={selectedCandidates.length === 0}>
+              <span className="hidden xs:inline">Ajouter {selectedCandidates.length} candidat{selectedCandidates.length > 1 ? 's' : ''}</span>
+              <span className="xs:hidden">Ajouter {selectedCandidates.length}</span>
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
