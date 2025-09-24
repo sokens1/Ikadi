@@ -37,6 +37,8 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
   const [loading, setLoading] = useState(false);
   const [finalResults, setFinalResults] = useState<any | null>(null);
   const [detailedResults, setDetailedResults] = useState<any[]>([]);
+  const [centerBreakdown, setCenterBreakdown] = useState<any[]>([]);
+  const [bureauBreakdown, setBureauBreakdown] = useState<any[]>([]);
 
   // Charger les résultats validés et calculer les agrégats (sans jointures PostgREST complexes)
   useEffect(() => {
@@ -44,23 +46,37 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
       if (!selectedElection) return;
       try {
         setLoading(true);
-        // 1) Récupérer PV avec statut validé (fallback: entered s'il n'y a pas encore de validés)
+        // 1) Récupérer PV avec statut validé UNIQUEMENT
         const fetchPVs = async (status: string) => supabase
           .from('procès_verbaux')
           .select('id, bureau_id, total_voters, null_votes, votes_expressed, status, entered_at')
           .eq('election_id', selectedElection)
           .eq('status', status);
 
-        let { data: pvs, error: pvError } = await fetchPVs('validated');
+        const { data: pvs, error: pvError } = await fetchPVs('validated');
         if (pvError) throw pvError;
-        if (!pvs || pvs.length === 0) {
-          const alt = await fetchPVs('entered');
-          if (alt.error) throw alt.error;
-          pvs = alt.data || [];
+
+        // Restreindre aux centres liés à l'élection via election_centers
+        const { data: ecRows, error: ecCentersErr } = await supabase
+          .from('election_centers')
+          .select('center_id')
+          .eq('election_id', selectedElection);
+        if (ecCentersErr) throw ecCentersErr;
+        const allowedCenterIds = new Set((ecRows || []).map((r: any) => r.center_id));
+
+        let filteredPvs = pvs || [];
+        if (allowedCenterIds.size > 0) {
+          const { data: bureauRows, error: bureauErr } = await supabase
+          .from('voting_bureaux')
+            .select('id, center_id')
+            .in('center_id', Array.from(allowedCenterIds));
+          if (bureauErr) throw bureauErr;
+          const allowedBureauIds = new Set((bureauRows || []).map((b: any) => b.id));
+          filteredPvs = filteredPvs.filter((pv: any) => allowedBureauIds.has(pv.bureau_id));
         }
 
         // 2) Récupérer résultats par candidat pour ces PV
-        const pvIds = (pvs || []).map(p => p.id);
+        const pvIds = (filteredPvs || []).map(p => p.id);
         let crRows: any[] = [];
         if (pvIds.length > 0) {
           const { data: cr, error: crErr } = await supabase
@@ -71,8 +87,22 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           crRows = cr || [];
         }
 
-        // 3) Récupérer libellés bureaux/centres
-        const bureauIds = Array.from(new Set((pvs || []).map(p => p.bureau_id).filter(Boolean)));
+        // On n'utilise pas la vue agrégée ici pour respecter le filtre election_centers
+
+        // 3) Récupérer la liste des candidats de l'élection (référence stricte)
+        const { data: electionCands, error: ecErr } = await supabase
+          .from('election_candidates')
+          .select('candidates!inner(id, name, party)')
+          .eq('election_id', selectedElection);
+        if (ecErr) throw ecErr;
+        const electionCandidates = (electionCands || []).map((row: any) => ({
+          id: row.candidates.id,
+          name: row.candidates.name,
+          party: row.candidates.party || 'Indépendant'
+        }));
+
+        // 4) Récupérer libellés bureaux/centres
+        const bureauIds = Array.from(new Set((filteredPvs || []).map(p => p.bureau_id).filter(Boolean)));
         let bureaux: any[] = [];
         let centers: any[] = [];
         if (bureauIds.length > 0) {
@@ -96,23 +126,23 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         const bureauMap = new Map(bureaux.map(b => [b.id, b]));
         const centerMap = new Map(centers.map(c => [c.id, c]));
 
-        // 4) Agrégations
+        // 5) Agrégations (n'afficher que les candidats de cette élection, même à 0 voix)
         const votesByCandidate: Record<string, { id: string; name: string; party: string; votes: number }> = {};
+        electionCandidates.forEach(c => {
+          votesByCandidate[c.id] = { id: c.id, name: c.name, party: c.party, votes: 0 };
+        });
         let totalVotants = 0;
         let bulletinsNuls = 0;
         let totalInscrits = 0;
 
+        // Agrégation locale à partir des candidate_results (respecte le filtre précédent)
         crRows.forEach((r: any) => {
-          const cid = r.candidates?.id || r.candidate_id;
-          const cname = r.candidates?.name || 'Candidat';
-          const cparty = r.candidates?.party || 'Indépendant';
-          if (!votesByCandidate[cid]) {
-            votesByCandidate[cid] = { id: cid, name: cname, party: cparty, votes: 0 };
-          }
-          votesByCandidate[cid].votes += r.votes || 0;
-        });
+            const cid = r.candidates?.id || r.candidate_id;
+          if (!votesByCandidate[cid]) return;
+            votesByCandidate[cid].votes += r.votes || 0;
+          });
 
-        (pvs || []).forEach((pv: any) => {
+        (filteredPvs || []).forEach((pv: any) => {
           totalVotants += pv.total_voters || 0;
           bulletinsNuls += pv.null_votes || 0;
         });
@@ -125,7 +155,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           color: ['#22c55e','#ef4444','#3b82f6','#a855f7','#f59e0b','#06b6d4'][idx % 6]
         }));
 
-        const validatedBureaux = (pvs || []).length;
+        const validatedBureaux = (filteredPvs || []).length;
         const totalBureaux = validatedBureaux; // fallback si total inconnu
 
         setFinalResults({
@@ -143,20 +173,33 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         });
 
         // 5) Résultats détaillés par bureau
-        const detailed = (pvs || []).map((pv: any) => {
+        const detailed = (filteredPvs || []).map((pv: any) => {
           const b = bureauMap.get(pv.bureau_id);
           const c = b ? centerMap.get(b.center_id) : undefined;
           return {
             center: c?.name || 'Centre',
             bureau: b?.name || 'Bureau',
-            inscrits: 0,
+          inscrits: 0,
             votants: pv.total_voters || 0,
-            notreCandidat: 0,
-            adversaire1: 0,
-            adversaire2: 0
+          notreCandidat: 0,
+          adversaire1: 0,
+          adversaire2: 0
           };
         });
         setDetailedResults(detailed);
+
+        // 6) Chargement des breakdowns par centre et bureau (vues SQL)
+        try {
+          const [{ data: centersSum }, { data: bureauxSum }] = await Promise.all([
+            supabase.from('center_results_summary').select('*').eq('election_id', selectedElection),
+            supabase.from('bureau_results_summary').select('*').eq('election_id', selectedElection)
+          ]);
+          setCenterBreakdown(centersSum || []);
+          setBureauBreakdown(bureauxSum || []);
+        } catch (_) {
+          setCenterBreakdown([]);
+          setBureauBreakdown([]);
+        }
       } catch (e) {
         console.error('Erreur chargement résultats finaux:', e);
         setFinalResults(null);
@@ -168,17 +211,91 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
     loadFinalResults();
   }, [selectedElection]);
 
-  const pieChartData = useMemo(() => (finalResults ? finalResults.candidates.map((candidate: any) => ({
-    name: candidate.name,
-    value: candidate.votes,
-    percentage: candidate.percentage,
-    color: candidate.color
-  })) : []), [finalResults]);
+  const pieChartData = useMemo(() => (
+    finalResults && Array.isArray(finalResults.candidates)
+      ? finalResults.candidates.map((candidate: any) => ({
+          name: candidate.name || '—',
+          value: Number(candidate.votes) || 0,
+          percentage: Number(candidate.percentage) || 0,
+          color: candidate.color || '#3b82f6'
+        }))
+      : []
+  ), [finalResults]);
 
-  const barChartData = useMemo(() => (finalResults ? finalResults.candidates.map((candidate: any) => ({
-    name: candidate.name.split(' ')[0] + (candidate.name.split(' ')[1] ? (' ' + candidate.name.split(' ')[1]) : ''),
-    votes: candidate.votes
-  })) : []), [finalResults]);
+  const barChartData = useMemo(() => (
+    finalResults && Array.isArray(finalResults.candidates)
+      ? finalResults.candidates.map((candidate: any) => ({
+          name: (candidate.name || '—').split(' ').slice(0, 2).join(' '),
+          votes: Number(candidate.votes) || 0
+        }))
+      : []
+  ), [finalResults]);
+
+  const CenterAndBureauTables = () => (
+    <div className="mt-8 space-y-8">
+      {centerBreakdown.length > 0 && (
+        <Card className="gov-card">
+          <CardHeader>
+            <CardTitle className="text-gov-dark">Par Centre de Vote</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Centre</TableHead>
+                  <TableHead className="text-right">Votants</TableHead>
+                  <TableHead className="text-right">Nuls</TableHead>
+                  <TableHead className="text-right">Exprimés</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {centerBreakdown.map((row: any) => (
+                  <TableRow key={`${row.center_id}`}>
+                    <TableCell>{row.center_name}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_voters || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_null_votes || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_expressed_votes || 0).toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {bureauBreakdown.length > 0 && (
+        <Card className="gov-card">
+          <CardHeader>
+            <CardTitle className="text-gov-dark">Par Bureau</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Centre</TableHead>
+                  <TableHead>Bureau</TableHead>
+                  <TableHead className="text-right">Votants</TableHead>
+                  <TableHead className="text-right">Nuls</TableHead>
+                  <TableHead className="text-right">Exprimés</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bureauBreakdown.map((row: any) => (
+                  <TableRow key={`${row.bureau_id}`}>
+                    <TableCell>{centerBreakdown.find((c:any)=>c.center_id===row.center_id)?.center_name || 'Centre'}</TableCell>
+                    <TableCell>{row.bureau_name}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_voters || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_null_votes || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{Number(row.total_expressed_votes || 0).toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 
   const handlePublish = async () => {
     try {
@@ -295,6 +412,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {pieChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
@@ -303,7 +421,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                   cy="50%"
                   outerRadius={80}
                   dataKey="value"
-                  label={({percentage}) => `${percentage}%`}
+                    label={({ percentage }: any) => `${percentage}%`}
                 >
                   {pieChartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -312,9 +430,15 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+            ) : (
+              <div className="text-sm text-gray-500">Aucune donnée à afficher</div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Détails par centre et par bureau */}
+      <CenterAndBureauTables />
 
       {/* Tableau récapitulatif */}
       <Card className="gov-card">
@@ -356,6 +480,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
 
           {/* Graphique en barres */}
           <div className="mt-6">
+            {barChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={barChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -365,79 +490,42 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                 <Bar dataKey="votes" fill="#3b82f6" />
               </BarChart>
             </ResponsiveContainer>
+            ) : (
+              <div className="text-sm text-gray-500">Aucune donnée à afficher</div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Actions principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {/* Publication */}
         <Card className="gov-card border-l-4 border-l-blue-500">
           <CardContent className="p-6">
-            <div className="text-center space-y-4">
+            <div className="space-y-4">
               <Upload className="w-12 h-12 text-blue-600 mx-auto" />
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
                   Publier les Résultats
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-gray-600 mb-4 text-center">
                   Rendre les résultats visibles publiquement sur le tableau de bord
                 </p>
-                <Button
-                  onClick={() => setShowPublishConfirm(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white w-full"
-                  size="lg"
-                >
-                  🚀 Publier les résultats
-                </Button>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => setShowPublishConfirm(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    size="lg"
+                  >
+                    🚀 Publier les résultats
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Vue détaillée et export */}
-        <Card className="gov-card border-l-4 border-l-purple-500">
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="text-center">
-                <FileText className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Données Détaillées
-                </h3>
-              </div>
-              
-              <Button
-                onClick={() => setShowDetailedView(true)}
-                variant="outline"
-                className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Voir le détail par bureau
-              </Button>
-              
-              <div className="flex space-x-2">
-                <Button
-                  onClick={exportToPDF}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  PDF
-                </Button>
-                <Button
-                  onClick={exportToCSV}
-                  variant="outline" 
-                  size="sm"
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  CSV
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Carte Données Détaillées retirée sur demande */}
       </div>
 
       {/* Modal de confirmation de publication */}
@@ -446,7 +534,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <AlertTriangle className="w-5 h-5 text-orange-500" />
-              <span>Confirmer la Publication</span>
+              <span>Confirmer la publication</span>
             </DialogTitle>
             <DialogDescription>
               Êtes-vous sûr de vouloir publier ces résultats ? Cette action rendra les résultats 

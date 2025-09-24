@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Menu, X, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fetchElectionById } from '../api/elections';
-import { fetchElectionSummary } from '../api/results';
+import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCenterSummaryByCandidate, fetchBureauSummaryByCandidate } from '../api/results';
 import { toast } from 'sonner';
 
 // Icone WhatsApp (SVG minimal)
@@ -51,6 +53,22 @@ const ElectionResults: React.FC = () => {
   const [results, setResults] = useState<ElectionResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'center' | 'bureau'>('bureau');
+  const [centerRows, setCenterRows] = useState<any[]>([]);
+  const [bureauRows, setBureauRows] = useState<any[]>([]);
+  const [openCandidateId, setOpenCandidateId] = useState<string | null>(null);
+  const [candidateCenters, setCandidateCenters] = useState<any[]>([]);
+  const [candidateBureaux, setCandidateBureaux] = useState<any[]>([]);
+  const [centerNameById, setCenterNameById] = useState<Record<string, string>>({});
+  const [candidateCenterNameById, setCandidateCenterNameById] = useState<Record<string, string>>({});
+  const [resultsMenuOpen, setResultsMenuOpen] = useState(false);
+
+  // Build center name map for global views (must be declared before any early returns)
+  React.useEffect(() => {
+    const m: Record<string, string> = {};
+    centerRows.forEach((c: any) => { if (c.center_id && c.center_name) m[c.center_id] = c.center_name; });
+    setCenterNameById(m);
+  }, [centerRows]);
 
   useEffect(() => {
     if (electionId) {
@@ -70,26 +88,36 @@ const ElectionResults: React.FC = () => {
 
       // Récupérer les résultats depuis election_result_summary
       // Utilise le service de résultats
-      const summaryData = await fetchElectionSummary(id);
+      const [summaryData, centers, bureaux] = await Promise.all([
+        fetchElectionSummary(id),
+        fetchCenterSummary(id),
+        fetchBureauSummary(id)
+      ]);
 
       // Calculer les totaux
       const totalVotes = summaryData?.reduce((sum, candidate) => sum + (candidate.total_votes || 0), 0) || 0;
       const totalVoters = election.nb_electeurs || 0;
       const participationRate = totalVoters > 0 ? (totalVotes / totalVoters) * 100 : 0;
 
+      setCenterRows(centers || []);
+      setBureauRows(bureaux || []);
+
       setResults({
         election,
         total_voters: totalVoters,
         total_votes_cast: totalVotes,
         participation_rate: participationRate,
-        candidates: (summaryData || []).map((c: any) => ({
+        candidates: (summaryData || [])
+          .map((c: any) => ({
           candidate_id: c.candidate_id,
           candidate_name: c.candidate_name,
-          party_name: c.party_name ?? c.party ?? '',
+          party_name: c.candidate_party ?? c.party ?? '',
           total_votes: c.total_votes || 0,
-          percentage: c.percentage || 0,
-          rank: c.rank || 0
-        })),
+            percentage: totalVotes > 0 ? (100 * (c.total_votes || 0)) / totalVotes : 0,
+            rank: 0
+          }))
+          .sort((a: CandidateResult, b: CandidateResult) => b.total_votes - a.total_votes)
+          .map((c, idx) => ({ ...c, rank: idx + 1 })),
         last_updated: new Date().toISOString()
       });
 
@@ -148,6 +176,21 @@ const ElectionResults: React.FC = () => {
   }
 
   const winner = results.candidates.find(c => c.rank === 1);
+  const handleOpenCandidate = async (candidateId: string) => {
+    setOpenCandidateId(candidateId);
+    if (results?.election) {
+      const [centers, bureaux] = await Promise.all([
+        fetchCenterSummaryByCandidate(results.election.id, candidateId),
+        fetchBureauSummaryByCandidate(results.election.id, candidateId)
+      ]);
+      setCandidateCenters(centers || []);
+      setCandidateBureaux(bureaux || []);
+      const nameMap: Record<string, string> = {};
+      (centers || []).forEach((c: any) => { if (c.center_id && c.center_name) nameMap[c.center_id] = c.center_name; });
+      setCandidateCenterNameById(nameMap);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-white">
@@ -156,7 +199,7 @@ const ElectionResults: React.FC = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+              <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm" aria-label="Aller à l'accueil">
                 <span className="text-gov-blue font-bold text-lg">iK</span>
               </Link>
               <div>
@@ -165,13 +208,34 @@ const ElectionResults: React.FC = () => {
               </div>
             </div>
             <nav className="hidden md:flex items-center space-x-6">
-              <a href="#" className="hover:text-blue-200 transition-colors">Accueil</a>
-              <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
+              <Link to="/" className="hover:text-blue-200 transition-colors">Accueil</Link>
+              {/* <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
               <a href="#infos" className="hover:text-blue-200 transition-colors">Infos électorales</a>
-              <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a>
-              <a href="#resultats" className="hover:text-blue-200 transition-colors">Résultats</a>
-              <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
-              <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a>
+              <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a> */}
+              <div className="relative text-left" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
+                <button className="hover:text-blue-200 transition-colors" onClick={() => setResultsMenuOpen(v=>!v)}>Résultats</button>
+                {resultsMenuOpen && (
+                <div className="absolute left-0 right-auto mt-2 bg-white rounded shadow-lg border min-w-[260px] z-50 py-2">
+                  <div className="px-3 pb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Accès rapide</div>
+                  <button
+                    className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-gray-800"
+                    onClick={() => navigate('/')}
+                  >
+                    Tous les résultats (accueil)
+                  </button>
+                  {results?.election && (
+                    <button
+                      className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-gray-800"
+                      onClick={() => navigate(`/election/${results.election.id}/results`)}
+                    >
+                      Résultats courants
+                    </button>
+                  )}
+                </div>
+                )}
+              </div>
+              {/* <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
+              <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a> */}
             </nav>
             <button className="md:hidden p-2 rounded hover:bg-white/10" aria-label="Ouvrir le menu" onClick={() => setMobileOpen(v => !v)}>
               {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -181,12 +245,12 @@ const ElectionResults: React.FC = () => {
             <div className="mt-3 md:hidden border-t border-white/10 pt-3 space-y-2">
               {[
                 { href: '#', label: 'Accueil' },
-                { href: '#about', label: 'A propos' },
-                { href: '#infos', label: 'Infos électorales' },
-                { href: '#candidats', label: 'Candidats' },
+                // { href: '#about', label: 'A propos' },
+                // { href: '#infos', label: 'Infos électorales' },
+                // { href: '#candidats', label: 'Candidats' },
                 { href: '#resultats', label: 'Résultats' },
-                { href: '#circonscriptions', label: 'Circonscriptions / Bureaux' },
-                { href: '#contact', label: 'Contact' },
+                // { href: '#circonscriptions', label: 'Circonscriptions / Bureaux' },
+                // { href: '#contact', label: 'Contact' },
               ].map(link => (
                 <a key={link.label} href={link.href} className="block px-2 py-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(false)}>
                   {link.label}
@@ -273,7 +337,7 @@ const ElectionResults: React.FC = () => {
           ) : (
             <div className="space-y-3 sm:space-y-4">
               {results.candidates.map((candidate, index) => (
-                <Card key={candidate.candidate_id} className={`${index === 0 ? 'border-gov-blue border-2' : ''}`}>
+                <Card key={candidate.candidate_id} className={`${index === 0 ? 'border-gov-blue border-2' : ''} hover:shadow-md transition-shadow cursor-pointer`} onClick={() => handleOpenCandidate(candidate.candidate_id)}>
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
@@ -312,6 +376,207 @@ const ElectionResults: React.FC = () => {
         </div>
       </section>
 
+      {/* Modal détail candidat */}
+      <Dialog open={!!openCandidateId} onOpenChange={(o) => !o && setOpenCandidateId(null)}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Détails du candidat</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const c = results.candidates.find(x => x.candidate_id === openCandidateId);
+            if (!c) return <div className="text-gov-gray">Aucune donnée</div>;
+            return (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gov-dark">{c.candidate_name}</h3>
+                  <p className="text-gov-gray">{c.party_name}</p>
+                  <div className="mt-2 text-sm text-gov-gray">Voix: {c.total_votes.toLocaleString()} • Part: {c.percentage.toFixed(1)}%</div>
+                </div>
+                <Tabs defaultValue="center">
+                  <TabsList>
+                    <TabsTrigger value="center">Par centre</TabsTrigger>
+                    <TabsTrigger value="bureau">Par bureau</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="center">
+                    <div className="space-y-3 mt-3">
+                      {candidateCenters.map((row, idx) => (
+                        <details key={idx} className="bg-white rounded border">
+                          <summary className="cursor-pointer px-4 py-3 flex items-center justify-between bg-slate-100">
+                            <span className="font-semibold">{row.center_name}</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                              <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Voix</div><div className="font-semibold">{row.candidate_votes}</div></div>
+                              <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Score</div><div className="font-semibold">{typeof row.candidate_percentage === 'number' ? `${Math.min(Math.max(row.candidate_percentage,0),100).toFixed(2)}%` : '-'}</div></div>
+                              <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Participation</div><div className="font-semibold">{typeof row.candidate_participation_pct === 'number' ? `${Math.min(Math.max(row.candidate_participation_pct,0),100).toFixed(2)}%` : '-'}</div></div>
+                            </div>
+                          </summary>
+                          <div className="px-0 sm:px-2 py-3">
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full bg-white">
+                                <thead className="bg-slate-100">
+                                  <tr>
+                                    <th className="text-left px-3 py-2 border">Bureau</th>
+                                    <th className="text-right px-3 py-2 border">Voix</th>
+                                    <th className="text-right px-3 py-2 border">Score</th>
+                                    <th className="text-right px-3 py-2 border">Participation</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                  {candidateBureaux.filter(b => b.center_id === row.center_id).map((b, i2) => (
+                                    <tr key={i2} className="odd:bg-white even:bg-slate-50">
+                                      <td className="px-3 py-2 border">{b.bureau_name}</td>
+                                      <td className="px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
+                                      <td className="px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage,0),100).toFixed(2)}%` : '-'}</td>
+                                      <td className="px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct,0),100).toFixed(2)}%` : '-'}</td>
+                                    </tr>
+                                  ))}
+                                  {candidateBureaux.filter(b => b.center_id === row.center_id).length === 0 && (
+                                    <tr>
+                                      <td className="px-3 py-4 text-center text-gov-gray" colSpan={4}>Aucun bureau</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </details>
+                      ))}
+                      {candidateCenters.length === 0 && <div className="text-gov-gray">Aucun centre</div>}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="bureau">
+                    <div className="overflow-x-auto mt-3">
+                      <table className="min-w-full bg-white border">
+                        <thead className="bg-slate-100 text-gov-dark">
+                          <tr>
+                            <th className="text-left px-3 py-2 border">Bureau</th>
+                            <th className="text-right px-3 py-2 border">Voix</th>
+                            <th className="text-right px-3 py-2 border">Score</th>
+                            <th className="text-right px-3 py-2 border">Participation</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm">
+                          {candidateBureaux.map((b, idx) => (
+                            <tr key={idx} className="odd:bg-white even:bg-slate-50">
+                              <td className="px-3 py-2 border">{b.bureau_name}</td>
+                              <td className="px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage,0),100).toFixed(2)}%` : '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct,0),100).toFixed(2)}%` : '-'}</td>
+                            </tr>
+                          ))}
+                          {candidateBureaux.length === 0 && (
+                            <tr>
+                              <td className="px-3 py-4 text-center text-gov-gray" colSpan={4}>Aucun bureau</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Vue détaillée par centre / par bureau */}
+      <section className="py-8 sm:py-12 bg-slate-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <button onClick={() => setViewMode('center')} className={`px-3 py-2 rounded ${viewMode==='center' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark border'}`}>Par centre</button>
+            <button onClick={() => setViewMode('bureau')} className={`px-3 py-2 rounded ${viewMode==='bureau' ? 'bg-gov-blue text-white' : 'bg-white text-gov-dark border'}`}>Par bureau</button>
+          </div>
+
+          {viewMode === 'center' ? (
+            <div className="space-y-4">
+              {centerRows.map((c, idx) => (
+                <details key={`${c.center_id}-${idx}`} className="bg-white rounded border">
+                  <summary className="cursor-pointer px-4 py-3 flex items-center justify-between bg-slate-100">
+                    <span className="font-semibold">{c.center_name}</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                      <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Inscrits</div><div className="font-semibold">{c.total_registered?.toLocaleString?.() || c.total_registered}</div></div>
+                      <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Exprimés</div><div className="font-semibold">{c.total_expressed_votes?.toLocaleString?.() || c.total_expressed_votes}</div></div>
+                      <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Score</div><div className="font-semibold">{typeof c.score_pct === 'number' ? `${Math.min(Math.max(c.score_pct,0),100).toFixed(2)}%` : '-'}</div></div>
+                      <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Participation</div><div className="font-semibold">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct,0),100).toFixed(2)}%` : '-'}</div></div>
+                    </div>
+                  </summary>
+                  <div className="px-0 sm:px-2 py-3">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full bg-white">
+                        <thead className="bg-slate-100">
+                          <tr>
+                            <th className="text-left px-3 py-2 border">Bureau</th>
+                            <th className="text-right px-3 py-2 border">Inscrits</th>
+                            <th className="text-right px-3 py-2 border">Votants</th>
+                            <th className="text-right px-3 py-2 border">Exprimés</th>
+                            <th className="text-right px-3 py-2 border">Participation</th>
+                            <th className="text-right px-3 py-2 border">Score</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm">
+                          {bureauRows.filter(b => b.center_id === c.center_id).map((b, i2) => (
+                            <tr key={i2} className="odd:bg-white even:bg-slate-50">
+                              <td className="px-3 py-2 border">{b.bureau_name}</td>
+                              <td className="px-3 py-2 border text-right">{b.total_registered ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{b.total_voters ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{b.total_expressed_votes ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct,0),100).toFixed(2)}%` : '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.score_pct === 'number' ? `${Math.min(Math.max(b.score_pct,0),100).toFixed(2)}%` : '-'}</td>
+                            </tr>
+                          ))}
+                          {bureauRows.filter(b => b.center_id === c.center_id).length === 0 && (
+                            <tr>
+                              <td className="px-3 py-4 text-center text-gov-gray" colSpan={6}>Aucun bureau</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
+              ))}
+              {centerRows.length === 0 && (
+                <div className="text-center text-gov-gray">Aucun centre à afficher.</div>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white border">
+                <thead className="bg-slate-100 text-gov-dark">
+                  <tr>
+                    <th className="text-left px-3 py-2 border">Centre</th>
+                    <th className="text-left px-3 py-2 border">Bureau</th>
+                    <th className="text-right px-3 py-2 border">Inscrits</th>
+                    <th className="text-right px-3 py-2 border">Votants</th>
+                    <th className="text-right px-3 py-2 border">Votes</th>
+                    <th className="text-right px-3 py-2 border">Participation</th>
+                    <th className="text-right px-3 py-2 border">Score</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {bureauRows.map((b, idx) => (
+                    <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="odd:bg-white even:bg-slate-50">
+                      <td className="px-3 py-2 border">{b.center_name || centerNameById[b.center_id] || b.center_id}</td>
+                      <td className="px-3 py-2 border">{b.bureau_name}</td>
+                      <td className="px-3 py-2 border text-right">{b.total_registered ?? '-'}</td>
+                      <td className="px-3 py-2 border text-right">{b.total_voters ?? '-'}</td>
+                      <td className="px-3 py-2 border text-right">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</td>
+                      <td className="px-3 py-2 border text-right">{typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : (b.participation_pct || '-')}</td>
+                      <td className="px-3 py-2 border text-right">{typeof b.score_pct === 'number' ? `${Math.min(Math.max(b.score_pct, 0), 100).toFixed(2)}%` : (b.score_pct || '-')}</td>
+                    </tr>
+                  ))}
+                  {bureauRows.length === 0 && (
+                    <tr>
+                      <td className="px-3 py-4 text-center text-gov-gray" colSpan={7}>Aucun bureau à afficher.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Footer identique à la Home */}
       <footer id="contact" className="border-t bg-gov-blue mt-20 text-white">
         <div className="container mx-auto px-4 pt-10 pb-6">
@@ -335,7 +600,18 @@ const ElectionResults: React.FC = () => {
               <ul className="space-y-1">
                 <li><a href="#candidats" className="hover:opacity-80">Candidats</a></li>
                 <li><a href="#circonscriptions" className="hover:opacity-80">Circonscriptions / Bureaux</a></li>
-                <li><a href="#resultats" className="hover:opacity-80">Résultats</a></li>
+                <li>
+                  <div className="relative" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
+                    <button className="hover:opacity-80">{results?.election?.status?.toLowerCase() === 'terminée' ? results.election.title : 'Résultats'}</button>
+                    {resultsMenuOpen && (
+                      <div className="absolute left-0 mt-2 bg-white text-gov-dark rounded shadow-lg border min-w-[260px] z-50 py-2 max-h-[96px] overflow-y-auto">
+                        <button className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm" onClick={() => navigate(`/election/${results.election.id}/results`)}>
+                          {results.election.title}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </li>
               </ul>
             </div>
 

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,9 @@ import {
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-const PVValidationSection = () => {
+interface PVValidationSectionProps { selectedElection: string }
+
+const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElection }) => {
   const [selectedPV, setSelectedPV] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'entered' | 'validated' | 'anomaly' | 'published'>('all');
@@ -29,18 +31,25 @@ const PVValidationSection = () => {
   const [bureauxMap, setBureauxMap] = useState<Map<string, { id: string; name: string; center_id: string }>>(new Map());
   const [centersMap, setCentersMap] = useState<Map<string, { id: string; name: string }>>(new Map());
   const [detailOpen, setDetailOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editValues, setEditValues] = useState<{ total_registered: number; total_voters: number; null_votes: number; votes_expressed: number }>({ total_registered: 0, total_voters: 0, null_votes: 0, votes_expressed: 0 });
+  const [candidateResults, setCandidateResults] = useState<Array<{ id: string; name: string; votes: number }>>([]);
+  const [newPvFile, setNewPvFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
+        if (!selectedElection) { setPvs([]); setBureauxMap(new Map()); setCentersMap(new Map()); setLoading(false); return; }
         const { data: pvRows, error: pvErr } = await supabase
           .from('procès_verbaux')
-          .select('id, bureau_id, total_voters, null_votes, votes_expressed, status, entered_at, pv_photo_url')
+          .select('id, bureau_id, total_registered, total_voters, null_votes, votes_expressed, status, entered_at, pv_photo_url')
+          .eq('election_id', selectedElection)
           .order('created_at', { ascending: false })
           .limit(500);
         if (pvErr) throw pvErr;
-        setPvs(pvRows || []);
+        // Filtrer les PV aux centres liés à l'élection via election_centers
         const bureauIds = Array.from(new Set((pvRows || []).map(r => r.bureau_id).filter(Boolean)));
         if (bureauIds.length) {
           const { data: bureaus, error: bErr } = await supabase
@@ -49,11 +58,22 @@ const PVValidationSection = () => {
             .in('id', bureauIds);
           if (bErr) throw bErr;
           const centerIds = Array.from(new Set((bureaus || []).map(b => b.center_id)));
+          // Restreindre aux centers de election_centers
+          const { data: ecRows, error: ecErr } = await supabase
+            .from('election_centers')
+            .select('center_id')
+            .eq('election_id', selectedElection);
+          if (ecErr) throw ecErr;
+          const allowedCenterIds = new Set((ecRows || []).map((r: any) => r.center_id));
+          const filteredBureaus = (bureaus || []).filter(b => allowedCenterIds.has(b.center_id));
+          const filteredCenterIds = Array.from(new Set(filteredBureaus.map(b => b.center_id)));
+          const filteredPvRows = (pvRows || []).filter(r => filteredBureaus.some(b => b.id === r.bureau_id));
+          setPvs(filteredPvRows);
           const { data: centers, error: cErr } = centerIds.length
-            ? await supabase.from('voting_centers').select('id, name').in('id', centerIds)
+            ? await supabase.from('voting_centers').select('id, name').in('id', filteredCenterIds)
             : { data: [], error: null } as any;
           if (cErr) throw cErr;
-          setBureauxMap(new Map((bureaus || []).map(b => [b.id, b])));
+          setBureauxMap(new Map(filteredBureaus.map(b => [b.id, b])));
           setCentersMap(new Map((centers || []).map(c => [c.id, c])));
         } else {
           setBureauxMap(new Map());
@@ -67,7 +87,7 @@ const PVValidationSection = () => {
       }
     };
     load();
-  }, []);
+  }, [selectedElection]);
 
   const displayedPVs = useMemo(() => {
     const enriched = pvs.map(pv => {
@@ -78,6 +98,7 @@ const PVValidationSection = () => {
         status: pv.status,
         bureauLabel: `${center?.name || 'Centre'} - ${bureau?.name || 'Bureau'}`,
         timestamp: pv.entered_at ? new Date(pv.entered_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
+        total_registered: pv.total_registered,
         total_voters: pv.total_voters,
         votes_expressed: pv.votes_expressed,
         null_votes: pv.null_votes,
@@ -88,6 +109,23 @@ const PVValidationSection = () => {
     return enriched.filter(e => e.status === filter);
   }, [pvs, bureauxMap, centersMap, filter]);
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'En attente';
+      case 'entered':
+        return 'Saisi';
+      case 'validated':
+        return 'Validé';
+      case 'anomaly':
+        return 'Anomalie';
+      case 'published':
+        return 'Publié';
+      default:
+        return status;
+    }
+  };
+
   const getPriorityBadge = (status: string) => (
     <Badge className={
       status === 'validated' ? 'bg-green-100 text-green-800 border-green-200'
@@ -95,7 +133,7 @@ const PVValidationSection = () => {
       : status === 'entered' ? 'bg-blue-100 text-blue-800 border-blue-200'
       : 'bg-orange-100 text-orange-800 border-orange-200'
     }>
-      {status}
+      {getStatusLabel(status)}
     </Badge>
   );
 
@@ -122,6 +160,31 @@ const PVValidationSection = () => {
   };
 
   const selectedPVData = useMemo(() => filteredPVs.find(pv => pv.id === selectedPV), [filteredPVs, selectedPV]);
+
+  // Charger les résultats par candidat pour le PV sélectionné
+  useEffect(() => {
+    const loadCandidateResults = async () => {
+      if (!selectedPV) { setCandidateResults([]); return; }
+      const { data, error } = await supabase
+        .from('candidate_results')
+        .select('id, votes, candidates(id, name)')
+        .eq('pv_id', selectedPV);
+      if (error) { console.error('Erreur chargement résultats candidats:', error); setCandidateResults([]); return; }
+      const mapped = (data || []).map((r: any) => ({ id: r.candidates?.id || r.id, name: r.candidates?.name || 'Candidat', votes: r.votes || 0 }));
+      setCandidateResults(mapped);
+    };
+    loadCandidateResults();
+  }, [selectedPV]);
+
+  useEffect(() => {
+    if (!selectedPVData) return;
+    setEditValues({
+      total_registered: selectedPVData.total_registered || 0,
+      total_voters: selectedPVData.total_voters || 0,
+      null_votes: selectedPVData.null_votes || 0,
+      votes_expressed: selectedPVData.votes_expressed || 0,
+    });
+  }, [selectedPVData]);
 
   return (
     <div className="space-y-6">
@@ -195,13 +258,13 @@ const PVValidationSection = () => {
       </div>
 
       {/* Modal détails PV */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-4xl">
+      <Dialog open={detailOpen} onOpenChange={(open) => { setDetailOpen(open); if (!open) setEditMode(false); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Détails du PV</DialogTitle>
           </DialogHeader>
-          {selectedPVData ? (
-            <div className="space-y-6">
+            {selectedPVData ? (
+              <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   {getStatusIcon(selectedPVData.status)}
@@ -210,48 +273,214 @@ const PVValidationSection = () => {
                     const center = bureau ? centersMap.get(bureau.center_id) : undefined;
                     return `${center?.name || 'Centre'} - ${bureau?.name || 'Bureau'}`;
                   })()}</span>
-                </div>
+                          </div>
                 {getPriorityBadge(selectedPVData.status)}
-              </div>
+                      </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
                   <h4 className="font-medium text-gray-900 mb-3">Participation</h4>
                   <div className="p-3 bg-gray-50 rounded-lg space-y-1 text-sm">
-                    <div className="flex justify-between"><span>Votants:</span><span className="font-medium">{selectedPVData.total_voters}</span></div>
-                    <div className="flex justify-between"><span>Bulletins nuls:</span><span className="font-medium">{selectedPVData.null_votes ?? 0}</span></div>
-                    <div className="flex justify-between"><span>Suffrages exprimés:</span><span className="font-medium">{selectedPVData.votes_expressed ?? 0}</span></div>
+                    {editMode ? (
+                        <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Inscrits:</span>
+                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.total_registered} onChange={e => setEditValues(v => ({ ...v, total_registered: parseInt(e.target.value) || 0 }))} />
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                            <span>Votants:</span>
+                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.total_voters} onChange={e => setEditValues(v => ({ ...v, total_voters: parseInt(e.target.value) || 0 }))} />
+                          </div>
+                        <div className="flex items-center justify-between gap-4">
+                            <span>Bulletins nuls:</span>
+                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.null_votes} onChange={e => setEditValues(v => ({ ...v, null_votes: parseInt(e.target.value) || 0 }))} />
+                          </div>
+                        <div className="flex items-center justify-between gap-4">
+                            <span>Suffrages exprimés:</span>
+                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.votes_expressed} onChange={e => setEditValues(v => ({ ...v, votes_expressed: parseInt(e.target.value) || 0 }))} />
+                          </div>
+                        </div>
+                            ) : (
+                              <>
+                        <div className="flex justify-between"><span>Inscrits:</span><span className="font-medium">{editValues.total_registered || 0}</span></div>
+                        <div className="flex justify-between"><span>Votants:</span><span className="font-medium">{editValues.total_voters || 0}</span></div>
+                        <div className="flex justify-between"><span>Bulletins nuls:</span><span className="font-medium">{editValues.null_votes || 0}</span></div>
+                        <div className="flex justify-between"><span>Suffrages exprimés:</span><span className="font-medium">{editValues.votes_expressed || 0}</span></div>
+                              </>
+                            )}
+                        </div>
+                      </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Document Scanné</h4>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+                      <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                      {!selectedPVData.pv_photo_url && (
+                        <h5 className="font-medium text-gray-900 mb-2">Aucun document</h5>
+                      )}
+                      <div className="flex items-center justify-center gap-3 flex-wrap">
+                        <Button variant="outline" size="sm" disabled={!selectedPVData.pv_photo_url} onClick={() => selectedPVData.pv_photo_url && window.open(selectedPVData.pv_photo_url, '_blank')}>
+                          <Eye className="w-4 h-4 mr-2" /> Voir
+                        </Button>
+                        {editMode && (
+                          <>
+                            <input 
+                              ref={fileInputRef}
+                              type="file" 
+                              accept="image/*,application/pdf" 
+                              onChange={e => setNewPvFile(e.target.files?.[0] || null)}
+                              className="hidden"
+                            />
+                            <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                              Remplacer le document
+                            </Button>
+                              </>
+                            )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+              {/* Résultats par candidat */}
+                  <div>
+                <h4 className="font-medium text-gray-900 mb-3">Résultats par Candidat</h4>
+                {candidateResults.length > 0 ? (
+                  <div className="space-y-2">
+                    {candidateResults.map(cr => (
+                      <div key={cr.id} className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700">{cr.name}</span>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            className="border rounded px-2 py-1 w-24 text-right"
+                            value={cr.votes}
+                            onChange={e => {
+                              const value = parseInt(e.target.value || '0');
+                              setCandidateResults(prev => prev.map(c => c.id === cr.id ? { ...c, votes: value } : c));
+                            }}
+                          />
+                        ) : (
+                          <span className="font-semibold">{cr.votes}</span>
+                        )}
+                    </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">Aucun résultat détaillé saisi</div>
+                )}
                 </div>
+
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-3">Document Scanné</h4>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-                    <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                    <h5 className="font-medium text-gray-900 mb-2">{selectedPVData.pv_photo_url ? 'Document attaché' : 'Aucun document'}</h5>
-                    <Button variant="outline" size="sm" disabled={!selectedPVData.pv_photo_url} onClick={() => selectedPVData.pv_photo_url && window.open(selectedPVData.pv_photo_url, '_blank')}>
-                      <Eye className="w-4 h-4 mr-2" /> Voir le document
-                    </Button>
-                  </div>
+                  <Label htmlFor="comment">Commentaire de validation</Label>
+                <Textarea id="comment" placeholder="Ajouter un commentaire..." value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
+                </div>
+
+              <div className="flex space-x-4 justify-end">
+                {!editMode && (
+                  <Button onClick={() => {
+                    setEditValues({
+                      total_registered: (editValues.total_registered || 0),
+                      total_voters: (selectedPVData.total_voters || 0),
+                      null_votes: (selectedPVData.null_votes || 0),
+                      votes_expressed: (selectedPVData.votes_expressed || 0)
+                    });
+                    setEditMode(true);
+                  }} variant="outline">
+                    Modifier
+                  </Button>
+                )}
+                {editMode && (
+                  <Button onClick={async () => {
+                    if (!selectedPV) return;
+                    let pvPhotoUrl: string | null = null;
+                    try {
+                      if (newPvFile) {
+                        const bucket = 'pv-uploads';
+                        const path = `${selectedElection}/${selectedPV}/${Date.now()}_${newPvFile.name.replace(/\s+/g,'_')}`;
+                        const { error: upErr } = await supabase.storage.from(bucket).upload(path, newPvFile, { upsert: true });
+                        if (upErr) throw upErr;
+                        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+                        pvPhotoUrl = pub?.publicUrl || null;
+                      }
+                      const updatePayload: any = {
+                        total_registered: editValues.total_registered || 0,
+                        total_voters: editValues.total_voters || 0,
+                        null_votes: editValues.null_votes || 0,
+                        votes_expressed: editValues.votes_expressed || 0,
+                      };
+                      if (pvPhotoUrl) updatePayload.pv_photo_url = pvPhotoUrl;
+                      const { error: pvErr } = await supabase
+                        .from('procès_verbaux')
+                        .update(updatePayload)
+                        .eq('id', selectedPV);
+                      if (pvErr) throw pvErr;
+
+                      for (const cr of candidateResults) {
+                        const { data: existing } = await supabase
+                          .from('candidate_results')
+                          .select('id')
+                          .eq('pv_id', selectedPV)
+                          .eq('candidate_id', cr.id)
+                          .maybeSingle();
+                        if (existing?.id) {
+                          await supabase
+                            .from('candidate_results')
+                            .update({ votes: cr.votes })
+                            .eq('id', existing.id);
+                        } else {
+                          await supabase
+                            .from('candidate_results')
+                            .insert({ pv_id: selectedPV, candidate_id: cr.id, votes: cr.votes });
+                        }
+                      }
+
+                      setPvs(prev => prev.map(p => p.id === selectedPV ? { ...p, total_voters: editValues.total_voters, null_votes: editValues.null_votes, votes_expressed: editValues.votes_expressed, pv_photo_url: pvPhotoUrl || p.pv_photo_url } : p));
+                      setEditMode(false);
+                      setNewPvFile(null);
+                    } catch (err) {
+                      console.error('Erreur maj PV/candidats:', err);
+                    }
+                  }} className="bg-green-600 hover:bg-green-700 text-white">
+                    Enregistrer
+                  </Button>
+                )}
+                <Button onClick={async () => {
+                  if (!selectedPV) return;
+                  if (!confirm('Supprimer ce PV ? Cette action est irréversible.')) return;
+                  // Supprimer d'abord les résultats liés
+                  const { error: crErr } = await supabase
+                    .from('candidate_results')
+                    .delete()
+                    .eq('pv_id', selectedPV);
+                  if (crErr) { console.error('Erreur suppression résultats:', crErr); return; }
+                  // Supprimer le PV
+                  const { error: pvErr } = await supabase
+                    .from('procès_verbaux')
+                    .delete()
+                    .eq('id', selectedPV);
+                  if (pvErr) { console.error('Erreur suppression PV:', pvErr); return; }
+                  // Mettre à jour l'état local
+                  setPvs(prev => prev.filter(p => p.id !== selectedPV));
+                  setDetailOpen(false);
+                }} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+                  Supprimer
+                  </Button>
+                <Button onClick={async () => {
+                  if (!selectedPV) return;
+                  const { error } = await supabase
+                    .from('procès_verbaux')
+                    .update({ status: 'validated', validated_at: new Date().toISOString() })
+                    .eq('id', selectedPV);
+                  if (error) {
+                    console.error('Erreur validation PV:', error);
+                  } else {
+                    setPvs(prev => prev.map(p => p.id === selectedPV ? { ...p, status: 'validated' } : p));
+                    setDetailOpen(false);
+                  }
+                }} className="bg-green-600 hover:bg-green-700 text-white">
+                  <CheckCircle className="w-4 h-4 mr-2" /> Valider
+                  </Button>
                 </div>
               </div>
-
-              <div>
-                <Label htmlFor="comment">Commentaire de validation</Label>
-                <Textarea id="comment" placeholder="Ajouter un commentaire..." value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
-              </div>
-
-              <div className="flex space-x-4">
-                <Button onClick={() => handleValidation('approve')} className="bg-green-600 hover:bg-green-700 text-white">
-                  <CheckCircle className="w-4 h-4 mr-2" /> Approuver
-                </Button>
-                <Button onClick={() => handleValidation('correction')} variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50">
-                  <MessageSquare className="w-4 h-4 mr-2" /> Demander Correction
-                </Button>
-                <Button onClick={() => handleValidation('reject')} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
-                  <XCircle className="w-4 h-4 mr-2" /> Rejeter
-                </Button>
-              </div>
-            </div>
           ) : null}
         </DialogContent>
       </Dialog>

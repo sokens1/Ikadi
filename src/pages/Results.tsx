@@ -23,8 +23,8 @@ import PVValidationSection from '@/components/results/PVValidationSection';
 import PublishSection from '@/components/results/PublishSection';
 
 const Results = () => {
-  const [activeTab, setActiveTab] = useState('entry');
-  const [selectedElection, setSelectedElection] = useState<string>('');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('results_active_tab') || 'entry');
+  const [selectedElection, setSelectedElection] = useState<string>(() => localStorage.getItem('results_selected_election') || '');
   const [availableElections, setAvailableElections] = useState<Array<{id: string, name: string}>>([]);
   const [globalStats, setGlobalStats] = useState({
     tauxSaisie: 0,
@@ -59,8 +59,8 @@ const Results = () => {
 
         setAvailableElections(elections);
         
-        // Sélectionner la première élection par défaut
-        if (elections.length > 0) {
+        // Sélection par défaut si aucune sauvegardée
+        if (!localStorage.getItem('results_selected_election') && elections.length > 0) {
           setSelectedElection(elections[0].id);
         }
       } catch (error) {
@@ -72,6 +72,14 @@ const Results = () => {
 
     fetchElections();
   }, []);
+
+  // Persister le select et l’onglet dans localStorage
+  useEffect(() => {
+    if (selectedElection) localStorage.setItem('results_selected_election', selectedElection);
+  }, [selectedElection]);
+  useEffect(() => {
+    if (activeTab) localStorage.setItem('results_active_tab', activeTab);
+  }, [activeTab]);
 
   // Charger les statistiques globales pour l'élection sélectionnée
   useEffect(() => {
@@ -124,9 +132,9 @@ const Results = () => {
         if (candidateIds.length > 0) {
           const { data: results, error: resultsError } = await supabase
             .from('candidate_results')
-            .select('votes_received, candidate_id, candidates(name)')
+            .select('votes, candidate_id, candidates(name)')
             .in('candidate_id', candidateIds)
-            .order('votes_received', { ascending: false });
+            .order('votes', { ascending: false });
           
           if (resultsError) {
             console.error('Erreur lors du chargement des résultats:', resultsError);
@@ -138,9 +146,9 @@ const Results = () => {
 
 
         const sortedResults = resultsData || [];
-        const voixNotreCanidat = sortedResults[0]?.votes_received || 0;
+        const voixNotreCanidat = sortedResults[0]?.votes || 0;
         const ecartDeuxieme = sortedResults.length > 1 
-          ? voixNotreCanidat - (sortedResults[1]?.votes_received || 0) 
+          ? voixNotreCanidat - (sortedResults[1]?.votes || 0) 
           : 0;
 
         setGlobalStats({
@@ -245,7 +253,7 @@ const Results = () => {
                 </TabsContent>
 
                 <TabsContent value="validation" className="space-y-6 mt-0">
-                  <PVValidationSection />
+                  <PVValidationSection selectedElection={selectedElection} />
                 </TabsContent>
 
                 <TabsContent value="publish" className="space-y-6 mt-0">

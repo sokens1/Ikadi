@@ -190,7 +190,7 @@ const Dashboard = () => {
             centers: centersCount || 0,
             provinces: provincesCount || 0,
             bureaux: bureauxCount || 0,
-            average: centersCount && bureauxCount ? (bureauxCount / centersCount).toFixed(1) : 0,
+            average: centersCount && bureauxCount ? Number((bureauxCount / centersCount).toFixed(1)) : 0,
             provinceName: provincesData && provincesData.length === 1 ? provincesData[0].name : null,
             provinceDisplay: provincesCount === 1 ? provincesData?.[0]?.name : `${provincesCount} provinces`
           },
