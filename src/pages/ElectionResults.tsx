@@ -217,6 +217,8 @@ const ElectionResults: React.FC = () => {
   const [centerNameById, setCenterNameById] = useState<Record<string, string>>({});
   const [candidateCenterNameById, setCandidateCenterNameById] = useState<Record<string, string>>({});
   const [resultsMenuOpen, setResultsMenuOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'center' | 'participation' | 'score' | 'votes'>('center');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Build center name map for global views (must be declared before any early returns)
   React.useEffect(() => {
@@ -272,7 +274,7 @@ const ElectionResults: React.FC = () => {
           candidate_id: c.candidate_id,
           candidate_name: c.candidate_name,
           party_name: c.candidate_party ?? c.party ?? '',
-            total_votes: c.total_votes || 0,
+          total_votes: c.total_votes || 0,
             percentage: totalVotesCast > 0 ? (100 * (c.total_votes || 0)) / totalVotesCast : 0,
             rank: 0
           }))
@@ -340,6 +342,102 @@ const ElectionResults: React.FC = () => {
   }
 
   const winner = results.candidates.find(c => c.rank === 1);
+
+  // Types pour le tri et regroupement
+  type CenterGroup = {
+    center: any;
+    bureaux: any[];
+  };
+
+  type BureauData = any;
+
+  // Fonction pour trier et regrouper les données
+  const getSortedAndGroupedData = (): CenterGroup[] | BureauData[] => {
+    if (viewMode === 'center') {
+      // Pour la vue par centre, regrouper par centre et trier les bureaux
+      const groupedCenters = centerRows.reduce((acc, center) => {
+        const centerId = center.center_id;
+        if (!acc[centerId]) {
+          acc[centerId] = {
+            center,
+            bureaux: bureauRows.filter(b => b.center_id === centerId)
+          };
+        }
+        return acc;
+      }, {} as Record<string, CenterGroup>);
+
+      // Trier les centres
+      const sortedCenters = Object.values(groupedCenters).sort((a: CenterGroup, b: CenterGroup) => {
+        let comparison = 0;
+        switch (sortBy) {
+          case 'center':
+            comparison = (a.center.center_name || '').localeCompare(b.center.center_name || '');
+            break;
+          case 'participation':
+            comparison = (a.center.participation_pct || 0) - (b.center.participation_pct || 0);
+            break;
+          case 'score':
+            comparison = (a.center.score_pct || 0) - (b.center.score_pct || 0);
+            break;
+          case 'votes':
+            comparison = (a.center.total_expressed_votes || 0) - (b.center.total_expressed_votes || 0);
+            break;
+        }
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+
+      return sortedCenters;
+    } else {
+       // Pour la vue par bureau, trier directement les bureaux
+       const sortedBureaux = [...bureauRows].sort((a, b) => {
+         let comparison = 0;
+         
+         // Si le tri est par centre, trier d'abord par centre puis par numéro de bureau
+         if (sortBy === 'center') {
+           const centerA = a.center_name || centerNameById[a.center_id] || '';
+           const centerB = b.center_name || centerNameById[b.center_id] || '';
+           comparison = centerA.localeCompare(centerB);
+           
+           // Si les centres sont identiques, trier par numéro de bureau
+           if (comparison === 0) {
+             const numA = parseInt(a.bureau_name?.match(/\d+/)?.[0] || '0');
+             const numB = parseInt(b.bureau_name?.match(/\d+/)?.[0] || '0');
+             comparison = numA - numB;
+           }
+         } else {
+           // Pour les autres critères, trier selon le critère sélectionné
+           switch (sortBy) {
+             case 'participation':
+               comparison = (a.participation_pct || 0) - (b.participation_pct || 0);
+               break;
+             case 'score':
+               comparison = (a.score_pct || 0) - (b.score_pct || 0);
+               break;
+             case 'votes':
+               comparison = (a.total_expressed_votes || 0) - (b.total_expressed_votes || 0);
+               break;
+           }
+           
+           // Si les valeurs sont identiques, trier par centre puis par bureau
+           if (comparison === 0) {
+             const centerA = a.center_name || centerNameById[a.center_id] || '';
+             const centerB = b.center_name || centerNameById[b.center_id] || '';
+             comparison = centerA.localeCompare(centerB);
+             
+             if (comparison === 0) {
+               const numA = parseInt(a.bureau_name?.match(/\d+/)?.[0] || '0');
+               const numB = parseInt(b.bureau_name?.match(/\d+/)?.[0] || '0');
+               comparison = numA - numB;
+             }
+           }
+         }
+         
+         return sortOrder === 'asc' ? comparison : -comparison;
+       });
+
+      return sortedBureaux;
+    }
+  };
   const handleOpenCandidate = async (candidateId: string) => {
     setOpenCandidateId(candidateId);
     if (results?.election) {
@@ -559,22 +657,22 @@ const ElectionResults: React.FC = () => {
         </div>
       </section>
 
-      {/* Modal détail candidat */}
-      <Dialog open={!!openCandidateId} onOpenChange={(o) => !o && setOpenCandidateId(null)}>
-        <DialogContent className="max-w-5xl">
-          <DialogHeader>
-            <DialogTitle>Détails du candidat</DialogTitle>
-          </DialogHeader>
+       {/* Modal détail candidat */}
+       <Dialog open={!!openCandidateId} onOpenChange={(o) => !o && setOpenCandidateId(null)}>
+         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+           <DialogHeader>
+             <DialogTitle>Détails du candidat</DialogTitle>
+           </DialogHeader>
           {(() => {
             const c = results.candidates.find(x => x.candidate_id === openCandidateId);
             if (!c) return <div className="text-gov-gray">Aucune donnée</div>;
             return (
               <div>
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gov-dark">{c.candidate_name}</h3>
-                  <p className="text-gov-gray">{c.party_name}</p>
-                  <div className="mt-2 text-sm text-gov-gray">Voix: {c.total_votes.toLocaleString()} • Part: {c.percentage.toFixed(1)}%</div>
-                </div>
+                 <div className="mb-4">
+                   <h3 className="text-lg font-semibold text-gov-dark">{c.candidate_name}</h3>
+                   <p className="text-gov-gray">{c.party_name}</p>
+                   {/* <div className="mt-2 text-sm text-gov-gray">Voix: {c.total_votes.toLocaleString()} • Part: {c.percentage.toFixed(1)}%</div> */}
+                 </div>
                 <Tabs defaultValue="center">
                   <TabsList>
                     <TabsTrigger value="center">Par centre</TabsTrigger>
@@ -701,11 +799,56 @@ const ElectionResults: React.FC = () => {
                 Par bureau
               </button>
             </div>
+
+            {/* Contrôles de tri */}
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 bg-white rounded-xl p-4 shadow-lg border border-gray-200 max-w-4xl mx-auto">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Trier par:
+                </span>
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="center">Centre</option>
+                  <option value="participation">Participation</option>
+                  <option value="score">Score</option>
+                  <option value="votes">Votes</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                    sortOrder === 'asc' 
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                      : 'bg-gray-100 text-gray-700 border border-gray-200'
+                  }`}
+                >
+                  {sortOrder === 'asc' ? (
+                    <>
+                      <TrendingUp className="w-4 h-4" />
+                      Croissant
+                    </>
+                  ) : (
+                    <>
+                      <TrendingDown className="w-4 h-4" />
+                      Décroissant
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
 
           {viewMode === 'center' ? (
             <div className="space-y-6">
-              {centerRows.map((c, idx) => (
+              {(getSortedAndGroupedData() as CenterGroup[]).map((group, idx) => {
+                const c = group.center;
+                return (
                 <details key={`${c.center_id}-${idx}`} className="group bg-white rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
                   <summary className="cursor-pointer px-6 py-5 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300">
                     <div className="flex items-center gap-4">
@@ -780,7 +923,12 @@ const ElectionResults: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {bureauRows.filter(b => b.center_id === c.center_id).map((b, i2) => (
+                          {group.bureaux.sort((a, b) => {
+                            // Trier les bureaux par numéro de bureau
+                            const numA = parseInt(a.bureau_name?.match(/\d+/)?.[0] || '0');
+                            const numB = parseInt(b.bureau_name?.match(/\d+/)?.[0] || '0');
+                            return numA - numB;
+                          }).map((b, i2) => (
                             <tr key={i2} className="hover:bg-blue-50 transition-colors duration-200">
                               <td className="px-4 py-3 font-medium text-gray-800">{b.bureau_name}</td>
                               <td className="px-4 py-3 text-right font-semibold text-gray-700">{b.total_registered?.toLocaleString() ?? '-'}</td>
@@ -806,7 +954,7 @@ const ElectionResults: React.FC = () => {
                               </td>
                             </tr>
                           ))}
-                          {bureauRows.filter(b => b.center_id === c.center_id).length === 0 && (
+                          {group.bureaux.length === 0 && (
                             <tr>
                               <td className="px-4 py-8 text-center text-gray-500" colSpan={6}>
                                 <div className="flex flex-col items-center gap-2">
@@ -821,8 +969,8 @@ const ElectionResults: React.FC = () => {
                     </div>
                   </div>
                 </details>
-              ))}
-              {centerRows.length === 0 && (
+              )})}
+              {(getSortedAndGroupedData() as CenterGroup[]).length === 0 && (
                 <div className="text-center text-gov-gray">Aucun centre à afficher.</div>
               )}
             </div>
@@ -886,7 +1034,7 @@ const ElectionResults: React.FC = () => {
                   </tr>
                 </thead>
                   <tbody className="divide-y divide-gray-200">
-                  {bureauRows.map((b, idx) => (
+                    {(getSortedAndGroupedData() as BureauData[]).map((b, idx) => (
                       <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="hover:bg-blue-50 transition-colors duration-200 group">
                         <td className="px-6 py-4 font-medium text-gray-800">
                           <div className="flex items-center gap-3">
@@ -951,7 +1099,7 @@ const ElectionResults: React.FC = () => {
                         </td>
                     </tr>
                   ))}
-                  {bureauRows.length === 0 && (
+                    {(getSortedAndGroupedData() as BureauData[]).length === 0 && (
                     <tr>
                         <td className="px-6 py-12 text-center text-gray-500" colSpan={7}>
                           <div className="flex flex-col items-center gap-3">
