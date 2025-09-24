@@ -261,6 +261,11 @@ const PublicHomePage = () => {
     return s === 'a venir' || s === 'à venir' || s === 'avenir' || s === 'a-venir';
   });
   const currentElections = electionsWithDates.filter(e => statusOf(e) === 'en cours');
+  const finishedElections = electionsWithDates.filter(e => {
+    const s = statusOf(e);
+    // Statut officiel: "Terminée" (on garde des variantes par robustesse)
+    return s === 'terminée' || s === 'terminee' || s === 'terminé' || s === 'termine' || s === 'terminer' || s === 'fini';
+  });
 
   // Tabs bibliothèque
   const [libraryTab, setLibraryTab] = useState<'past' | 'current' | 'upcoming'>('current');
@@ -317,7 +322,23 @@ const PublicHomePage = () => {
                 <a href="#about" className="hover:underline" aria-label="En savoir plus sur iKADI">A propos</a>
                 <a href="#infos" className="hover:underline" aria-label="Informations électorales">Infos électorales</a>
                 <a href="#candidats" className="hover:underline" aria-label="Voir les candidats">Candidats</a>
-                <a href="#resultats" className="hover:underline" aria-label="Consulter les résultats">Résultats</a>
+                <div className="relative group">
+                  <button className="hover:underline" aria-haspopup="true" aria-expanded="false">Résultats</button>
+                  <div className="absolute left-0 mt-2 hidden group-hover:block bg-white text-gov-dark rounded shadow-lg border min-w-[220px] z-50">
+                    {finishedElections.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-gov-gray">Aucun résultat disponible</div>
+                    )}
+                    {finishedElections.slice(0, 8).map(e => (
+                      <button
+                        key={e.id}
+                        className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm"
+                        onClick={() => navigate(`/election/${e.id}/results`)}
+                      >
+                        {e.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <a href="#circonscriptions" className="hover:underline" aria-label="Circonscriptions et bureaux de vote">Circonscriptions / Bureaux</a>
                 <a href="#contact" className="hover:underline" aria-label="Nous contacter">Contact</a>
               </nav>

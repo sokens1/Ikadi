@@ -211,7 +211,12 @@ const ElectionResults: React.FC = () => {
               <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
               <a href="#infos" className="hover:text-blue-200 transition-colors">Infos électorales</a>
               <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a>
-              <a href="#resultats" className="hover:text-blue-200 transition-colors">Résultats</a>
+              <div className="relative group">
+                <button className="hover:text-blue-200 transition-colors">Résultats</button>
+                <div className="absolute left-0 mt-2 hidden group-hover:block bg-white text-gov-dark rounded shadow-lg border min-w-[220px] z-50 p-3 text-sm">
+                  <div className="text-gov-gray">Voir les résultats disponibles sur la page d'accueil</div>
+                </div>
+              </div>
               <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
               <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a>
             </nav>
