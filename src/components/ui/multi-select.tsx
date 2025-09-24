@@ -54,7 +54,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       option.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
       option.subtitle?.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [options, searchQuery]);
+  }, [options, searchQuery, searchable]);
 
   const selectedOptions = useMemo(() => {
     if (!selected || !Array.isArray(selected) || !options || !Array.isArray(options)) return [];
@@ -78,8 +78,8 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
   const defaultRenderOption = (option: MultiSelectOption) => (
     <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-      <div className="w-10 h-10 bg-gov-blue/10 rounded-full flex items-center justify-center">
-        {icon || <div className="w-5 h-5 bg-gov-blue rounded-full" />}
+      <div className="w-10 h-10 bg-[#1e40af]/10 rounded-full flex items-center justify-center">
+        {icon || <div className="w-5 h-5 bg-[#1e40af] rounded-full" />}
       </div>
       <div className="flex-1">
         <p className="font-medium text-gray-900">{option.label}</p>
@@ -96,9 +96,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   );
 
   const defaultRenderSelected = (option: MultiSelectOption) => (
-    <div className="flex items-center justify-between bg-gov-blue/5 rounded-lg p-3">
+    <div className="flex items-center justify-between bg-[#1e40af]/5 rounded-lg p-3">
       <div className="flex items-center space-x-3">
-        <div className="w-8 h-8 bg-gov-blue rounded-full flex items-center justify-center">
+        <div className="w-8 h-8 bg-[#1e40af] rounded-full flex items-center justify-center">
           {icon || <div className="w-4 h-4 bg-white rounded-full" />}
         </div>
         <div>
@@ -161,7 +161,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
           e.stopPropagation();
           setIsOpen(true);
         }}
-        className="w-full bg-white border-2 border-gov-blue text-gov-blue hover:bg-gov-blue hover:text-white transition-all duration-300"
+        className="w-full bg-white border-2 border-[#1e40af] text-[#1e40af] hover:bg-[#1e40af] hover:text-white transition-all duration-300"
         disabled={maxSelections && selected.length >= maxSelections}
       >
         <Plus className="w-4 h-4 mr-2" />
@@ -215,7 +215,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-4 border-t">
+            <div className="flex items-center justify-between pt-2 border-t">
               <div className="text-sm text-gray-600">
                 {selected.length} élément{selected.length > 1 ? 's' : ''} sélectionné{selected.length > 1 ? 's' : ''}
                 {maxSelections && ` / ${maxSelections} maximum`}
@@ -229,7 +229,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                 </Button>
                 <Button
                   onClick={() => setIsOpen(false)}
-                  className="bg-gov-blue hover:bg-gov-blue-dark"
+                  className="bg-[#1e40af] hover:bg-[#1e3a8a]"
                 >
                   <Check className="w-4 h-4 mr-2" />
                   Valider
