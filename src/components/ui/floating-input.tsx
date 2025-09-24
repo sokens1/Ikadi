@@ -90,7 +90,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
               "text-gray-900 placeholder-transparent",
               "transition-all duration-200"
             )}
-            placeholder={label}
+            placeholder=" "
             {...props}
           />
           

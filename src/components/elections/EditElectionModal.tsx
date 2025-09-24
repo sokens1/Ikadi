@@ -365,10 +365,10 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
         description: formData.description.trim(),
         location: {
           province: formData.province,
-          department: formData.department,
+          department: '',
           commune: formData.commune,
           arrondissement: formData.arrondissement,
-          fullAddress: `${formData.commune}, ${formData.department}`,
+          fullAddress: `${formData.commune}, ${formData.province}`,
         },
         configuration: {
           seatsAvailable: formData.seatsAvailable,
@@ -489,7 +489,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             description="Modifiez la zone géographique de l'élection"
             icon={<MapPin className="w-5 h-5" />}
           >
-            <ModernFormGrid cols={2}>
+            <ModernFormGrid cols={1}>
               <Select2
                 label="Province"
                 placeholder="Rechercher une province..."
@@ -503,23 +503,6 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                   } else {
                     setSelectedProvinceId('');
                     handleInputChange('province', '');
-                  }
-                }}
-              />
-              
-              <Select2
-                label="Département"
-                placeholder="Rechercher un département..."
-                options={departments.map(d => ({ value: d.id, label: d.name }))}
-                value={departments.find(d => d.id === selectedDepartmentId) ? 
-                  { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
-                onChange={(selectedOption) => {
-                  if (selectedOption) {
-                    setSelectedDepartmentId(selectedOption.value);
-                    handleInputChange('department', selectedOption.label);
-                  } else {
-                    setSelectedDepartmentId('');
-                    handleInputChange('department', '');
                   }
                 }}
               />

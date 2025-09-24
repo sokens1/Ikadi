@@ -122,9 +122,10 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="pt-2">
-          <ModernForm onSubmit={handleSubmit}>
-            <ModernFormSection title="Centres de Vote">
+        <div className="space-y-4">
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Centres de Vote</h3>
               <MultiSelect
                 options={(centers || []).map(c => ({
                   value: c.id,
@@ -135,16 +136,16 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
                 onSelectionChange={setSelectedCenters}
                 placeholder="Sélectionnez des centres..."
               />
-            </ModernFormSection>
+            </div>
+          </div>
 
-            <ModernFormActions>
-              <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3">Annuler</Button>
-              <Button type="submit" className="btn-primary w-full sm:w-auto text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3" disabled={selectedCenters.length === 0}>
-                <span className="hidden xs:inline">Ajouter {selectedCenters.length} centre{selectedCenters.length > 1 ? 's' : ''}</span>
-                <span className="xs:hidden">Ajouter {selectedCenters.length}</span>
-              </Button>
-            </ModernFormActions>
-          </ModernForm>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <Button type="button" variant="outline" onClick={onClose} className="text-sm px-4 py-2">Annuler</Button>
+            <Button type="button" onClick={handleSubmit} className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm px-4 py-2" disabled={selectedCenters.length === 0}>
+              <span className="hidden xs:inline">Ajouter {selectedCenters.length} centre{selectedCenters.length > 1 ? 's' : ''}</span>
+              <span className="xs:hidden">Ajouter {selectedCenters.length}</span>
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
