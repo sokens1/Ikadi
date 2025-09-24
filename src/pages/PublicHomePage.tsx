@@ -80,6 +80,8 @@ const PublicHomePage = () => {
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   const [heroOk, setHeroOk] = useState<boolean>(true);
+  const [resultsMenuOpen, setResultsMenuOpen] = useState(false);
+  const [footerResultsOpen, setFooterResultsOpen] = useState(false);
 
   const isCountdownZero = timeLeft.days === 0 && timeLeft.hours === 0 && timeLeft.minutes === 0 && timeLeft.seconds === 0;
 
@@ -263,6 +265,7 @@ const PublicHomePage = () => {
   });
   const currentElections = electionsWithDates.filter(e => statusOf(e) === 'en cours');
   const finishedElections = electionsWithDates.filter(e => isFinishedStatus(statusOf(e)));
+  const latestFinishedTitle = finishedElections.length > 0 ? finishedElections[finishedElections.length - 1].title : 'Résultats';
 
   // Tabs bibliothèque
   const [libraryTab, setLibraryTab] = useState<'past' | 'current' | 'upcoming'>('current');
@@ -316,28 +319,38 @@ const PublicHomePage = () => {
               </div>
               <nav className="hidden md:flex items-center space-x-6" role="navigation" aria-label="Menu principal">
                 <Link to="/" className="hover:text-blue-200 transition-colors" aria-label="Accueil">Accueil</Link>
-                <a href="#about" className="hover:text-blue-200 transition-colors" aria-label="En savoir plus sur iKADI">A propos</a>
+                {/* <a href="#about" className="hover:text-blue-200 transition-colors" aria-label="En savoir plus sur iKADI">A propos</a>
                 <a href="#infos" className="hover:text-blue-200 transition-colors" aria-label="Informations électorales">Infos électorales</a>
-                <a href="#candidats" className="hover:text-blue-200 transition-colors" aria-label="Voir les candidats">Candidats</a>
-                <div className="relative group">
-                  <button className="hover:text-blue-200 transition-colors" aria-haspopup="true" aria-expanded="false">Résultats</button>
-                  <div className="absolute left-0 mt-2 hidden group-hover:block bg-white text-gov-dark rounded shadow-lg border min-w-[220px] z-50">
-                    {finishedElections.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gov-gray">Aucun résultat disponible</div>
+                <a href="#candidats" className="hover:text-blue-200 transition-colors" aria-label="Voir les candidats">Candidats</a> */}
+                <div className="relative" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
+                  <button className="hover:text-blue-200 transition-colors" aria-haspopup="true" aria-expanded={resultsMenuOpen} onClick={() => setResultsMenuOpen(v=>!v)}>Résultats</button>
+                  {resultsMenuOpen && (
+                  <div className="absolute left-0 mt-2 bg-white rounded shadow-lg border min-w-[260px] z-50 py-2">
+                    <div className="px-3 pb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Élections terminées</div>
+                    {loading && (
+                      <div className="px-3 py-2 text-sm text-gray-700">Chargement…</div>
                     )}
-                    {finishedElections.slice(0, 8).map(e => (
-                      <button
-                        key={e.id}
-                        className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm"
-                        onClick={() => navigate(`/election/${e.id}/results`)}
-                      >
-                        {e.title}
-                      </button>
-                    ))}
+                    {!loading && finishedElections.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-gray-700">Aucun résultat disponible</div>
+                    )}
+                    {!loading && (
+                      <div className="max-h-40 overflow-y-auto">
+                        {finishedElections.map(e => (
+                          <button
+                            key={e.id}
+                            className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-gray-800"
+                            onClick={() => navigate(`/election/${e.id}/results`)}
+                          >
+                            {e.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                  )}
                 </div>
-                <a href="#circonscriptions" className="hover:underline" aria-label="Circonscriptions et bureaux de vote">Circonscriptions / Bureaux</a>
-                <a href="#contact" className="hover:underline" aria-label="Nous contacter">Contact</a>
+                {/* <a href="#circonscriptions" className="hover:underline" aria-label="Circonscriptions et bureaux de vote">Circonscriptions / Bureaux</a>
+                <a href="#contact" className="hover:underline" aria-label="Nous contacter">Contact</a> */}
               </nav>
               <button className="md:hidden p-2 rounded hover:bg-white/10" aria-label="Ouvrir le menu" onClick={() => setMobileOpen(v => !v)}>
                 {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -567,9 +580,25 @@ const PublicHomePage = () => {
               <div className="order-3 md:order-2 text-sm text-white/90 max-w-sm w-full">
                 <h4 className="font-semibold text-white mb-2">Ressources</h4>
                 <ul className="space-y-1">
-                  <li><a href="#candidats" className="hover:opacity-80">Candidats</a></li>
-                  <li><a href="#circonscriptions" className="hover:opacity-80">Circonscriptions / Bureaux</a></li>
-                  <li><a href="#resultats" className="hover:opacity-80">Résultats</a></li>
+                  {/* <li><a href="#candidats" className="hover:opacity-80">Candidats</a></li>
+                  <li><a href="#circonscriptions" className="hover:opacity-80">Circonscriptions / Bureaux</a></li> */}
+                  <li>
+                    <div className="relative" onMouseEnter={() => setFooterResultsOpen(true)} onMouseLeave={() => setFooterResultsOpen(false)}>
+                      <button className="hover:opacity-80">{latestFinishedTitle}</button>
+                      {footerResultsOpen && (
+                        <div className="absolute left-0 mt-2 bg-white text-gov-dark rounded shadow-lg border min-w-[260px] z-50 py-2 max-h-[96px] overflow-y-auto">
+                          {finishedElections.length === 0 && (
+                            <div className="px-3 py-2 text-sm text-gray-700">Aucun résultat</div>
+                          )}
+                          {finishedElections.map(e => (
+                            <button key={e.id} className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm" onClick={() => navigate(`/election/${e.id}/results`)}>
+                              {e.title}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </li>
                 </ul>
               </div>
 
