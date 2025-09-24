@@ -171,7 +171,7 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden border border-gray-100">
         {/* Header moderne */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-4 sm:py-5">
+        <div className="bg-gradient-to-r from-[#1e40af] to-[#3b82f6] px-4 sm:px-6 py-4 sm:py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
@@ -197,7 +197,7 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 rounded-xl border border-gray-200">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <Building className="w-4 h-4 text-blue-600" />
+                <Building className="w-4 h-4 text-[#1e40af]" />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-gray-900">{center.name}</h3>
             </div>
@@ -240,7 +240,7 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
                   </div>
                   <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Total Électeurs</span>
                 </div>
-                <p className="text-blue-600 font-bold text-lg">{center.voters.toLocaleString('fr-FR')}</p>
+                <p className="text-[#1e40af] font-bold text-lg">{center.voters.toLocaleString('fr-FR')}</p>
               </div>
             </div>
           </div>
@@ -261,7 +261,7 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
                 </div>
                 <Button 
                   onClick={() => setShowAddBureau(true)} 
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto"
+                  className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   <span className="font-medium">Ajouter un bureau</span>
@@ -313,7 +313,7 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
                   <Button 
                     onClick={handleAddBureau} 
                     disabled={!newBureau.name.trim()} 
-                    className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="flex-1 sm:flex-none bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Ajouter le bureau
@@ -382,7 +382,7 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
                               <div className="p-1.5 bg-blue-100 rounded-md">
                                 <Users className="w-3 h-3 text-blue-600" />
                               </div>
-                              <span className="font-semibold text-blue-600">
+                              <span className="font-semibold text-[#1e40af]">
                                 {(bureau.registered_voters || 0).toLocaleString('fr-FR')}
                               </span>
                             </div>
@@ -430,9 +430,9 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl sm:text-3xl font-bold text-blue-600">
-                    {bureaux.reduce((sum, bureau) => sum + (bureau.registered_voters || 0), 0).toLocaleString('fr-FR')}
-                  </div>
+                <div className="text-2xl sm:text-3xl font-bold text-[#1e40af]">
+                  {bureaux.reduce((sum, bureau) => sum + (bureau.registered_voters || 0), 0).toLocaleString('fr-FR')}
+                </div>
                   <p className="text-sm text-gray-600">électeurs inscrits</p>
                 </div>
               </div>

@@ -25,6 +25,8 @@ import CenterDetailModal from './CenterDetailModal';
 import EditCenterModal from './EditCenterModal';
 import EditCandidateModal from './EditCandidateModal';
 import EditBureauModal from './EditBureauModal';
+import CandidateProfileModal from './CandidateProfileModal';
+import InitialsAvatar from '@/components/ui/initials-avatar';
 
 interface Election {
   id: string; // UUID
@@ -79,6 +81,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
   const [showEditCenter, setShowEditCenter] = useState(false);
   const [showEditCandidate, setShowEditCandidate] = useState(false);
   const [showEditBureau, setShowEditBureau] = useState(false);
+  const [showCandidateProfile, setShowCandidateProfile] = useState(false);
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [selectedBureau, setSelectedBureau] = useState<any>(null);
@@ -443,6 +446,12 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
         toast.error('Erreur lors de la suppression du bureau');
       }
     }
+  };
+
+  // Fonction pour ouvrir le profil du candidat
+  const handleViewCandidateProfile = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+    setShowCandidateProfile(true);
   };
 
   if (loading) {
@@ -889,10 +898,11 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start space-x-2 sm:space-x-3">
                       <div className="relative flex-shrink-0">
-                        <img 
-                          src={candidate.photo || '/placeholder.svg'} 
-                          alt={candidate.name}
-                          className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg sm:rounded-xl object-cover border-2 border-white shadow-md"
+                        <InitialsAvatar 
+                          name={candidate.name}
+                          size="lg"
+                          className="shadow-lg border-2 border-white"
+                          backgroundColor={candidate.isOurCandidate ? '#7c3aed' : '#1e40af'}
                         />
                         {candidate.isOurCandidate && (
                           <div className="absolute -top-1 -right-1 p-0.5 bg-purple-500 rounded-full">
@@ -936,7 +946,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                           <Button 
                             variant="outline" 
                             size="sm"
-                            className="flex-1 bg-white border-gray-200 text-gray-700 hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all duration-300 text-xs"
+                            onClick={() => handleViewCandidateProfile(candidate)}
+                            className="flex-1 bg-white border-[#1e40af] text-[#1e40af] hover:bg-[#1e40af] hover:text-white transition-all duration-300 text-xs"
                           >
                             <Eye className="w-3 h-3 mr-1" />
                             Profil
@@ -1022,6 +1033,18 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               setSelectedBureau(null);
             }}
             onUpdate={handleUpdateBureau}
+          />
+        )}
+
+        {/* Modal de profil du candidat */}
+        {showCandidateProfile && selectedCandidate && (
+          <CandidateProfileModal
+            candidate={selectedCandidate}
+            isOpen={showCandidateProfile}
+            onClose={() => {
+              setShowCandidateProfile(false);
+              setSelectedCandidate(null);
+            }}
           />
         )}
       </div>
