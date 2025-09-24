@@ -510,19 +510,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               
               {/* Statistiques compactes - Mobile First */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-                <div className="bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/20">
-                  <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
-                    <div className="p-1 sm:p-1.5 bg-gov-blue rounded-md sm:rounded-lg">
-                      <Users className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                    </div>
-                    <span className="text-xs font-medium text-gov-blue uppercase tracking-wide">Électeurs</span>
-                  </div>
-                  <div className="text-sm sm:text-xl font-bold text-gov-blue">
-                    {statistics.totalVoters.toLocaleString('fr-FR')}
-                  </div>
-                </div>
                 
-                <div className="bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/20">
+              <div className="bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/20">
                   <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
                     <div className="p-1 sm:p-1.5 bg-green-500 rounded-md sm:rounded-lg">
                       <Building className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
@@ -533,15 +522,15 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                     {statistics.totalCenters}
                   </div>
                 </div>
-                
+                                
                 <div className="bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/20">
                   <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
-                    <div className="p-1 sm:p-1.5 bg-indigo-500 rounded-md sm:rounded-lg">
+                    <div className="p-1 sm:p-1.5 bg-[#1e40af] rounded-md sm:rounded-lg">
                       <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">Bureaux</span>
+                    <span className="text-xs font-medium text-[#1e40af] uppercase tracking-wide">Bureaux</span>
                   </div>
-                  <div className="text-sm sm:text-xl font-bold text-indigo-900">
+                  <div className="text-sm sm:text-xl font-bold text-[#1e40af]">
                     {statistics.totalBureaux}
                   </div>
                 </div>
@@ -555,6 +544,18 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                   </div>
                   <div className="text-sm sm:text-xl font-bold text-purple-900">
                     {statistics.totalCandidates}
+                  </div>
+                </div>
+                
+                <div className="bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/20">
+                  <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                    <div className="p-1 sm:p-1.5 bg-[#1e40af] rounded-md sm:rounded-lg">
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-[#1e40af] uppercase tracking-wide">Électeurs</span>
+                  </div>
+                  <div className="text-sm sm:text-xl font-bold text-[#1e40af]">
+                    {statistics.totalVoters.toLocaleString('fr-FR')}
                   </div>
                 </div>
               </div>
