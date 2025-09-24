@@ -76,3 +76,97 @@ FROM procès_verbaux pv
 JOIN voting_bureaux vb ON vb.id = pv.bureau_id
 WHERE pv.status = 'validated'
 GROUP BY pv.election_id, pv.bureau_id, vb.name, vb.center_id;
+
+-- Résultats par candidat et par centre
+DROP VIEW IF EXISTS center_candidate_results_summary;
+CREATE VIEW center_candidate_results_summary AS
+WITH base AS (
+  SELECT 
+    pv.election_id,
+    vb.center_id,
+    vc.name AS center_name,
+    cr.candidate_id,
+    c.name AS candidate_name,
+    COALESCE(SUM(cr.votes), 0) AS candidate_votes
+  FROM "procès_verbaux" pv
+  JOIN voting_bureaux vb ON vb.id = pv.bureau_id
+  JOIN voting_centers vc ON vc.id = vb.center_id
+  JOIN candidate_results cr ON cr.pv_id = pv.id
+  JOIN candidates c ON c.id = cr.candidate_id
+  WHERE pv.status = 'validated'
+  GROUP BY pv.election_id, vb.center_id, vc.name, cr.candidate_id, c.name
+), reg AS (
+  SELECT pv.election_id, vb.center_id, SUM(pv.total_registered) AS total_registered
+  FROM "procès_verbaux" pv
+  JOIN voting_bureaux vb ON vb.id = pv.bureau_id
+  WHERE pv.status = 'validated'
+  GROUP BY pv.election_id, vb.center_id
+)
+SELECT 
+  b.election_id,
+  b.center_id,
+  b.center_name,
+  b.candidate_id,
+  b.candidate_name,
+  b.candidate_votes,
+  ROUND(
+    CASE WHEN SUM(b.candidate_votes) OVER (PARTITION BY b.election_id, b.center_id) > 0
+      THEN (b.candidate_votes::numeric / NULLIF(SUM(b.candidate_votes) OVER (PARTITION BY b.election_id, b.center_id), 0)) * 100
+      ELSE 0
+    END
+  , 2) AS candidate_percentage,
+  ROUND(
+    CASE WHEN r.total_registered > 0
+      THEN (b.candidate_votes::numeric / NULLIF(r.total_registered, 0)) * 100
+      ELSE 0
+    END
+  , 2) AS candidate_participation_pct
+FROM base b
+LEFT JOIN reg r ON r.election_id = b.election_id AND r.center_id = b.center_id;
+
+-- Résultats par candidat et par bureau
+DROP VIEW IF EXISTS bureau_candidate_results_summary;
+CREATE VIEW bureau_candidate_results_summary AS
+WITH base AS (
+  SELECT 
+    pv.election_id,
+    pv.bureau_id,
+    vb.name AS bureau_name,
+    vb.center_id,
+    cr.candidate_id,
+    c.name AS candidate_name,
+    COALESCE(SUM(cr.votes), 0) AS candidate_votes
+  FROM "procès_verbaux" pv
+  JOIN voting_bureaux vb ON vb.id = pv.bureau_id
+  JOIN candidate_results cr ON cr.pv_id = pv.id
+  JOIN candidates c ON c.id = cr.candidate_id
+  WHERE pv.status = 'validated'
+  GROUP BY pv.election_id, pv.bureau_id, vb.name, vb.center_id, cr.candidate_id, c.name
+), reg AS (
+  SELECT pv.election_id, pv.bureau_id, SUM(pv.total_registered) AS total_registered
+  FROM "procès_verbaux" pv
+  WHERE pv.status = 'validated'
+  GROUP BY pv.election_id, pv.bureau_id
+)
+SELECT 
+  b.election_id,
+  b.bureau_id,
+  b.bureau_name,
+  b.center_id,
+  b.candidate_id,
+  b.candidate_name,
+  b.candidate_votes,
+  ROUND(
+    CASE WHEN SUM(b.candidate_votes) OVER (PARTITION BY b.election_id, b.bureau_id) > 0
+      THEN (b.candidate_votes::numeric / NULLIF(SUM(b.candidate_votes) OVER (PARTITION BY b.election_id, b.bureau_id), 0)) * 100
+      ELSE 0
+    END
+  , 2) AS candidate_percentage,
+  ROUND(
+    CASE WHEN r.total_registered > 0
+      THEN (b.candidate_votes::numeric / NULLIF(r.total_registered, 0)) * 100
+      ELSE 0
+    END
+  , 2) AS candidate_participation_pct
+FROM base b
+LEFT JOIN reg r ON r.election_id = b.election_id AND r.bureau_id = b.bureau_id;
