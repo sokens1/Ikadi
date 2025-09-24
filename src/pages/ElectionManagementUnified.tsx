@@ -949,6 +949,24 @@ const ElectionManagementUnified = () => {
                             {election.statistics.totalCenters}
                           </p>
                         </div>
+                        <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center justify-center gap-1 sm:gap-2 text-blue-600 mb-1 sm:mb-2">
+                            <Building className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
+                            <span className="text-xs sm:text-sm font-semibold">Bureaux</span>
+                          </div>
+                          <p className="text-sm sm:text-base lg:text-lg font-bold text-blue-700">
+                            {election.statistics.totalBureaux}
+                          </p>
+                        </div>
+                        <div className="text-center p-2 sm:p-3 bg-purple-50 rounded-lg">
+                          <div className="flex items-center justify-center gap-1 sm:gap-2 text-purple-600 mb-1 sm:mb-2">
+                            <Users className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
+                            <span className="text-xs sm:text-sm font-semibold">Électeurs</span>
+                          </div>
+                          <p className="text-sm sm:text-base lg:text-lg font-bold text-purple-700">
+                            {election.statistics.totalVoters.toLocaleString()}
+                          </p>
+                        </div>
                       </div>
 
                       <Button
