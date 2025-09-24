@@ -175,9 +175,9 @@ const CandidateCard: React.FC<{
               <span className="text-2xl font-bold text-gray-800">
                 {candidate.total_votes.toLocaleString()}
               </span>
-              <span className="text-lg font-semibold text-blue-600">
-                {percentage.toFixed(1)}%
-              </span>
+               <span className="text-lg font-semibold text-blue-600">
+                 {percentage.toFixed(2)}%
+               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
               <div 
@@ -875,7 +875,7 @@ const ElectionResults: React.FC = () => {
                        </div> */}
                       <div className="bg-white rounded-xl px-4 py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
                         <div className="text-[11px] uppercase text-gray-500 font-medium mb-1">Participation</div>
-                        <div className="font-bold text-green-600 text-lg">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct,0),100).toFixed(1)}%` : '-'}</div>
+                         <div className="font-bold text-green-600 text-lg">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct,0),100).toFixed(2)}%` : '-'}</div>
                       </div>
                     </div>
                   </summary>
@@ -940,7 +940,7 @@ const ElectionResults: React.FC = () => {
                                   typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
                                   'bg-red-100 text-red-800'
                                 }`}>
-                                  {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct,0),100).toFixed(1)}%` : '-'}
+                                  {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct,0),100).toFixed(2)}%` : '-'}
                                 </span>
                               </td>
                                {/* <td className="px-4 py-3 text-right">
@@ -1080,7 +1080,7 @@ const ElectionResults: React.FC = () => {
                               typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
                               'bg-red-100 text-red-800'
                             }`}>
-                              {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(1)}%` : (b.participation_pct || '-')}
+                              {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : (b.participation_pct || '-')}
                             </span>
                             <span className="text-xs text-gray-500 mt-1">participation</span>
                           </div>
