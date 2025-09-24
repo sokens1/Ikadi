@@ -807,16 +807,16 @@ const ElectionResults: React.FC = () => {
                   <TrendingUp className="w-4 h-4" />
                   Trier par:
                 </span>
-                <select 
-                  value={sortBy} 
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="center">Centre</option>
-                  <option value="participation">Participation</option>
-                  <option value="score">Score</option>
-                  <option value="votes">Votes</option>
-                </select>
+                 <select 
+                   value={sortBy} 
+                   onChange={(e) => setSortBy(e.target.value as any)}
+                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                 >
+                   <option value="center">Centre</option>
+                   <option value="participation">Participation</option>
+                   {/* <option value="score">Score</option> */}
+                   <option value="votes">Votes</option>
+                 </select>
               </div>
               
               <div className="flex items-center gap-2">
@@ -860,7 +860,7 @@ const ElectionResults: React.FC = () => {
                         <p className="text-gray-600 text-sm">Centre de vote</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
                       <div className="bg-white rounded-xl px-4 py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
                         <div className="text-[11px] uppercase text-gray-500 font-medium mb-1">Inscrits</div>
                         <div className="font-bold text-gray-800 text-lg">{c.total_registered?.toLocaleString?.() || c.total_registered}</div>
@@ -869,10 +869,10 @@ const ElectionResults: React.FC = () => {
                         <div className="text-[11px] uppercase text-gray-500 font-medium mb-1">Exprimés</div>
                         <div className="font-bold text-gray-800 text-lg">{c.total_expressed_votes?.toLocaleString?.() || c.total_expressed_votes}</div>
                       </div>
-                      <div className="bg-white rounded-xl px-4 py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
-                        <div className="text-[11px] uppercase text-gray-500 font-medium mb-1">Score</div>
-                        <div className="font-bold text-blue-600 text-lg">{typeof c.score_pct === 'number' ? `${Math.min(Math.max(c.score_pct,0),100).toFixed(1)}%` : '-'}</div>
-                      </div>
+                       {/* <div className="bg-white rounded-xl px-4 py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
+                         <div className="text-[11px] uppercase text-gray-500 font-medium mb-1">Score</div>
+                         <div className="font-bold text-blue-600 text-lg">{typeof c.score_pct === 'number' ? `${Math.min(Math.max(c.score_pct,0),100).toFixed(1)}%` : '-'}</div>
+                       </div> */}
                       <div className="bg-white rounded-xl px-4 py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
                         <div className="text-[11px] uppercase text-gray-500 font-medium mb-1">Participation</div>
                         <div className="font-bold text-green-600 text-lg">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct,0),100).toFixed(1)}%` : '-'}</div>
@@ -914,12 +914,12 @@ const ElectionResults: React.FC = () => {
                                 Participation
                               </div>
                             </th>
-                            <th className="text-right px-4 py-3 font-semibold text-gray-700">
-                              <div className="flex items-center justify-end gap-2">
-                                <Target className="w-4 h-4" />
-                                Score
-                              </div>
-                            </th>
+                             {/* <th className="text-right px-4 py-3 font-semibold text-gray-700">
+                               <div className="flex items-center justify-end gap-2">
+                                 <Target className="w-4 h-4" />
+                                 Score
+                               </div>
+                             </th> */}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -943,20 +943,20 @@ const ElectionResults: React.FC = () => {
                                   {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct,0),100).toFixed(1)}%` : '-'}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-right">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  typeof b.score_pct === 'number' && b.score_pct >= 50 ? 'bg-blue-100 text-blue-800' :
-                                  typeof b.score_pct === 'number' && b.score_pct >= 30 ? 'bg-indigo-100 text-indigo-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {typeof b.score_pct === 'number' ? `${Math.min(Math.max(b.score_pct,0),100).toFixed(1)}%` : '-'}
-                                </span>
-                              </td>
+                               {/* <td className="px-4 py-3 text-right">
+                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                   typeof b.score_pct === 'number' && b.score_pct >= 50 ? 'bg-blue-100 text-blue-800' :
+                                   typeof b.score_pct === 'number' && b.score_pct >= 30 ? 'bg-indigo-100 text-indigo-800' :
+                                   'bg-gray-100 text-gray-800'
+                                 }`}>
+                                   {typeof b.score_pct === 'number' ? `${Math.min(Math.max(b.score_pct,0),100).toFixed(1)}%` : '-'}
+                                 </span>
+                               </td> */}
                             </tr>
                           ))}
                           {group.bureaux.length === 0 && (
                             <tr>
-                              <td className="px-4 py-8 text-center text-gray-500" colSpan={6}>
+                               <td className="px-4 py-8 text-center text-gray-500" colSpan={5}>
                                 <div className="flex flex-col items-center gap-2">
                                   <Target className="w-8 h-8 text-gray-400" />
                                   <span>Aucun bureau disponible</span>
@@ -1025,12 +1025,12 @@ const ElectionResults: React.FC = () => {
                           Participation
                         </div>
                       </th>
-                      <th className="text-right px-6 py-4 font-semibold">
-                        <div className="flex items-center justify-end gap-2">
-                          <Target className="w-4 h-4" />
-                          Score
-                        </div>
-                      </th>
+                       {/* <th className="text-right px-6 py-4 font-semibold">
+                         <div className="flex items-center justify-end gap-2">
+                           <Target className="w-4 h-4" />
+                           Score
+                         </div>
+                       </th> */}
                   </tr>
                 </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -1085,23 +1085,23 @@ const ElectionResults: React.FC = () => {
                             <span className="text-xs text-gray-500 mt-1">participation</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              typeof b.score_pct === 'number' && b.score_pct >= 50 ? 'bg-blue-100 text-blue-800' :
-                              typeof b.score_pct === 'number' && b.score_pct >= 30 ? 'bg-indigo-100 text-indigo-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {typeof b.score_pct === 'number' ? `${Math.min(Math.max(b.score_pct, 0), 100).toFixed(1)}%` : (b.score_pct || '-')}
-                            </span>
-                            <span className="text-xs text-gray-500 mt-1">score</span>
-                          </div>
-                        </td>
+                         {/* <td className="px-6 py-4 text-right">
+                           <div className="flex flex-col items-end">
+                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                               typeof b.score_pct === 'number' && b.score_pct >= 50 ? 'bg-blue-100 text-blue-800' :
+                               typeof b.score_pct === 'number' && b.score_pct >= 30 ? 'bg-indigo-100 text-indigo-800' :
+                               'bg-gray-100 text-gray-800'
+                             }`}>
+                               {typeof b.score_pct === 'number' ? `${Math.min(Math.max(b.score_pct, 0), 100).toFixed(1)}%` : (b.score_pct || '-')}
+                             </span>
+                             <span className="text-xs text-gray-500 mt-1">score</span>
+                           </div>
+                         </td> */}
                     </tr>
                   ))}
                     {(getSortedAndGroupedData() as BureauData[]).length === 0 && (
                     <tr>
-                        <td className="px-6 py-12 text-center text-gray-500" colSpan={7}>
+                         <td className="px-6 py-12 text-center text-gray-500" colSpan={6}>
                           <div className="flex flex-col items-center gap-3">
                             <BarChart3 className="w-12 h-12 text-gray-400" />
                             <span className="text-lg font-medium">Aucun bureau à afficher</span>
