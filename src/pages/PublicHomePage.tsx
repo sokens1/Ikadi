@@ -252,20 +252,17 @@ const PublicHomePage = () => {
   const nowDate = new Date();
   const electionsWithDates = allElections.map((e) => ({ ...e, _date: new Date(e.election_date) }));
   const statusOf = (e: any) => String(e.status || '').toLowerCase();
+  const isFinishedStatus = (s: string) => s === 'terminée' || s === 'terminee' || s === 'terminé' || s === 'termine' || s === 'terminer' || s === 'fini';
   const pastElections = electionsWithDates.filter(e => {
     const s = statusOf(e);
-    return s === 'passé' || s === 'passe' || s === 'passée' || s === 'passer';
+    return s === 'passé' || s === 'passe' || s === 'passée' || s === 'passer' || isFinishedStatus(s);
   });
   const upcomingElections = electionsWithDates.filter(e => {
     const s = statusOf(e);
     return s === 'a venir' || s === 'à venir' || s === 'avenir' || s === 'a-venir';
   });
   const currentElections = electionsWithDates.filter(e => statusOf(e) === 'en cours');
-  const finishedElections = electionsWithDates.filter(e => {
-    const s = statusOf(e);
-    // Statut officiel: "Terminée" (on garde des variantes par robustesse)
-    return s === 'terminée' || s === 'terminee' || s === 'terminé' || s === 'termine' || s === 'terminer' || s === 'fini';
-  });
+  const finishedElections = electionsWithDates.filter(e => isFinishedStatus(statusOf(e)));
 
   // Tabs bibliothèque
   const [libraryTab, setLibraryTab] = useState<'past' | 'current' | 'upcoming'>('current');
@@ -318,12 +315,12 @@ const PublicHomePage = () => {
                 </div>
               </div>
               <nav className="hidden md:flex items-center space-x-6" role="navigation" aria-label="Menu principal">
-                <Link to="/" className="hover:underline" aria-label="Accueil">Accueil</Link>
-                <a href="#about" className="hover:underline" aria-label="En savoir plus sur iKADI">A propos</a>
-                <a href="#infos" className="hover:underline" aria-label="Informations électorales">Infos électorales</a>
-                <a href="#candidats" className="hover:underline" aria-label="Voir les candidats">Candidats</a>
+                <Link to="/" className="hover:text-blue-200 transition-colors" aria-label="Accueil">Accueil</Link>
+                <a href="#about" className="hover:text-blue-200 transition-colors" aria-label="En savoir plus sur iKADI">A propos</a>
+                <a href="#infos" className="hover:text-blue-200 transition-colors" aria-label="Informations électorales">Infos électorales</a>
+                <a href="#candidats" className="hover:text-blue-200 transition-colors" aria-label="Voir les candidats">Candidats</a>
                 <div className="relative group">
-                  <button className="hover:underline" aria-haspopup="true" aria-expanded="false">Résultats</button>
+                  <button className="hover:text-blue-200 transition-colors" aria-haspopup="true" aria-expanded="false">Résultats</button>
                   <div className="absolute left-0 mt-2 hidden group-hover:block bg-white text-gov-dark rounded shadow-lg border min-w-[220px] z-50">
                     {finishedElections.length === 0 && (
                       <div className="px-3 py-2 text-sm text-gov-gray">Aucun résultat disponible</div>
