@@ -357,7 +357,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
             description="Définissez la zone géographique de votre élection"
             icon={<MapPin className="w-5 h-5" />}
           >
-            <ModernFormGrid cols={2}>
+            <ModernFormGrid cols={1}>
               <Select2
                 label="Province"
                 placeholder="Rechercher une province..."
@@ -371,23 +371,6 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                   } else {
                     setSelectedProvinceId('');
                     setFormData({ ...formData, province: '' });
-                  }
-                }}
-              />
-              
-              <Select2
-                label="Département"
-                placeholder="Rechercher un département..."
-                options={departments.map(d => ({ value: d.id, label: d.name }))}
-                value={departments.find(d => d.id === selectedDepartmentId) ? 
-                  { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
-                onChange={(selectedOption) => {
-                  if (selectedOption) {
-                    setSelectedDepartmentId(selectedOption.value);
-                    setFormData({ ...formData, department: selectedOption.label });
-                  } else {
-                    setSelectedDepartmentId('');
-                    setFormData({ ...formData, department: '' });
                   }
                 }}
               />

@@ -906,12 +906,12 @@ const ElectionManagementUnified = () => {
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="p-4 sm:p-6 pt-0">
-                    <div className="space-y-3 sm:space-y-4">
-                      <div className="space-y-2 sm:space-y-3">
-                        <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
-                          <div className="p-1.5 sm:p-2 bg-gov-blue/10 rounded-lg flex-shrink-0">
-                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gov-blue" />
+                  <CardContent className="p-3 sm:p-4 pt-0">
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="space-y-1 sm:space-y-2">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                          <div className="p-1 bg-[#1e40af]/10 rounded flex-shrink-0">
+                            <Calendar className="h-3 w-3 text-[#1e40af]" />
                           </div>
                           <span className="font-medium truncate">
                             {election.date ? election.date.toLocaleDateString('fr-FR', {
@@ -922,48 +922,39 @@ const ElectionManagementUnified = () => {
                             }) : 'Date non définie'}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
-                          <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg flex-shrink-0">
-                            <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                          <div className="p-1 bg-green-100 rounded flex-shrink-0">
+                            <MapPin className="h-3 w-3 text-green-600" />
                           </div>
                           <span className="font-medium line-clamp-1">{election.location.fullAddress}</span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-200">
-                        <div className="text-center p-2 sm:p-3 bg-gov-blue/5 rounded-lg">
-                          <div className="flex items-center justify-center gap-1 sm:gap-2 text-gov-blue mb-1 sm:mb-2">
-                            <Users className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
-                            <span className="text-xs sm:text-sm font-semibold">Électeurs</span>
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
+                        <div className="text-center p-2 bg-green-50 rounded">
+                          <div className="flex items-center justify-center gap-1 text-green-600 mb-1">
+                            <Building className="h-3 w-3" />
+                            <span className="text-xs font-semibold">Centres</span>
                           </div>
-                          <p className="text-sm sm:text-base lg:text-lg font-bold text-gov-blue">
-                            {election.statistics.totalVoters.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg">
-                          <div className="flex items-center justify-center gap-1 sm:gap-2 text-green-600 mb-1 sm:mb-2">
-                            <Building className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
-                            <span className="text-xs sm:text-sm font-semibold">Centres</span>
-                          </div>
-                          <p className="text-sm sm:text-base lg:text-lg font-bold text-green-700">
+                          <p className="text-sm font-bold text-green-700">
                             {election.statistics.totalCenters}
                           </p>
                         </div>
-                        <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg">
-                          <div className="flex items-center justify-center gap-1 sm:gap-2 text-blue-600 mb-1 sm:mb-2">
-                            <Building className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
-                            <span className="text-xs sm:text-sm font-semibold">Bureaux</span>
+                        <div className="text-center p-2 bg-[#1e40af]/10 rounded">
+                          <div className="flex items-center justify-center gap-1 text-[#1e40af] mb-1">
+                            <Building className="h-3 w-3" />
+                            <span className="text-xs font-semibold">Bureaux</span>
                           </div>
-                          <p className="text-sm sm:text-base lg:text-lg font-bold text-blue-700">
+                          <p className="text-sm font-bold text-[#1e40af]">
                             {election.statistics.totalBureaux}
                           </p>
                         </div>
-                        <div className="text-center p-2 sm:p-3 bg-purple-50 rounded-lg">
-                          <div className="flex items-center justify-center gap-1 sm:gap-2 text-purple-600 mb-1 sm:mb-2">
-                            <Users className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
-                            <span className="text-xs sm:text-sm font-semibold">Électeurs</span>
+                        <div className="text-center p-2 bg-purple-50 rounded col-span-2">
+                          <div className="flex items-center justify-center gap-1 text-purple-600 mb-1">
+                            <Users className="h-3 w-3" />
+                            <span className="text-xs font-semibold">Électeurs</span>
                           </div>
-                          <p className="text-sm sm:text-base lg:text-lg font-bold text-purple-700">
+                          <p className="text-sm font-bold text-purple-700">
                             {election.statistics.totalVoters.toLocaleString()}
                           </p>
                         </div>
@@ -971,7 +962,7 @@ const ElectionManagementUnified = () => {
 
                       <Button
                         variant="outline"
-                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-2 sm:py-3 text-sm sm:text-base group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
+                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-[#1e40af] hover:text-white hover:border-[#1e40af] hover:shadow-md transition-all duration-300 py-2 text-sm group-hover:bg-[#1e40af] group-hover:text-white group-hover:border-[#1e40af] group-hover:shadow-md"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewElection(election);
@@ -979,7 +970,7 @@ const ElectionManagementUnified = () => {
                       >
                         <span className="hidden xs:inline">Voir les détails</span>
                         <span className="xs:hidden">Détails</span>
-                        <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" />
+                        <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
                       </Button>
                     </div>
                   </CardContent>
@@ -993,11 +984,11 @@ const ElectionManagementUnified = () => {
                   key={election.id}
                   className="election-card group hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                       {/* Contenu principal */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start justify-between mb-1">
                           <CardTitle className="text-base sm:text-lg font-semibold group-hover:text-primary-blue line-clamp-1 flex-1 pr-2">
                             {election.title}
                           </CardTitle>
@@ -1054,22 +1045,27 @@ const ElectionManagementUnified = () => {
                           </div>
                         </div>
                         
-                        <div className="flex items-center text-gray-600 text-xs sm:text-sm mb-3">
+                        <div className="flex items-center text-gray-600 text-xs sm:text-sm mb-2">
                           <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-gray-500 flex-shrink-0" />
                           <span className="line-clamp-1">{election.location.fullAddress}</span>
                         </div>
 
                         {/* Statistiques */}
-                        <div className="flex items-center gap-4 sm:gap-6 text-gray-700 text-xs sm:text-sm mb-3">
-                          <div className="flex items-center gap-1">
-                            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-gov-blue" />
-                            <span className="font-medium">{election.statistics.totalVoters.toLocaleString()}</span>
-                            <span className="text-gray-500 hidden xs:inline">électeurs</span>
-                          </div>
+                        <div className="flex items-center gap-3 sm:gap-4 text-gray-700 text-xs sm:text-sm mb-2">
                           <div className="flex items-center gap-1">
                             <Building className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
                             <span className="font-medium">{election.statistics.totalCenters}</span>
                             <span className="text-gray-500 hidden xs:inline">centres</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Building className="h-3 w-3 sm:h-4 sm:w-4 text-[#1e40af]" />
+                            <span className="font-medium">{election.statistics.totalBureaux}</span>
+                            <span className="text-gray-500 hidden xs:inline">bureaux</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500" />
+                            <span className="font-medium">{election.statistics.totalVoters.toLocaleString()}</span>
+                            <span className="text-gray-500 hidden xs:inline">électeurs</span>
                           </div>
                         </div>
                       </div>
@@ -1078,7 +1074,7 @@ const ElectionManagementUnified = () => {
                       <div className="w-full sm:w-auto">
                         <Button
                           variant="outline"
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-gov-blue hover:text-white hover:border-gov-blue hover:shadow-md transition-all duration-300 py-2 sm:py-3 text-sm group-hover:bg-gov-blue group-hover:text-white group-hover:border-gov-blue group-hover:shadow-md"
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-[#1e40af] hover:text-white hover:border-[#1e40af] hover:shadow-md transition-all duration-300 py-2 text-sm group-hover:bg-[#1e40af] group-hover:text-white group-hover:border-[#1e40af] group-hover:shadow-md"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewElection(election);
