@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface PVValidationSectionProps { selectedElection: string }
 
@@ -36,6 +37,7 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
   const [candidateResults, setCandidateResults] = useState<Array<{ id: string; name: string; votes: number }>>([]);
   const [newPvFile, setNewPvFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -161,6 +163,27 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
 
   const selectedPVData = useMemo(() => filteredPVs.find(pv => pv.id === selectedPV), [filteredPVs, selectedPV]);
 
+  const validateEditValues = () => {
+    const errors: Record<string, string> = {};
+    const inscrits = Number(editValues.total_registered) || 0;
+    const votants = Number(editValues.total_voters) || 0;
+    const nuls = Number(editValues.null_votes) || 0;
+    const exprimes = Number(editValues.votes_expressed) || 0;
+    const totalCandidat = candidateResults.reduce((s, c) => s + (Number(c.votes) || 0), 0);
+
+    if (votants > inscrits) {
+      errors.votants = `Le nombre de votants (${votants}) ne peut pas dépasser le nombre d'inscrits (${inscrits})`;
+    }
+    if (nuls + exprimes !== votants) {
+      errors.total = `Bulletins nuls (${nuls}) + Suffrages exprimés (${exprimes}) = ${nuls + exprimes} ≠ Votants (${votants})`;
+    }
+    if (exprimes !== totalCandidat) {
+      errors.candidateTotal = `Total voix candidats (${totalCandidat}) ≠ Suffrages exprimés (${exprimes})`;
+    }
+    setEditErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Charger les résultats par candidat pour le PV sélectionné
   useEffect(() => {
     const loadCandidateResults = async () => {
@@ -285,20 +308,27 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                         <div className="space-y-2">
                         <div className="flex items-center justify-between gap-4">
                           <span>Inscrits:</span>
-                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.total_registered} onChange={e => setEditValues(v => ({ ...v, total_registered: parseInt(e.target.value) || 0 }))} />
+                          <input className={`border rounded px-2 py-1 w-28 ${editErrors.votants ? 'border-red-500' : ''}`} type="number" value={editValues.total_registered} onChange={e => setEditValues(v => ({ ...v, total_registered: parseInt(e.target.value) || 0 }))} />
                         </div>
                         <div className="flex items-center justify-between gap-4">
                             <span>Votants:</span>
-                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.total_voters} onChange={e => setEditValues(v => ({ ...v, total_voters: parseInt(e.target.value) || 0 }))} />
+                          <input className={`border rounded px-2 py-1 w-28 ${editErrors.votants ? 'border-red-500' : ''}`} type="number" value={editValues.total_voters} onChange={e => setEditValues(v => ({ ...v, total_voters: parseInt(e.target.value) || 0 }))} />
                           </div>
                         <div className="flex items-center justify-between gap-4">
                             <span>Bulletins nuls:</span>
-                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.null_votes} onChange={e => setEditValues(v => ({ ...v, null_votes: parseInt(e.target.value) || 0 }))} />
+                          <input className={`border rounded px-2 py-1 w-28 ${editErrors.total ? 'border-red-500' : ''}`} type="number" value={editValues.null_votes} onChange={e => setEditValues(v => ({ ...v, null_votes: parseInt(e.target.value) || 0 }))} />
                           </div>
                         <div className="flex items-center justify-between gap-4">
                             <span>Suffrages exprimés:</span>
-                          <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.votes_expressed} onChange={e => setEditValues(v => ({ ...v, votes_expressed: parseInt(e.target.value) || 0 }))} />
+                          <input className={`border rounded px-2 py-1 w-28 ${editErrors.total || editErrors.candidateTotal ? 'border-red-500' : ''}`} type="number" value={editValues.votes_expressed} onChange={e => setEditValues(v => ({ ...v, votes_expressed: parseInt(e.target.value) || 0 }))} />
                           </div>
+                        {(editErrors.votants || editErrors.total || editErrors.candidateTotal) && (
+                          <div className="text-xs text-red-600 mt-2">
+                            {editErrors.votants && <div>{editErrors.votants}</div>}
+                            {editErrors.total && <div>{editErrors.total}</div>}
+                            {editErrors.candidateTotal && <div>{editErrors.candidateTotal}</div>}
+                          </div>
+                        )}
                         </div>
                             ) : (
                               <>
@@ -326,7 +356,7 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                             <input 
                               ref={fileInputRef}
                               type="file" 
-                              accept="image/*,application/pdf" 
+                              accept="application/pdf,image/*" 
                               onChange={e => setNewPvFile(e.target.files?.[0] || null)}
                               className="hidden"
                             />
@@ -391,6 +421,10 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                 {editMode && (
                   <Button onClick={async () => {
                     if (!selectedPV) return;
+                    if (!validateEditValues()) {
+                      toast.error("Veuillez corriger les incohérences avant d'enregistrer.");
+                      return;
+                    }
                     let pvPhotoUrl: string | null = null;
                     try {
                       if (newPvFile) {
@@ -438,6 +472,7 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                       setNewPvFile(null);
                     } catch (err) {
                       console.error('Erreur maj PV/candidats:', err);
+                      toast.error("Échec de l'enregistrement du PV");
                     }
                   }} className="bg-green-600 hover:bg-green-700 text-white">
                     Enregistrer

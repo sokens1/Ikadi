@@ -35,9 +35,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     name: '',
     type: '',
     date: '',
-    seatsAvailable: 1,
-    budget: 0,
-    voteGoal: 0,
+    seatsAvailable: '',
+    budget: '',
+    voteGoal: '',
     
     // Étape 2
     province: '',
@@ -50,7 +50,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     
     // Étape 4 - Centres sélectionnés
     selectedCenters: [] as string[],
-    totalVoters: 0
+    totalVoters: ''
   });
 
   // États pour les données de candidats et centres
@@ -235,9 +235,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         name: formData.name,
         type: formData.type,
         date: formData.date,
-        seatsAvailable: formData.seatsAvailable,
-        budget: formData.budget,
-        voteGoal: formData.voteGoal,
+        seatsAvailable: Number(formData.seatsAvailable) || 1,
+        budget: Number(formData.budget) || 0,
+        voteGoal: Number(formData.voteGoal) || 0,
         province: formData.province,
         department: formData.department,
         commune: formData.commune,
@@ -246,7 +246,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         centers: selectedCentersData,
         totalCenters: selectedCentersData.length,
         totalBureaux: totalBureaux,
-        totalVoters: totalElecteurs || formData.totalVoters
+        totalVoters: totalElecteurs || Number(formData.totalVoters) || 0
       };
       
       onSubmit(election);
@@ -330,15 +330,14 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                 onChange={(value) => setFormData({ ...formData, type: value })}
                 options={[
                   { value: "Législatives", label: "Législatives" },
-                  { value: "Locales", label: "Locales (Départementales / Municipales)" },
-                  { value: "Présidentielle", label: "Présidentielle" }
+                  { value: "Locales", label: "Locales" }
                 ]}
                 icon={<Vote className="w-4 h-4" />}
                 required
               />
             </ModernFormGrid>
 
-            <ModernFormGrid cols={2}>
+            <ModernFormGrid cols={1}>
               <FloatingInput
                 label="Date du scrutin"
                 type="date"
@@ -346,38 +345,6 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 icon={<Calendar className="w-4 h-4" />}
                 required
-              />
-              
-              <FloatingInput
-                label="Siège(s) à pourvoir"
-                type="number"
-                value={formData.seatsAvailable}
-                onChange={(e) => setFormData({ ...formData, seatsAvailable: parseInt(e.target.value) || 1 })}
-                min="1"
-                icon={<Target className="w-4 h-4" />}
-                required
-              />
-            </ModernFormGrid>
-
-            <ModernFormGrid cols={2}>
-              <FloatingInput
-                label="Budget alloué à la campagne (FCFA)"
-                type="number"
-                value={formData.budget}
-                onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })}
-                placeholder="0"
-                icon={<Building className="w-4 h-4" />}
-                // helperText="Montant en francs CFA"
-              />
-              
-              <FloatingInput
-                label="Objectif de voix"
-                type="number"
-                value={formData.voteGoal}
-                onChange={(e) => setFormData({ ...formData, voteGoal: parseInt(e.target.value) || 0 })}
-                placeholder="0"
-                icon={<Users className="w-4 h-4" />}
-                // helperText="Nombre de voix visées"
               />
             </ModernFormGrid>
           </ModernFormSection>
@@ -390,7 +357,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
             description="Définissez la zone géographique de votre élection"
             icon={<MapPin className="w-5 h-5" />}
           >
-            <ModernFormGrid cols={2}>
+            <ModernFormGrid cols={1}>
               <Select2
                 label="Province"
                 placeholder="Rechercher une province..."
@@ -404,23 +371,6 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                   } else {
                     setSelectedProvinceId('');
                     setFormData({ ...formData, province: '' });
-                  }
-                }}
-              />
-              
-              <Select2
-                label="Département"
-                placeholder="Rechercher un département..."
-                options={departments.map(d => ({ value: d.id, label: d.name }))}
-                value={departments.find(d => d.id === selectedDepartmentId) ? 
-                  { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
-                onChange={(selectedOption) => {
-                  if (selectedOption) {
-                    setSelectedDepartmentId(selectedOption.value);
-                    setFormData({ ...formData, department: selectedOption.label });
-                  } else {
-                    setSelectedDepartmentId('');
-                    setFormData({ ...formData, department: '' });
                   }
                 }}
               />
@@ -474,8 +424,8 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
 
         return (
           <ModernFormSection
-            title="Sélection des Candidats"
-            description="Choisissez les candidats qui participeront à cette élection"
+            title={formData.type === "Locales" ? "Ajouter une liste" : "Sélection des Candidats"}
+            description={formData.type === "Locales" ? "Choisissez la liste qui participera à cette élection" : "Choisissez les candidats qui participeront à cette élection"}
             icon={<Users className="w-5 h-5" />}
           >
             <MultiSelect
@@ -483,13 +433,15 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
               selected={formData.selectedCandidates}
               onSelectionChange={(selected) => setFormData({...formData, selectedCandidates: selected})}
               placeholder="Rechercher et sélectionner des candidats..."
-              title="Candidats"
+              title={formData.type === "Locales" ? "Listes" : "Candidats"}
               icon={<Users className="w-5 h-5 text-gov-blue" />}
               emptyMessage="Aucun candidat sélectionné"
               renderOption={(option) => (
                 <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
                   <div className="w-10 h-10 bg-gov-blue/10 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-gov-blue" />
+                    <div className="w-6 h-6 bg-gov-blue rounded text-white text-xs font-bold flex items-center justify-center">
+                      {option.subtitle?.charAt(0) || 'P'}
+                    </div>
             </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{option.label}</p>
@@ -497,7 +449,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                     {option.metadata?.est_notre_candidat && (
                       <Badge className="bg-gov-blue text-white px-2 py-1 text-xs mt-1">
                                 <Star className="w-3 h-3 mr-1" />
-                                Notre Candidat
+                                {formData.type === "Locales" ? "C'est notre liste" : "Notre Candidat"}
                               </Badge>
                             )}
                           </div>
@@ -547,7 +499,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         return (
           <div className="space-y-6">
             <ModernFormSection
-              title="Sélection des Centres de Vote"
+              title="Centres et Bureaux de Vote"
               description="Choisissez les centres de vote pour cette élection"
               icon={<Building className="w-5 h-5" />}
             >
@@ -632,14 +584,15 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
             {/* Champ manuel pour les électeurs si nécessaire */}
             <ModernFormGrid cols={1}>
               <FloatingInput
-                label="Nombre total d'Électeurs inscrits (estimation manuelle)"
+                label="Nombre total de Bureaux de vote"
                 type="number"
-                value={formData.totalVoters}
-                onChange={(e) => setFormData({ ...formData, totalVoters: parseInt(e.target.value) || 0 })}
-                placeholder="Ex: 15240"
+                value={totalBureaux}
+                onChange={() => {}} // Lecture seule, calculé automatiquement
+                placeholder="Calculé automatiquement"
                 min="1"
-                icon={<Users className="w-4 h-4" />}
-                helperText="Optionnel : Saisie manuelle si différente de l'estimation automatique"
+                icon={<Building className="w-4 h-4" />}
+                helperText="Calculé automatiquement à partir des centres sélectionnés"
+                disabled
               />
             </ModernFormGrid>
           </div>
@@ -710,13 +663,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                   <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
                     <h5 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
                       <Users className="w-4 h-4" />
-                      Candidats & Structure
+                      Statistiques
                     </h5>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm font-medium text-purple-700">Candidats :</span>
-                        <span className="text-sm text-purple-900">{selectedCandidatesData.length}</span>
-                      </div>
                       <div className="flex justify-between">
                         <span className="text-sm font-medium text-purple-700">Centres :</span>
                         <span className="text-sm text-purple-900">{selectedCentersData.length}</span>
@@ -728,30 +677,13 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                       <div className="flex justify-between">
                         <span className="text-sm font-medium text-purple-700">Électeurs :</span>
                         <span className="text-sm text-purple-900">{(totalElecteurs || formData.totalVoters).toLocaleString('fr-FR')}</span>
-                  </div>
-                  </div>
-                  </div>
-                  
-                  {formData.budget > 0 && (
-                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
-                      <h5 className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
-                        <Target className="w-4 h-4" />
-                        Budget & Objectifs
-                      </h5>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium text-orange-700">Budget :</span>
-                          <span className="text-sm text-orange-900">{formData.budget.toLocaleString('fr-FR')} FCFA</span>
-                        </div>
-                        {formData.voteGoal > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium text-orange-700">Objectif voix :</span>
-                            <span className="text-sm text-orange-900">{formData.voteGoal.toLocaleString('fr-FR')}</span>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  )}
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-purple-700">Candidats :</span>
+                        <span className="text-sm text-purple-900">{selectedCandidatesData.length}</span>
+                      </div>
+                  </div>
+                  </div>
                 </div>
               </div>
 
@@ -847,9 +779,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
 
         {/* Progress moderne - Mobile First */}
         <div className="px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
-          <div className="flex items-center justify-between overflow-x-auto">
+          <div className="flex items-center justify-center space-x-2 sm:space-x-4">
             {steps.map((step, index) => (
-              <div key={index} className="flex items-center flex-shrink-0">
+              <div key={index} className="flex items-center">
                 <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all duration-300 ${
                   index + 1 <= currentStep 
                     ? 'bg-gov-blue text-white shadow-lg' 
@@ -863,7 +795,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                   {step}
                 </span>
                 {index < steps.length - 1 && (
-                  <div className={`w-8 sm:w-12 h-1 mx-2 sm:mx-4 rounded-full transition-all duration-300 ${
+                  <div className={`w-4 sm:w-8 h-1 mx-2 sm:mx-4 rounded-full transition-all duration-300 ${
                     index + 1 < currentStep ? 'bg-gov-blue' : 'bg-gray-200'
                   }`} />
                 )}

@@ -36,10 +36,10 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     department: election.location.department,
     commune: election.location.commune,
     arrondissement: election.location.arrondissement,
-    seatsAvailable: election.configuration.seatsAvailable,
-    budget: election.configuration.budget,
-    voteGoal: election.configuration.voteGoal,
-    nbElecteurs: election.statistics.totalVoters,
+    seatsAvailable: election.configuration.seatsAvailable || '',
+    budget: election.configuration.budget || '',
+    voteGoal: election.configuration.voteGoal || '',
+    nbElecteurs: election.statistics.totalVoters || '',
     selectedCandidates: [] as string[],
     selectedCenters: [] as string[],
   });
@@ -365,21 +365,21 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
         description: formData.description.trim(),
         location: {
           province: formData.province,
-          department: formData.department,
+          department: '',
           commune: formData.commune,
           arrondissement: formData.arrondissement,
-          fullAddress: `${formData.commune}, ${formData.department}`,
+          fullAddress: `${formData.commune}, ${formData.province}`,
         },
         configuration: {
-          seatsAvailable: formData.seatsAvailable,
-          budget: formData.budget,
-          voteGoal: formData.voteGoal,
+          seatsAvailable: Number(formData.seatsAvailable) || 1,
+          budget: Number(formData.budget) || 0,
+          voteGoal: Number(formData.voteGoal) || 0,
           allowMultipleCandidates: election.configuration.allowMultipleCandidates,
           requirePhotoValidation: election.configuration.requirePhotoValidation,
         },
         statistics: {
           ...election.statistics,
-          totalVoters: formData.nbElecteurs,
+          totalVoters: Number(formData.nbElecteurs) || 0,
         },
       };
 
@@ -489,7 +489,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             description="Modifiez la zone géographique de l'élection"
             icon={<MapPin className="w-5 h-5" />}
           >
-            <ModernFormGrid cols={2}>
+            <ModernFormGrid cols={1}>
               <Select2
                 label="Province"
                 placeholder="Rechercher une province..."
@@ -503,23 +503,6 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                   } else {
                     setSelectedProvinceId('');
                     handleInputChange('province', '');
-                  }
-                }}
-              />
-              
-              <Select2
-                label="Département"
-                placeholder="Rechercher un département..."
-                options={departments.map(d => ({ value: d.id, label: d.name }))}
-                value={departments.find(d => d.id === selectedDepartmentId) ? 
-                  { value: selectedDepartmentId, label: departments.find(d => d.id === selectedDepartmentId)?.name || '' } : null}
-                onChange={(selectedOption) => {
-                  if (selectedOption) {
-                    setSelectedDepartmentId(selectedOption.value);
-                    handleInputChange('department', selectedOption.label);
-                  } else {
-                    setSelectedDepartmentId('');
-                    handleInputChange('department', '');
                   }
                 }}
               />

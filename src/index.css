@@ -216,3 +216,25 @@
   .responsive-padding { @apply p-2 sm:p-4 lg:p-6; }
   .responsive-margin { @apply m-2 sm:m-4 lg:m-6; }
 }
+
+/* Masquer le format de date par défaut du navigateur */
+.date-input-custom::-webkit-datetime-edit-text,
+.date-input-custom::-webkit-datetime-edit-month-field,
+.date-input-custom::-webkit-datetime-edit-day-field,
+.date-input-custom::-webkit-datetime-edit-year-field {
+  color: transparent;
+}
+
+.date-input-custom::-webkit-datetime-edit-text:hover,
+.date-input-custom::-webkit-datetime-edit-month-field:hover,
+.date-input-custom::-webkit-datetime-edit-day-field:hover,
+.date-input-custom::-webkit-datetime-edit-year-field:hover {
+  color: transparent;
+}
+
+.date-input-custom:focus::-webkit-datetime-edit-text,
+.date-input-custom:focus::-webkit-datetime-edit-month-field,
+.date-input-custom:focus::-webkit-datetime-edit-day-field,
+.date-input-custom:focus::-webkit-datetime-edit-year-field {
+  color: #374151;
+}
