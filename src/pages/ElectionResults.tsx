@@ -59,6 +59,15 @@ const ElectionResults: React.FC = () => {
   const [openCandidateId, setOpenCandidateId] = useState<string | null>(null);
   const [candidateCenters, setCandidateCenters] = useState<any[]>([]);
   const [candidateBureaux, setCandidateBureaux] = useState<any[]>([]);
+  const [centerNameById, setCenterNameById] = useState<Record<string, string>>({});
+  const [candidateCenterNameById, setCandidateCenterNameById] = useState<Record<string, string>>({});
+
+  // Build center name map for global views (must be declared before any early returns)
+  React.useEffect(() => {
+    const m: Record<string, string> = {};
+    centerRows.forEach((c: any) => { if (c.center_id && c.center_name) m[c.center_id] = c.center_name; });
+    setCenterNameById(m);
+  }, [centerRows]);
 
   useEffect(() => {
     if (electionId) {
@@ -175,8 +184,12 @@ const ElectionResults: React.FC = () => {
       ]);
       setCandidateCenters(centers || []);
       setCandidateBureaux(bureaux || []);
+      const nameMap: Record<string, string> = {};
+      (centers || []).forEach((c: any) => { if (c.center_id && c.center_name) nameMap[c.center_id] = c.center_name; });
+      setCandidateCenterNameById(nameMap);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-white">
@@ -363,16 +376,47 @@ const ElectionResults: React.FC = () => {
                     <TabsTrigger value="bureau">Par bureau</TabsTrigger>
                   </TabsList>
                   <TabsContent value="center">
-                    <div className="space-y-2 mt-3">
+                    <div className="space-y-3 mt-3">
                       {candidateCenters.map((row, idx) => (
-                        <div key={idx} className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded border">
-                          <div className="font-medium">{row.center_name}</div>
-                          <div>Inscrits: {row.total_registered}</div>
-                          <div>Votants: {row.total_voters}</div>
-                          <div>Exprimés: {row.total_expressed_votes}</div>
-                          <div className="col-span-2 sm:col-span-1">Participation: {typeof row.participation_pct === 'number' ? `${row.participation_pct.toFixed(2)}%` : '-'}</div>
-                          <div className="col-span-2 sm:col-span-1">Score: {typeof row.score_pct === 'number' ? `${row.score_pct.toFixed(2)}%` : '-'}</div>
-                        </div>
+                        <details key={idx} className="bg-white rounded border">
+                          <summary className="cursor-pointer px-4 py-3 flex items-center justify-between bg-slate-100">
+                            <span className="font-semibold">{row.center_name}</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                              <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Voix</div><div className="font-semibold">{row.candidate_votes}</div></div>
+                              <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Score</div><div className="font-semibold">{typeof row.candidate_percentage === 'number' ? `${Math.min(Math.max(row.candidate_percentage,0),100).toFixed(2)}%` : '-'}</div></div>
+                              <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Participation</div><div className="font-semibold">{typeof row.candidate_participation_pct === 'number' ? `${Math.min(Math.max(row.candidate_participation_pct,0),100).toFixed(2)}%` : '-'}</div></div>
+                            </div>
+                          </summary>
+                          <div className="px-0 sm:px-2 py-3">
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full bg-white">
+                                <thead className="bg-slate-100">
+                                  <tr>
+                                    <th className="text-left px-3 py-2 border">Bureau</th>
+                                    <th className="text-right px-3 py-2 border">Voix</th>
+                                    <th className="text-right px-3 py-2 border">Score</th>
+                                    <th className="text-right px-3 py-2 border">Participation</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                  {candidateBureaux.filter(b => b.center_id === row.center_id).map((b, i2) => (
+                                    <tr key={i2} className="odd:bg-white even:bg-slate-50">
+                                      <td className="px-3 py-2 border">{b.bureau_name}</td>
+                                      <td className="px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
+                                      <td className="px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage,0),100).toFixed(2)}%` : '-'}</td>
+                                      <td className="px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct,0),100).toFixed(2)}%` : '-'}</td>
+                                    </tr>
+                                  ))}
+                                  {candidateBureaux.filter(b => b.center_id === row.center_id).length === 0 && (
+                                    <tr>
+                                      <td className="px-3 py-4 text-center text-gov-gray" colSpan={4}>Aucun bureau</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </details>
                       ))}
                       {candidateCenters.length === 0 && <div className="text-gov-gray">Aucun centre</div>}
                     </div>
@@ -383,27 +427,23 @@ const ElectionResults: React.FC = () => {
                         <thead className="bg-slate-100 text-gov-dark">
                           <tr>
                             <th className="text-left px-3 py-2 border">Bureau</th>
-                            <th className="text-right px-3 py-2 border">Inscrits</th>
-                            <th className="text-right px-3 py-2 border">Votants</th>
-                            <th className="text-right px-3 py-2 border">Exprimés</th>
-                            <th className="text-right px-3 py-2 border">Participation</th>
+                            <th className="text-right px-3 py-2 border">Voix</th>
                             <th className="text-right px-3 py-2 border">Score</th>
+                            <th className="text-right px-3 py-2 border">Participation</th>
                           </tr>
                         </thead>
                         <tbody className="text-sm">
                           {candidateBureaux.map((b, idx) => (
                             <tr key={idx} className="odd:bg-white even:bg-slate-50">
                               <td className="px-3 py-2 border">{b.bureau_name}</td>
-                              <td className="px-3 py-2 border text-right">{b.total_registered ?? '-'}</td>
-                              <td className="px-3 py-2 border text-right">{b.total_voters ?? '-'}</td>
-                              <td className="px-3 py-2 border text-right">{b.total_expressed_votes ?? '-'}</td>
-                              <td className="px-3 py-2 border text-right">{typeof b.participation_pct === 'number' ? `${b.participation_pct.toFixed(2)}%` : '-'}</td>
-                              <td className="px-3 py-2 border text-right">{typeof b.score_pct === 'number' ? `${b.score_pct.toFixed(2)}%` : '-'}</td>
+                              <td className="px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage,0),100).toFixed(2)}%` : '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct,0),100).toFixed(2)}%` : '-'}</td>
                             </tr>
                           ))}
                           {candidateBureaux.length === 0 && (
                             <tr>
-                              <td className="px-3 py-4 text-center text-gov-gray" colSpan={6}>Aucun bureau</td>
+                              <td className="px-3 py-4 text-center text-gov-gray" colSpan={4}>Aucun bureau</td>
                             </tr>
                           )}
                         </tbody>
@@ -494,7 +534,7 @@ const ElectionResults: React.FC = () => {
                 <tbody className="text-sm">
                   {bureauRows.map((b, idx) => (
                     <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="odd:bg-white even:bg-slate-50">
-                      <td className="px-3 py-2 border">{b.center_name || b.center_id}</td>
+                      <td className="px-3 py-2 border">{b.center_name || centerNameById[b.center_id] || b.center_id}</td>
                       <td className="px-3 py-2 border">{b.bureau_name}</td>
                       <td className="px-3 py-2 border text-right">{b.total_registered ?? '-'}</td>
                       <td className="px-3 py-2 border text-right">{b.total_voters ?? '-'}</td>

@@ -94,4 +94,28 @@ export async function fetchBureauSummaryByCandidate(electionId: string, candidat
   return (data || []) as BureauSummaryRow[];
 }
 
+// Types spécifiques des vues par candidat
+export interface CandidateCenterRow {
+  election_id: string;
+  center_id: string;
+  center_name: string;
+  candidate_id: string;
+  candidate_name: string;
+  candidate_votes: number;
+  candidate_percentage: number; // % des voix du candidat dans le centre
+  candidate_participation_pct: number; // % de participation (selon vue)
+}
+
+export interface CandidateBureauRow {
+  election_id: string;
+  bureau_id: string;
+  bureau_name: string;
+  center_id: string;
+  candidate_id: string;
+  candidate_name: string;
+  candidate_votes: number;
+  candidate_percentage: number;
+  candidate_participation_pct: number;
+}
+
 
