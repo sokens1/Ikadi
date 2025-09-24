@@ -304,15 +304,16 @@ const PublicHomePage = () => {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm" aria-hidden="true">
+                <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm" aria-label="Aller à l'accueil">
                   <span className="text-gov-blue font-bold text-lg">iK</span>
-                </div>
+                </Link>
                 <div>
                   <h1 className="text-white font-bold text-2xl">iKADI</h1>
                   <p className="text-white/80 text-sm">Plateforme de gestion électorale</p>
                 </div>
               </div>
               <nav className="hidden md:flex items-center space-x-6" role="navigation" aria-label="Menu principal">
+                <Link to="/" className="hover:underline" aria-label="Accueil">Accueil</Link>
                 <a href="#about" className="hover:underline" aria-label="En savoir plus sur iKADI">A propos</a>
                 <a href="#infos" className="hover:underline" aria-label="Informations électorales">Infos électorales</a>
                 <a href="#candidats" className="hover:underline" aria-label="Voir les candidats">Candidats</a>
@@ -327,7 +328,7 @@ const PublicHomePage = () => {
             {mobileOpen && (
               <div className="mt-3 md:hidden border-t border-white/10 pt-3 space-y-2">
                 {[
-                  { href: '#', label: 'Accueil' },
+                  { href: '/', label: 'Accueil' },
                   { href: '#about', label: 'A propos' },
                   { href: '#infos', label: 'Infos électorales' },
                   { href: '#candidats', label: 'Candidats' },
@@ -335,9 +336,15 @@ const PublicHomePage = () => {
                   { href: '#circonscriptions', label: 'Circonscriptions / Bureaux' },
                   { href: '#contact', label: 'Contact' },
                 ].map(link => (
-                  <a key={link.label} href={link.href} className="block px-2 py-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(false)}>
-                    {link.label}
-                  </a>
+                  link.href === '/' ? (
+                    <Link key={link.label} to="/" className="block px-2 py-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(false)}>
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a key={link.label} href={link.href} className="block px-2 py-2 rounded hover:bg-white/10" onClick={() => setMobileOpen(false)}>
+                      {link.label}
+                    </a>
+                  )
                 ))}
               </div>
             )}
