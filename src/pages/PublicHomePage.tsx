@@ -490,13 +490,13 @@ const PublicHomePage = () => {
             </div>
             {isCountdownZero && (
               <div className="mt-8 text-center">
-                <Button
+                {/* <Button
                   className="bg-white text-gov-blue hover:bg-blue-50"
                   aria-label="Voir les résultats"
                   onClick={() => nextElection && navigate(`/election/${nextElection.id}/results`)}
                 >
                   Voir les résultats
-                </Button>
+                </Button> */}
               </div>
             )}
           </div>
