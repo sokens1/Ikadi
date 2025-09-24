@@ -270,14 +270,14 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     // Première tentative
     let { data: uploadData, error: uploadErr } = await supabase.storage
       .from(bucket)
-      .upload(relPath, file, { cacheControl: '3600', upsert: false });
+      .upload(relPath, file, { cacheControl: '3600', upsert: true, contentType: file.type || undefined });
 
     // Si bucket introuvable, tenter de le créer puis réessayer
     if (uploadErr && (`${uploadErr?.message || ''}`.toLowerCase().includes('bucket not found') || `${uploadErr?.error || ''}`.toLowerCase().includes('bucket'))) {
       await ensureBucketExists(bucket);
       ({ data: uploadData, error: uploadErr } = await supabase.storage
         .from(bucket)
-        .upload(relPath, file, { cacheControl: '3600', upsert: false }));
+        .upload(relPath, file, { cacheControl: '3600', upsert: true, contentType: file.type || undefined }));
     }
 
     if (uploadErr) throw uploadErr;
@@ -713,7 +713,11 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Bureau de Vote</h4>
                     <p className="text-sm text-gray-600">
-                      {formData.province} → {formData.ville} → {formData.centre} → {formData.bureau}
+                      {(() => {
+                        const centerName = votingCenters.find(c => c.id === formData.centre)?.name || 'Centre inconnu';
+                        const bureauName = votingBureaux.find(b => b.id === formData.bureau)?.name || 'Bureau inconnu';
+                        return `${centerName} → ${bureauName}`;
+                      })()}
                     </p>
                   </div>
                   
