@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Menu, X, Facebook, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fetchElectionById } from '../api/elections';
-import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary } from '../api/results';
+import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCenterSummaryByCandidate, fetchBureauSummaryByCandidate } from '../api/results';
 import { toast } from 'sonner';
 
 // Icone WhatsApp (SVG minimal)
@@ -57,6 +57,8 @@ const ElectionResults: React.FC = () => {
   const [centerRows, setCenterRows] = useState<any[]>([]);
   const [bureauRows, setBureauRows] = useState<any[]>([]);
   const [openCandidateId, setOpenCandidateId] = useState<string | null>(null);
+  const [candidateCenters, setCandidateCenters] = useState<any[]>([]);
+  const [candidateBureaux, setCandidateBureaux] = useState<any[]>([]);
 
   useEffect(() => {
     if (electionId) {
@@ -164,6 +166,17 @@ const ElectionResults: React.FC = () => {
   }
 
   const winner = results.candidates.find(c => c.rank === 1);
+  const handleOpenCandidate = async (candidateId: string) => {
+    setOpenCandidateId(candidateId);
+    if (results?.election) {
+      const [centers, bureaux] = await Promise.all([
+        fetchCenterSummaryByCandidate(results.election.id, candidateId),
+        fetchBureauSummaryByCandidate(results.election.id, candidateId)
+      ]);
+      setCandidateCenters(centers || []);
+      setCandidateBureaux(bureaux || []);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -289,7 +302,7 @@ const ElectionResults: React.FC = () => {
           ) : (
             <div className="space-y-3 sm:space-y-4">
               {results.candidates.map((candidate, index) => (
-                <Card key={candidate.candidate_id} className={`${index === 0 ? 'border-gov-blue border-2' : ''} hover:shadow-md transition-shadow cursor-pointer`} onClick={() => setOpenCandidateId(candidate.candidate_id)}>
+                <Card key={candidate.candidate_id} className={`${index === 0 ? 'border-gov-blue border-2' : ''} hover:shadow-md transition-shadow cursor-pointer`} onClick={() => handleOpenCandidate(candidate.candidate_id)}>
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
@@ -351,7 +364,7 @@ const ElectionResults: React.FC = () => {
                   </TabsList>
                   <TabsContent value="center">
                     <div className="space-y-2 mt-3">
-                      {centerRows.map((row, idx) => (
+                      {candidateCenters.map((row, idx) => (
                         <div key={idx} className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded border">
                           <div className="font-medium">{row.center_name}</div>
                           <div>Inscrits: {row.total_registered}</div>
@@ -361,7 +374,7 @@ const ElectionResults: React.FC = () => {
                           <div className="col-span-2 sm:col-span-1">Score: {typeof row.score_pct === 'number' ? `${row.score_pct.toFixed(2)}%` : '-'}</div>
                         </div>
                       ))}
-                      {centerRows.length === 0 && <div className="text-gov-gray">Aucun centre</div>}
+                      {candidateCenters.length === 0 && <div className="text-gov-gray">Aucun centre</div>}
                     </div>
                   </TabsContent>
                   <TabsContent value="bureau">
@@ -378,7 +391,7 @@ const ElectionResults: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="text-sm">
-                          {bureauRows.map((b, idx) => (
+                          {candidateBureaux.map((b, idx) => (
                             <tr key={idx} className="odd:bg-white even:bg-slate-50">
                               <td className="px-3 py-2 border">{b.bureau_name}</td>
                               <td className="px-3 py-2 border text-right">{b.total_registered ?? '-'}</td>
@@ -388,7 +401,7 @@ const ElectionResults: React.FC = () => {
                               <td className="px-3 py-2 border text-right">{typeof b.score_pct === 'number' ? `${b.score_pct.toFixed(2)}%` : '-'}</td>
                             </tr>
                           ))}
-                          {bureauRows.length === 0 && (
+                          {candidateBureaux.length === 0 && (
                             <tr>
                               <td className="px-3 py-4 text-center text-gov-gray" colSpan={6}>Aucun bureau</td>
                             </tr>
@@ -446,13 +459,13 @@ const ElectionResults: React.FC = () => {
                 <tbody className="text-sm">
                   {bureauRows.map((b, idx) => (
                     <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="odd:bg-white even:bg-slate-50">
-                      <td className="px-3 py-2 border">{b.center_id}</td>
+                      <td className="px-3 py-2 border">{b.center_name || b.center_id}</td>
                       <td className="px-3 py-2 border">{b.bureau_name}</td>
                       <td className="px-3 py-2 border text-right">{b.total_registered ?? '-'}</td>
                       <td className="px-3 py-2 border text-right">{b.total_voters ?? '-'}</td>
                       <td className="px-3 py-2 border text-right">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</td>
-                      <td className="px-3 py-2 border text-right">{typeof b.participation_pct === 'number' ? `${b.participation_pct.toFixed(2)}%` : (b.participation_pct || '-')}</td>
-                      <td className="px-3 py-2 border text-right">{typeof b.score_pct === 'number' ? `${b.score_pct.toFixed(2)}%` : (b.score_pct || '-')}</td>
+                      <td className="px-3 py-2 border text-right">{typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : (b.participation_pct || '-')}</td>
+                      <td className="px-3 py-2 border text-right">{typeof b.score_pct === 'number' ? `${Math.min(Math.max(b.score_pct, 0), 100).toFixed(2)}%` : (b.score_pct || '-')}</td>
                     </tr>
                   ))}
                   {bureauRows.length === 0 && (

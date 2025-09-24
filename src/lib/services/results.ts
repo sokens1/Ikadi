@@ -63,4 +63,33 @@ export async function fetchBureauSummary(electionId: string): Promise<BureauSumm
   return (data || []) as BureauSummaryRow[];
 }
 
+// Helpers candidats (essaie plusieurs vues potentielles côté BDD)
+async function tryFetchCandidateView<T>(views: string[], filters: Record<string, any>): Promise<T[]> {
+  for (const view of views) {
+    const query = supabase.from(view).select('*');
+    Object.entries(filters).forEach(([k, v]) => query.eq(k, v as any));
+    const { data, error } = await query;
+    if (!error && Array.isArray(data)) return data as T[];
+  }
+  return [] as T[];
+}
+
+export async function fetchCenterSummaryByCandidate(electionId: string, candidateId: string): Promise<CenterSummaryRow[]> {
+  const views = [
+    'center_candidate_results_summary',
+    'center_results_summary_by_candidate',
+    'center_results_by_candidate'
+  ];
+  return await tryFetchCandidateView<CenterSummaryRow>(views, { election_id: electionId, candidate_id: candidateId });
+}
+
+export async function fetchBureauSummaryByCandidate(electionId: string, candidateId: string): Promise<BureauSummaryRow[]> {
+  const views = [
+    'bureau_candidate_results_summary',
+    'bureau_results_summary_by_candidate',
+    'bureau_results_by_candidate'
+  ];
+  return await tryFetchCandidateView<BureauSummaryRow>(views, { election_id: electionId, candidate_id: candidateId });
+}
+
 
