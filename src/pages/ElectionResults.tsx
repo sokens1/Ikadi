@@ -336,10 +336,10 @@ const ElectionResults: React.FC = () => {
                 <details key={`${c.center_id}-${idx}`} className="bg-white rounded border">
                   <summary className="cursor-pointer px-4 py-3 flex items-center justify-between">
                     <span className="font-semibold">{c.center_name}</span>
-                    <span className="text-sm text-gov-gray">Bureaux: {c.total_bureaux} • Votes: {c.total_votes?.toLocaleString?.() || c.total_votes} • Participation: {typeof c.participation === 'number' ? `${c.participation.toFixed(2)}%` : (c.participation || '-')}</span>
+                    <span className="text-sm text-gov-gray">Inscrits: {c.total_registered?.toLocaleString?.() || c.total_registered} • Votants: {c.total_voters?.toLocaleString?.() || c.total_voters} • Exprimés: {c.total_expressed_votes?.toLocaleString?.() || c.total_expressed_votes} • Participation: {typeof c.participation_pct === 'number' ? `${c.participation_pct.toFixed(2)}%` : (c.participation_pct || '-')}</span>
                   </summary>
                   <div className="px-4 pb-4 text-sm text-gov-gray">
-                    {typeof c.score === 'number' && <div>Score moyen: {c.score.toFixed(2)}%</div>}
+                    {typeof c.score_pct === 'number' && <div>Score moyen: {c.score_pct.toFixed(2)}%</div>}
                   </div>
                 </details>
               ))}
@@ -364,13 +364,13 @@ const ElectionResults: React.FC = () => {
                 <tbody className="text-sm">
                   {bureauRows.map((b, idx) => (
                     <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="odd:bg-white even:bg-slate-50">
-                      <td className="px-3 py-2 border">{b.center_name}</td>
-                      <td className="px-3 py-2 border">{b.bureau_number}</td>
-                      <td className="px-3 py-2 border text-right">{b.registered ?? '-'}</td>
-                      <td className="px-3 py-2 border text-right">{b.voters ?? '-'}</td>
-                      <td className="px-3 py-2 border text-right">{b.total_votes?.toLocaleString?.() || b.total_votes}</td>
-                      <td className="px-3 py-2 border text-right">{typeof b.participation === 'number' ? `${b.participation.toFixed(2)}%` : (b.participation || '-')}</td>
-                      <td className="px-3 py-2 border text-right">{typeof b.score === 'number' ? `${b.score.toFixed(2)}%` : (b.score || '-')}</td>
+                      <td className="px-3 py-2 border">{b.center_id}</td>
+                      <td className="px-3 py-2 border">{b.bureau_name}</td>
+                      <td className="px-3 py-2 border text-right">{b.total_registered ?? '-'}</td>
+                      <td className="px-3 py-2 border text-right">{b.total_voters ?? '-'}</td>
+                      <td className="px-3 py-2 border text-right">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</td>
+                      <td className="px-3 py-2 border text-right">{typeof b.participation_pct === 'number' ? `${b.participation_pct.toFixed(2)}%` : (b.participation_pct || '-')}</td>
+                      <td className="px-3 py-2 border text-right">{typeof b.score_pct === 'number' ? `${b.score_pct.toFixed(2)}%` : (b.score_pct || '-')}</td>
                     </tr>
                   ))}
                   {bureauRows.length === 0 && (

@@ -24,10 +24,12 @@ export interface CenterSummaryRow {
   election_id: string;
   center_id: string;
   center_name: string;
-  total_bureaux: number;
-  total_votes: number;
-  participation: number;
-  score?: number;
+  total_registered: number;
+  total_voters: number;
+  total_null_votes: number;
+  total_expressed_votes: number;
+  participation_pct: number;
+  score_pct: number;
 }
 
 export async function fetchCenterSummary(electionId: string): Promise<CenterSummaryRow[]> {
@@ -41,14 +43,15 @@ export async function fetchCenterSummary(electionId: string): Promise<CenterSumm
 
 export interface BureauSummaryRow {
   election_id: string;
+  bureau_id: string;
+  bureau_name: string;
   center_id: string;
-  center_name: string;
-  bureau_number: number;
-  registered?: number;
-  voters?: number;
-  total_votes: number;
-  participation?: number;
-  score?: number;
+  total_registered: number;
+  total_voters: number;
+  total_null_votes: number;
+  total_expressed_votes: number;
+  participation_pct: number;
+  score_pct: number;
 }
 
 export async function fetchBureauSummary(electionId: string): Promise<BureauSummaryRow[]> {
