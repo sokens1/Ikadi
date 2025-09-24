@@ -75,21 +75,23 @@ async function tryFetchCandidateView<T>(views: string[], filters: Record<string,
 }
 
 export async function fetchCenterSummaryByCandidate(electionId: string, candidateId: string): Promise<CenterSummaryRow[]> {
-  const views = [
-    'center_candidate_results_summary',
-    'center_results_summary_by_candidate',
-    'center_results_by_candidate'
-  ];
-  return await tryFetchCandidateView<CenterSummaryRow>(views, { election_id: electionId, candidate_id: candidateId });
+  const { data, error } = await supabase
+    .from('center_candidate_results_summary')
+    .select('*')
+    .eq('election_id', electionId)
+    .eq('candidate_id', candidateId);
+  if (error) throw error;
+  return (data || []) as CenterSummaryRow[];
 }
 
 export async function fetchBureauSummaryByCandidate(electionId: string, candidateId: string): Promise<BureauSummaryRow[]> {
-  const views = [
-    'bureau_candidate_results_summary',
-    'bureau_results_summary_by_candidate',
-    'bureau_results_by_candidate'
-  ];
-  return await tryFetchCandidateView<BureauSummaryRow>(views, { election_id: electionId, candidate_id: candidateId });
+  const { data, error } = await supabase
+    .from('bureau_candidate_results_summary')
+    .select('*')
+    .eq('election_id', electionId)
+    .eq('candidate_id', candidateId);
+  if (error) throw error;
+  return (data || []) as BureauSummaryRow[];
 }
 
 

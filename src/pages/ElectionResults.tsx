@@ -426,15 +426,50 @@ const ElectionResults: React.FC = () => {
           </div>
 
           {viewMode === 'center' ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {centerRows.map((c, idx) => (
                 <details key={`${c.center_id}-${idx}`} className="bg-white rounded border">
-                  <summary className="cursor-pointer px-4 py-3 flex items-center justify-between">
+                  <summary className="cursor-pointer px-4 py-3 flex items-center justify-between bg-slate-100">
                     <span className="font-semibold">{c.center_name}</span>
-                    <span className="text-sm text-gov-gray">Inscrits: {c.total_registered?.toLocaleString?.() || c.total_registered} • Votants: {c.total_voters?.toLocaleString?.() || c.total_voters} • Exprimés: {c.total_expressed_votes?.toLocaleString?.() || c.total_expressed_votes} • Participation: {typeof c.participation_pct === 'number' ? `${c.participation_pct.toFixed(2)}%` : (c.participation_pct || '-')}</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                      <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Inscrits</div><div className="font-semibold">{c.total_registered?.toLocaleString?.() || c.total_registered}</div></div>
+                      <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Exprimés</div><div className="font-semibold">{c.total_expressed_votes?.toLocaleString?.() || c.total_expressed_votes}</div></div>
+                      <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Score</div><div className="font-semibold">{typeof c.score_pct === 'number' ? `${Math.min(Math.max(c.score_pct,0),100).toFixed(2)}%` : '-'}</div></div>
+                      <div className="bg-white rounded px-3 py-2 border text-center"><div className="text-[11px] uppercase text-gov-gray">Participation</div><div className="font-semibold">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct,0),100).toFixed(2)}%` : '-'}</div></div>
+                    </div>
                   </summary>
-                  <div className="px-4 pb-4 text-sm text-gov-gray">
-                    {typeof c.score_pct === 'number' && <div>Score moyen: {c.score_pct.toFixed(2)}%</div>}
+                  <div className="px-0 sm:px-2 py-3">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full bg-white">
+                        <thead className="bg-slate-100">
+                          <tr>
+                            <th className="text-left px-3 py-2 border">Bureau</th>
+                            <th className="text-right px-3 py-2 border">Inscrits</th>
+                            <th className="text-right px-3 py-2 border">Votants</th>
+                            <th className="text-right px-3 py-2 border">Exprimés</th>
+                            <th className="text-right px-3 py-2 border">Participation</th>
+                            <th className="text-right px-3 py-2 border">Score</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm">
+                          {bureauRows.filter(b => b.center_id === c.center_id).map((b, i2) => (
+                            <tr key={i2} className="odd:bg-white even:bg-slate-50">
+                              <td className="px-3 py-2 border">{b.bureau_name}</td>
+                              <td className="px-3 py-2 border text-right">{b.total_registered ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{b.total_voters ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{b.total_expressed_votes ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct,0),100).toFixed(2)}%` : '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.score_pct === 'number' ? `${Math.min(Math.max(b.score_pct,0),100).toFixed(2)}%` : '-'}</td>
+                            </tr>
+                          ))}
+                          {bureauRows.filter(b => b.center_id === c.center_id).length === 0 && (
+                            <tr>
+                              <td className="px-3 py-4 text-center text-gov-gray" colSpan={6}>Aucun bureau</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </details>
               ))}
