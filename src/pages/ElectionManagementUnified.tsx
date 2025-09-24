@@ -78,25 +78,62 @@ const ElectionManagementUnified = () => {
         return;
       }
 
-      // Récupérer les compteurs de candidats et centres pour chaque élection
+      // Récupérer les compteurs de candidats, centres et bureaux pour chaque élection
       const electionsWithCounts = await Promise.all(
         (data || []).map(async (election) => {
-          // Compter les candidats
+          // Récupérer les candidats liés
           const { data: candidatesData } = await supabase
             .from('election_candidates')
             .select('id')
             .eq('election_id', election.id);
 
-          // Compter les centres
+          // Récupérer les centres liés avec leurs bureaux pour calculer les vrais totaux
           const { data: centersData } = await supabase
             .from('election_centers')
-            .select('id')
+            .select(`
+              id,
+              voting_centers(
+                id,
+                voting_bureaux!center_id(id, registered_voters)
+              )
+            `)
             .eq('election_id', election.id);
+
+          // Calculer le total des bureaux et électeurs en temps réel
+          let totalBureaux = 0;
+          let totalElecteurs = 0;
+          
+          if (centersData) {
+            centersData.forEach(center => {
+              if (center.voting_centers) {
+                // Compter les bureaux réels
+                const bureauxCount = center.voting_centers.voting_bureaux?.length || 0;
+                totalBureaux += bureauxCount;
+                
+                // Calculer les électeurs réels à partir des bureaux
+                const votersCount = center.voting_centers.voting_bureaux?.reduce((sum: number, bureau: any) => 
+                  sum + (bureau.registered_voters || 0), 0) || 0;
+                totalElecteurs += votersCount;
+              }
+            });
+          }
+
+          console.log(`Élection ${election.title}:`, {
+            centers_count: centersData?.length || 0,
+            totalBureaux,
+            totalElecteurs,
+            centersData: centersData?.map(c => ({
+              id: c.id,
+              voting_centers: c.voting_centers
+            }))
+          });
 
           return {
             ...election,
             candidates_count: candidatesData?.length || 0,
-            centers_count: centersData?.length || 0
+            centers_count: centersData?.length || 0,
+            voting_bureaux_count: totalBureaux,
+            nb_electeurs: totalElecteurs
           };
         })
       );
@@ -235,8 +272,11 @@ const ElectionManagementUnified = () => {
     setSelectedElection(election);
   };
 
-  const handleCloseDetail = () => {
+  const handleCloseDetail = async () => {
     setSelectedElection(null);
+    // Rafraîchir les données pour s'assurer que les cartes sont à jour
+    await refreshElectionsData();
+    toast.success('Données mises à jour');
   };
 
   const handleEditElection = (election: Election) => {
