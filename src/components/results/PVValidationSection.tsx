@@ -326,7 +326,7 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                             <input 
                               ref={fileInputRef}
                               type="file" 
-                              accept="image/*,application/pdf" 
+                              accept="application/pdf,image/*" 
                               onChange={e => setNewPvFile(e.target.files?.[0] || null)}
                               className="hidden"
                             />
