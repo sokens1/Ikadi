@@ -324,16 +324,13 @@ const PublicHomePage = () => {
                 <a href="#candidats" className="hover:text-blue-200 transition-colors" aria-label="Voir les candidats">Candidats</a> */}
                 <div className="relative" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
                   <button className="hover:text-blue-200 transition-colors" aria-haspopup="true" aria-expanded={resultsMenuOpen} onClick={() => setResultsMenuOpen(v=>!v)}>Résultats</button>
-                  {resultsMenuOpen && (
-                  <div className="absolute left-0 mt-2 bg-white rounded shadow-lg border min-w-[260px] z-50 py-2">
+                  {resultsMenuOpen && (loading || finishedElections.length > 0) && (
+                  <div className="absolute left-0 right-auto mt-2 bg-white rounded shadow-lg border min-w-[260px] z-50 py-2 text-left">
                     <div className="px-3 pb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Élections terminées</div>
                     {loading && (
                       <div className="px-3 py-2 text-sm text-gray-700">Chargement…</div>
                     )}
-                    {!loading && finishedElections.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gray-700">Aucun résultat disponible</div>
-                    )}
-                    {!loading && (
+                    {!loading && finishedElections.length > 0 && (
                       <div className="max-h-40 overflow-y-auto">
                         {finishedElections.map(e => (
                           <button
@@ -577,7 +574,7 @@ const PublicHomePage = () => {
               </div>
 
               {/* Ressources au milieu (non centré) */}
-              <div className="order-3 md:order-2 text-sm text-white/90 max-w-sm w-full">
+                <div className="order-3 md:order-2 text-sm text-white/90 max-w-sm w-full text-left">
                 <h4 className="font-semibold text-white mb-2">Ressources</h4>
                 <ul className="space-y-1">
                   {/* <li><a href="#candidats" className="hover:opacity-80">Candidats</a></li>
@@ -585,11 +582,8 @@ const PublicHomePage = () => {
                   <li>
                     <div className="relative" onMouseEnter={() => setFooterResultsOpen(true)} onMouseLeave={() => setFooterResultsOpen(false)}>
                       <button className="hover:opacity-80">{latestFinishedTitle}</button>
-                      {footerResultsOpen && (
-                        <div className="absolute left-0 mt-2 bg-white text-gov-dark rounded shadow-lg border min-w-[260px] z-50 py-2 max-h-[96px] overflow-y-auto">
-                          {finishedElections.length === 0 && (
-                            <div className="px-3 py-2 text-sm text-gray-700">Aucun résultat</div>
-                          )}
+                      {footerResultsOpen && finishedElections.length > 0 && (
+                        <div className="absolute left-0 right-auto mt-2 bg-white text-gov-dark rounded shadow-lg border min-w-[260px] z-50 py-2 max-h-[96px] overflow-y-auto text-left">
                           {finishedElections.map(e => (
                             <button key={e.id} className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm" onClick={() => navigate(`/election/${e.id}/results`)}>
                               {e.title}

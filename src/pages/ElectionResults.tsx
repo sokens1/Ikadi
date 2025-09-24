@@ -212,10 +212,10 @@ const ElectionResults: React.FC = () => {
               {/* <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
               <a href="#infos" className="hover:text-blue-200 transition-colors">Infos électorales</a>
               <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a> */}
-              <div className="relative" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
+              <div className="relative text-left" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
                 <button className="hover:text-blue-200 transition-colors" onClick={() => setResultsMenuOpen(v=>!v)}>Résultats</button>
                 {resultsMenuOpen && (
-                <div className="absolute left-0 mt-2 bg-white rounded shadow-lg border min-w-[260px] z-50 py-2">
+                <div className="absolute left-0 right-auto mt-2 bg-white rounded shadow-lg border min-w-[260px] z-50 py-2">
                   <div className="px-3 pb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Accès rapide</div>
                   <button
                     className="block w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-gray-800"
