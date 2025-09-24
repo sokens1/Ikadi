@@ -26,6 +26,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { toast } from 'sonner';
 
 interface PublishSectionProps {
   selectedElection: string;
@@ -49,7 +50,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         // 1) Récupérer PV avec statut validé UNIQUEMENT
         const fetchPVs = async (status: string) => supabase
           .from('procès_verbaux')
-          .select('id, bureau_id, total_voters, null_votes, votes_expressed, status, entered_at')
+          .select('id, bureau_id, total_registered, total_voters, null_votes, votes_expressed, status, entered_at')
           .eq('election_id', selectedElection)
           .eq('status', status);
 
@@ -143,16 +144,18 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           });
 
         (filteredPvs || []).forEach((pv: any) => {
-          totalVotants += pv.total_voters || 0;
-          bulletinsNuls += pv.null_votes || 0;
+          totalVotants += Number(pv.total_voters) || 0;
+          bulletinsNuls += Number(pv.null_votes) || 0;
+          totalInscrits += Number(pv.total_registered) || 0;
         });
 
         const candidates = Object.values(votesByCandidate).sort((a, b) => b.votes - a.votes);
         const totalVotes = candidates.reduce((s, c) => s + c.votes, 0);
+        const colorPalette = ['#22c55e','#ef4444','#3b82f6','#a855f7','#f59e0b','#06b6d4'];
         const candidatesWithPct = candidates.map((c, idx) => ({
           ...c,
-          percentage: totalVotes > 0 ? +(100 * c.votes / totalVotes).toFixed(1) : 0,
-          color: ['#22c55e','#ef4444','#3b82f6','#a855f7','#f59e0b','#06b6d4'][idx % 6]
+          percentage: totalVotes > 0 ? Number(((100 * c.votes) / totalVotes).toFixed(2)) : 0,
+          color: colorPalette[idx % colorPalette.length]
         }));
 
         const validatedBureaux = (filteredPvs || []).length;
@@ -162,7 +165,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           participation: {
             totalInscrits,
             totalVotants,
-            tauxParticipation: totalBureaux > 0 ? Math.round((validatedBureaux / totalBureaux) * 1000)/10 : 0,
+            tauxParticipation: totalInscrits > 0 ? Number(((totalVotants / totalInscrits) * 100).toFixed(2)) : 0,
             bulletinsNuls,
             suffragesExprimes: totalVotes
           },
@@ -226,7 +229,8 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
     finalResults && Array.isArray(finalResults.candidates)
       ? finalResults.candidates.map((candidate: any) => ({
           name: (candidate.name || '—').split(' ').slice(0, 2).join(' '),
-          votes: Number(candidate.votes) || 0
+          votes: Number(candidate.votes) || 0,
+          color: candidate.color
         }))
       : []
   ), [finalResults]);
@@ -299,18 +303,21 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
 
   const handlePublish = async () => {
     try {
-      // Marquer l'élection comme publiée
       const { error } = await supabase
         .from('elections')
         .update({ is_published: true, published_at: new Date().toISOString() })
         .eq('id', selectedElection);
       if (error) {
         console.error('Erreur publication:', error);
+        toast.error('Échec de la publication');
         return;
       }
       setShowPublishConfirm(false);
+      const count = finalResults?.validatedBureaux || 0;
+      toast.success(`Résultats publiés: ${count} résultats de bureau ont été pris en compte.`);
     } catch (e) {
       console.error(e);
+      toast.error('Échec de la publication');
     }
   };
 
@@ -367,8 +374,8 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           <CardContent>
             <div className="space-y-4">
               <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">
-                  {finalResults ? finalResults.participation.tauxParticipation : 0}%
+                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                  {finalResults ? Number(finalResults.participation.tauxParticipation).toFixed(2) : '0.00'}%
                 </div>
                 <div className="text-sm text-gray-600">Taux de participation</div>
               </div>
@@ -376,25 +383,25 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <div className="font-medium text-gray-900">
-                    {finalResults ? finalResults.participation.totalVotants.toLocaleString() : 0}
+                    {finalResults ? Number(finalResults.participation.totalVotants).toLocaleString() : '0'}
                   </div>
                   <div className="text-gray-600">Votants</div>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {finalResults ? finalResults.participation.totalInscrits.toLocaleString() : 0}
+                    {finalResults ? Number(finalResults.participation.totalInscrits).toLocaleString() : '0'}
                   </div>
                   <div className="text-gray-600">Inscrits</div>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {finalResults ? finalResults.participation.suffragesExprimes.toLocaleString() : 0}
+                    {finalResults ? Number(finalResults.participation.suffragesExprimes).toLocaleString() : '0'}
                   </div>
                   <div className="text-gray-600">Exprimés</div>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                  {finalResults ? finalResults.participation.bulletinsNuls : 0}
+                  {finalResults ? Number(finalResults.participation.bulletinsNuls).toLocaleString() : '0'}
                   </div>
                   <div className="text-gray-600">Bulletins nuls</div>
                 </div>
@@ -408,18 +415,18 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-gov-gray">
               <BarChart3 className="w-5 h-5" />
-              <span>Répartition des Voix</span>
+              <span>Score par candidat</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+        <CardContent className="overflow-visible">
             {pieChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
                 <Pie
                   data={pieChartData}
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
+                    outerRadius={90}
                   dataKey="value"
                     label={({ percentage }: any) => `${percentage}%`}
                 >
@@ -471,7 +478,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                     {candidate.votes.toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {candidate.percentage}% des voix
+                    avec un score de {Number(candidate.percentage).toFixed(2)}%
                   </div>
                 </div>
               </div>
@@ -482,12 +489,16 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           <div className="mt-6">
             {barChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={barChartData}>
+                <BarChart data={barChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="votes" fill="#3b82f6" />
+                  <Bar dataKey="votes">
+                    {barChartData.map((entry: any, index: number) => (
+                      <Cell key={`bar-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
               </BarChart>
             </ResponsiveContainer>
             ) : (
