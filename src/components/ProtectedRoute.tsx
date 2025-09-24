@@ -7,9 +7,9 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, authLoading } = useAuth();
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center text-gov-gray">
         Chargement...

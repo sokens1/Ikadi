@@ -17,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  authLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,13 +32,38 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem('ikadi-user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          if (userData) {
+            const u: User = {
+              id: userData.id,
+              name: userData.name,
+              email: userData.email,
+              role: userData.role,
+              isActive: userData.is_active
+            };
+            setUser(u);
+            localStorage.setItem('ikadi-user', JSON.stringify(u));
+          }
+        } else {
+          const savedUser = localStorage.getItem('ikadi-user');
+          if (savedUser) setUser(JSON.parse(savedUser));
+        }
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    init();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -108,7 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user, 
         login, 
         logout, 
-        isAuthenticated: !!user 
+        isAuthenticated: !!user,
+        authLoading
       }}
     >
       {children}
