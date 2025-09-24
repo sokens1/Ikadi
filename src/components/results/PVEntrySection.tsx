@@ -59,63 +59,53 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
       if (!selectedElection) return;
       
       try {
-        // D'abord récupérer les détails de l'élection pour avoir sa localisation
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('province_id, department_id, commune_id, arrondissement_id')
-          .eq('id', selectedElection)
-          .single();
+        // Filtrer STRICTEMENT par centres liés à l'élection via table de liaison election_centers
+        const { data: ecRows, error: ecError } = await supabase
+          .from('election_centers')
+          .select('center_id')
+          .eq('election_id', selectedElection);
 
-        if (electionError) {
-          console.error('Erreur lors du chargement de l\'élection:', electionError);
+        if (ecError) {
+          console.error('Erreur lors du chargement des election_centers:', ecError);
+          setVotingCenters([]);
+          setVotingBureaux([]);
           return;
         }
 
-        // Construire la requête basée sur la localisation de l'élection
-        let centersQuery = supabase
-          .from('voting_centers')
-          .select(`
-            id, name,
-            voting_bureaux(id, name)
-          `);
+        const centerIds = (ecRows || []).map((r: any) => r.center_id).filter(Boolean);
 
-        // Filtrer par localisation si disponible
-        if (electionData.arrondissement_id) {
-          centersQuery = centersQuery.eq('arrondissement_id', electionData.arrondissement_id);
-        } else if (electionData.commune_id) {
-          centersQuery = centersQuery.eq('commune_id', electionData.commune_id);
-        } else if (electionData.department_id) {
-          centersQuery = centersQuery.eq('department_id', electionData.department_id);
-        } else if (electionData.province_id) {
-          centersQuery = centersQuery.eq('province_id', electionData.province_id);
+        if (centerIds.length === 0) {
+          setVotingCenters([]);
+          setVotingBureaux([]);
+          return;
         }
 
-        const { data: centers, error: centersError } = await centersQuery;
-        
+        const { data: centers, error: centersError } = await supabase
+          .from('voting_centers')
+          .select('id, name')
+          .in('id', centerIds);
+
         if (centersError) {
           console.error('Erreur lors du chargement des centres:', centersError);
+          setVotingCenters([]);
+          setVotingBureaux([]);
           return;
         }
-        
+
         setVotingCenters(centers || []);
-        
-        // Charger tous les bureaux des centres trouvés
-        const centerIds = centers?.map(c => c.id) || [];
-        if (centerIds.length > 0) {
-          const { data: bureaux, error: bureauxError } = await supabase
-            .from('voting_bureaux')
-            .select('id, name, center_id')
-            .in('center_id', centerIds);
-          
-          if (bureauxError) {
-            console.error('Erreur lors du chargement des bureaux:', bureauxError);
-            return;
-          }
-          
-          setVotingBureaux(bureaux || []);
-        } else {
+
+        const { data: bureaux, error: bureauxError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, center_id, registered_voters')
+          .in('center_id', centerIds);
+
+        if (bureauxError) {
+          console.error('Erreur lors du chargement des bureaux:', bureauxError);
           setVotingBureaux([]);
+          return;
         }
+
+        setVotingBureaux(bureaux || []);
         
       } catch (error) {
         console.error('Erreur lors du chargement des centres/bureaux:', error);
@@ -145,22 +135,21 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
         if (electionError) throw electionError;
         setElectionInfo(election);
         
-        // Récupérer les candidats de l'élection
-        const { data: candidates, error: candidatesError } = await supabase
+        // Récupérer uniquement les candidats liés à l'élection sélectionnée
+        const { data: candidatesLinked, error: candidatesError } = await supabase
           .from('election_candidates')
           .select(`
             candidates!candidate_id(id, name, party)
           `)
           .eq('election_id', selectedElection);
-        
         if (candidatesError) throw candidatesError;
-        
-        const mappedCandidates = (candidates || []).map((item: any) => ({
+
+        const mappedCandidates = (candidatesLinked || []).map((item: any) => ({
           id: item.candidates.id,
           name: item.candidates.name,
           party: item.candidates.party || 'Indépendant'
         }));
-        
+
         setCandidatesData(mappedCandidates);
         
       } catch (error) {
@@ -179,7 +168,9 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     const votants = parseInt(formData.votants) || 0;
     const nuls = parseInt(formData.bulletinsNuls) || 0;
     const exprimes = parseInt(formData.suffragesExprimes) || 0;
-    const inscrits = 0; // TODO: Récupérer depuis les données du bureau sélectionné
+    // Récupérer inscrits depuis le bureau sélectionné si chargé
+    const selectedBureau = votingBureaux.find(b => b.id === formData.bureau);
+    const inscrits = selectedBureau?.registered_voters || 0;
 
     if (votants > inscrits) {
       errors.votants = `Le nombre de votants (${votants}) ne peut pas dépasser le nombre d'inscrits (${inscrits})`;
@@ -194,13 +185,12 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
 
   const validateCandidateVotes = () => {
     const errors: Record<string, string> = {};
+    if (!candidatesData || candidatesData.length === 0) return errors;
     const exprimes = parseInt(formData.suffragesExprimes) || 0;
     const totalVotes = Object.values(formData.candidateVotes).reduce((sum, votes) => sum + (parseInt(votes) || 0), 0);
-
     if (totalVotes !== exprimes && exprimes > 0) {
       errors.candidateTotal = `Total des voix des candidats (${totalVotes}) ≠ Suffrages exprimés (${exprimes})`;
     }
-
     return errors;
   };
 
@@ -275,6 +265,21 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
       const bureauId = formData.bureau;
       const centerId = formData.centre;
 
+      // Récupérer les inscrits du bureau si possible
+      let registeredVoters = 0;
+      try {
+        const { data: bInfo, error: bErr } = await supabase
+          .from('voting_bureaux')
+          .select('registered_voters')
+          .eq('id', bureauId)
+          .single();
+        if (!bErr && bInfo) {
+          registeredVoters = bInfo.registered_voters || 0;
+        }
+      } catch (e) {
+        // ignore et rester à 0
+      }
+
       let pvPhotoUrl: string | null = null;
       if (formData.uploadedFile) {
         try {
@@ -289,22 +294,53 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
       const null_votes = parseInt(formData.bulletinsNuls) || 0;
       const votes_expressed = parseInt(formData.suffragesExprimes) || 0;
 
-      const { data: pv, error: pvErr } = await supabase
+      // Empêcher une double saisie: si un PV existe déjà pour (election_id, bureau_id), on met à jour au lieu d'insérer
+      const { data: existingPv, error: findPvErr } = await supabase
         .from('procès_verbaux')
-        .insert({
-          election_id: selectedElection,
-          bureau_id: bureauId,
-          total_registered: 0,
-          total_voters,
-          null_votes,
-          votes_expressed,
-          status: 'entered',
-          entered_at: new Date().toISOString(),
-          pv_photo_url: pvPhotoUrl
-        })
-        .select()
-        .single();
-      if (pvErr) throw pvErr;
+        .select('id')
+        .eq('election_id', selectedElection)
+        .eq('bureau_id', bureauId)
+        .limit(1)
+        .maybeSingle();
+      if (findPvErr) throw findPvErr;
+
+      let pv;
+      if (existingPv?.id) {
+        const { data: updated, error: updateErr } = await supabase
+          .from('procès_verbaux')
+          .update({
+            total_registered: registeredVoters,
+            total_voters,
+            null_votes,
+            votes_expressed,
+            status: 'entered',
+            entered_at: new Date().toISOString(),
+            pv_photo_url: pvPhotoUrl || undefined
+          })
+          .eq('id', existingPv.id)
+          .select()
+          .single();
+        if (updateErr) throw updateErr;
+        pv = updated;
+      } else {
+        const { data: inserted, error: insertErr } = await supabase
+          .from('procès_verbaux')
+          .insert({
+            election_id: selectedElection,
+            bureau_id: bureauId,
+            total_registered: registeredVoters,
+            total_voters,
+            null_votes,
+            votes_expressed,
+            status: 'entered',
+            entered_at: new Date().toISOString(),
+            pv_photo_url: pvPhotoUrl
+          })
+          .select()
+          .single();
+        if (insertErr) throw insertErr;
+        pv = inserted;
+      }
 
       const candidateEntries = Object.entries(formData.candidateVotes)
         .map(([candidateId, votes]) => ({
@@ -317,7 +353,7 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
         if (crErr) throw crErr;
       }
 
-      toast.success('PV enregistré avec succès.');
+      toast.success(existingPv?.id ? 'PV mis à jour avec succès.' : 'PV enregistré avec succès.');
       onClose();
     } catch (err) {
       console.error('Erreur soumission PV:', err);

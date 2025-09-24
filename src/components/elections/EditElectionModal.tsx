@@ -401,15 +401,16 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader className="pb-6">
-          <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-gray-900">
-            <div className="p-2 bg-gov-blue/10 rounded-lg">
-              <Calendar className="h-6 w-6 text-gov-blue" />
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-4 sm:pb-6">
+          <DialogTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+            <div className="p-1.5 sm:p-2 bg-gov-blue/10 rounded-lg">
+              <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-gov-blue" />
             </div>
-            Modification de l'élection
+            <span className="hidden xs:inline">Modification de l'élection</span>
+            <span className="xs:hidden">Modifier élection</span>
           </DialogTitle>
-          <DialogDescription className="text-gray-600 mt-2">
+          <DialogDescription className="text-gray-600 mt-2 text-sm sm:text-base">
             Modifiez les informations de l'élection sélectionnée. Les champs marqués d'un astérisque (*) sont obligatoires.
           </DialogDescription>
         </DialogHeader>
@@ -747,22 +748,22 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                     <Target className="w-5 h-5" />
                     Récapitulatif Automatique
                   </h5>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-3 bg-white rounded-lg">
-                      <div className="text-2xl font-bold text-gov-blue">{selectedCandidatesData.length}</div>
-                      <div className="text-sm text-gov-blue">Candidats</div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                    <div className="text-center p-2 sm:p-3 bg-white rounded-lg">
+                      <div className="text-lg sm:text-2xl font-bold text-gov-blue">{selectedCandidatesData.length}</div>
+                      <div className="text-xs sm:text-sm text-gov-blue">Candidats</div>
                     </div>
-                    <div className="text-center p-3 bg-white rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">{selectedCentersData.length}</div>
-                      <div className="text-sm text-green-600">Centres</div>
+                    <div className="text-center p-2 sm:p-3 bg-white rounded-lg">
+                      <div className="text-lg sm:text-2xl font-bold text-green-600">{selectedCentersData.length}</div>
+                      <div className="text-xs sm:text-sm text-green-600">Centres</div>
                     </div>
-                    <div className="text-center p-3 bg-white rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">{totalBureaux}</div>
-                      <div className="text-sm text-purple-600">Bureaux</div>
+                    <div className="text-center p-2 sm:p-3 bg-white rounded-lg">
+                      <div className="text-lg sm:text-2xl font-bold text-purple-600">{totalBureaux}</div>
+                      <div className="text-xs sm:text-sm text-purple-600">Bureaux</div>
                     </div>
-                    <div className="text-center p-3 bg-white rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">{totalElecteurs.toLocaleString('fr-FR')}</div>
-                      <div className="text-sm text-orange-600">Électeurs</div>
+                    <div className="text-center p-2 sm:p-3 bg-white rounded-lg">
+                      <div className="text-lg sm:text-2xl font-bold text-orange-600">{totalElecteurs.toLocaleString('fr-FR')}</div>
+                      <div className="text-xs sm:text-sm text-orange-600">Électeurs</div>
                     </div>
                   </div>
                 </div>
@@ -770,25 +771,27 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             })()}
           </ModernFormSection>
 
-          {/* Actions */}
+          {/* Actions - Mobile First */}
           <ModernFormActions>
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300"
+              className="px-4 sm:px-6 py-2 sm:py-3 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto"
             >
-              <X className="h-4 w-4 mr-2" />
-              Annuler
+              <X className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">Annuler</span>
+              <span className="xs:hidden">Annuler</span>
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="px-8 py-3 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50"
+              className="px-4 sm:px-8 py-2 sm:py-3 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto"
             >
-              <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications'}
+              <Save className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">{isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications'}</span>
+              <span className="xs:hidden">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</span>
             </Button>
           </ModernFormActions>
         </ModernForm>
