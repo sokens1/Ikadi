@@ -45,6 +45,7 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     ville: '',
     centre: '',
     bureau: '',
+    inscrits: '',
     votants: '',
     bulletinsNuls: '',
     suffragesExprimes: '',
@@ -151,6 +152,32 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
         }));
 
         setCandidatesData(mappedCandidates);
+
+        // Pré-remplissage depuis DataEntrySection si présent
+        try {
+          const preCenterId = localStorage.getItem('pv_prefill_center_id') || '';
+          const preCenterName = localStorage.getItem('pv_prefill_center_name') || '';
+          const preBureauId = localStorage.getItem('pv_prefill_bureau_id') || '';
+          const preBureauName = localStorage.getItem('pv_prefill_bureau_name') || '';
+          if (preCenterId) {
+            setFormData(prev => ({ ...prev, centre: preCenterId }));
+          }
+          if (preBureauId) {
+            // récupérer inscrits pour le bureau
+            const { data: bInfo } = await supabase
+              .from('voting_bureaux')
+              .select('registered_voters')
+              .eq('id', preBureauId)
+              .single();
+            const rv = bInfo?.registered_voters || 0;
+            setFormData(prev => ({ ...prev, bureau: preBureauId, inscrits: String(rv) }));
+          }
+          // nettoyer
+          localStorage.removeItem('pv_prefill_center_id');
+          localStorage.removeItem('pv_prefill_center_name');
+          localStorage.removeItem('pv_prefill_bureau_id');
+          localStorage.removeItem('pv_prefill_bureau_name');
+        } catch {}
         
       } catch (error) {
         console.error('Erreur lors du chargement des données de l\'élection:', error);
@@ -168,9 +195,9 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     const votants = parseInt(formData.votants) || 0;
     const nuls = parseInt(formData.bulletinsNuls) || 0;
     const exprimes = parseInt(formData.suffragesExprimes) || 0;
-    // Récupérer inscrits depuis le bureau sélectionné si chargé
+    // Inscrits saisis en priorité, sinon depuis le bureau sélectionné
     const selectedBureau = votingBureaux.find(b => b.id === formData.bureau);
-    const inscrits = selectedBureau?.registered_voters || 0;
+    const inscrits = (parseInt(formData.inscrits) || 0) || (selectedBureau?.registered_voters || 0);
 
     if (votants > inscrits) {
       errors.votants = `Le nombre de votants (${votants}) ne peut pas dépasser le nombre d'inscrits (${inscrits})`;
@@ -258,6 +285,21 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     return publicUrlData.publicUrl;
   };
 
+  const fetchRegisteredVotersForBureau = async (bureauId: string): Promise<number> => {
+    if (!bureauId) return 0;
+    try {
+      const { data, error } = await supabase
+        .from('voting_bureaux')
+        .select('registered_voters')
+        .eq('id', bureauId)
+        .single();
+      if (error) return 0;
+      return data?.registered_voters || 0;
+    } catch {
+      return 0;
+    }
+  };
+
   const handleSubmitPV = async () => {
     if (!canSubmit() || !selectedElection) return;
     try {
@@ -265,16 +307,17 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
       const bureauId = formData.bureau;
       const centerId = formData.centre;
 
-      // Récupérer les inscrits du bureau si possible
-      let registeredVoters = 0;
+      // Récupérer les inscrits du bureau si possible, mais prioriser champ saisi
+      let registeredVoters = parseInt(formData.inscrits) || 0;
       try {
         const { data: bInfo, error: bErr } = await supabase
           .from('voting_bureaux')
           .select('registered_voters')
           .eq('id', bureauId)
           .single();
-        if (!bErr && bInfo) {
+        if (!bErr && bInfo && !registeredVoters) {
           registeredVoters = bInfo.registered_voters || 0;
+          setFormData(prev => ({ ...prev, inscrits: String(registeredVoters) }));
         }
       } catch (e) {
         // ignore et rester à 0
@@ -428,7 +471,10 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
                   <Label htmlFor="bureau">Bureau de Vote</Label>
                   <Select 
                     value={formData.bureau} 
-                    onValueChange={(value) => setFormData({ ...formData, bureau: value })}
+                    onValueChange={async (value) => {
+                      const rv = await fetchRegisteredVotersForBureau(value);
+                      setFormData({ ...formData, bureau: value, inscrits: String(rv) });
+                    }}
                     disabled={!formData.centre || loading}
                   >
                     <SelectTrigger>
@@ -474,14 +520,23 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Saisie des Chiffres de Participation</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="inscrits">Inscrits</Label>
+                <Input 
+                  id="inscrits" 
+                  type="number" 
+                  value={formData.inscrits}
+                  onChange={(e) => setFormData({ ...formData, inscrits: e.target.value })}
+                />
+              </div>
               <div>
                 <Label htmlFor="votants">Nombre de Votants</Label>
                 <Input
                   id="votants"
                   type="number"
                   value={formData.votants}
-                  onChange={(e) => setFormData({ ...formData, votants: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, votants: e.target.value, suffragesExprimes: String((parseInt(e.target.value)||0) - (parseInt(formData.bulletinsNuls)||0)) })}
                   className={validationErrors.votants ? 'border-red-500' : ''}
                 />
                 {validationErrors.votants && (
@@ -498,18 +553,13 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
                   id="bulletinsNuls"
                   type="number"
                   value={formData.bulletinsNuls}
-                  onChange={(e) => setFormData({ ...formData, bulletinsNuls: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, bulletinsNuls: e.target.value, suffragesExprimes: String((parseInt(formData.votants)||0) - (parseInt(e.target.value)||0)) })}
                 />
               </div>
 
               <div>
                 <Label htmlFor="suffragesExprimes">Suffrages Exprimés</Label>
-                <Input
-                  id="suffragesExprimes"
-                  type="number"
-                  value={formData.suffragesExprimes}
-                  onChange={(e) => setFormData({ ...formData, suffragesExprimes: e.target.value })}
-                />
+                <Input id="suffragesExprimes" type="number" value={formData.suffragesExprimes} readOnly />
               </div>
             </div>
 
