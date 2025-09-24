@@ -198,7 +198,7 @@ const ElectionResults: React.FC = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+              <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm" aria-label="Aller à l'accueil">
                 <span className="text-gov-blue font-bold text-lg">iK</span>
               </Link>
               <div>
@@ -207,7 +207,7 @@ const ElectionResults: React.FC = () => {
               </div>
             </div>
             <nav className="hidden md:flex items-center space-x-6">
-              <a href="#" className="hover:text-blue-200 transition-colors">Accueil</a>
+              <Link to="/" className="hover:text-blue-200 transition-colors">Accueil</Link>
               <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
               <a href="#infos" className="hover:text-blue-200 transition-colors">Infos électorales</a>
               <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a>
