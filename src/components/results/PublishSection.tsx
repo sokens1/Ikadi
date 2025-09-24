@@ -198,7 +198,15 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             supabase.from('bureau_results_summary').select('*').eq('election_id', selectedElection)
           ]);
           setCenterBreakdown(centersSum || []);
-          setBureauBreakdown(bureauxSum || []);
+          // Tri croissant par nom de bureau (ou id si pas de nom)
+          const sortedBureaux = (bureauxSum || []).slice().sort((a: any, b: any) => {
+            const ax = String(a.bureau_name ?? a.bureau_id ?? '').trim();
+            const bx = String(b.bureau_name ?? b.bureau_id ?? '').trim();
+            const anx = Number(ax); const bnx = Number(bx);
+            if (!Number.isNaN(anx) && !Number.isNaN(bnx)) return anx - bnx;
+            return ax.localeCompare(bx, 'fr', { numeric: true, sensitivity: 'base' });
+          });
+          setBureauBreakdown(sortedBureaux);
         } catch (_) {
           setCenterBreakdown([]);
           setBureauBreakdown([]);
@@ -343,7 +351,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                   {finalResults ? (
                     <>
                       {finalResults.validatedBureaux} bureaux validés sur {finalResults.totalBureaux}
-                      {' '}({finalResults.totalBureaux > 0 ? ((finalResults.validatedBureaux / finalResults.totalBureaux) * 100).toFixed(1) : 0}%)
+                      {' '}({finalResults.totalBureaux > 0 ? ((finalResults.validatedBureaux / finalResults.totalBureaux) * 100).toFixed(2) : '0.00'}%)
                     </>
                   ) : '—'}
                 </p>
@@ -478,7 +486,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                     {candidate.votes.toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-600">
-                    avec un score de {Number(candidate.percentage).toFixed(2)}%
+                    Score : {Number(candidate.percentage).toFixed(2)}%
                   </div>
                 </div>
               </div>
@@ -528,7 +536,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     size="lg"
                   >
-                    🚀 Publier les résultats
+                     Publier les résultats
                   </Button>
                 </div>
               </div>

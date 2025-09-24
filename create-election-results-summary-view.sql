@@ -50,8 +50,8 @@ SELECT
   SUM(pv.total_voters) AS total_voters,
   SUM(pv.null_votes) AS total_null_votes,
   SUM(pv.votes_expressed) AS total_expressed_votes,
-  CASE WHEN SUM(pv.total_registered) > 0 THEN ROUND((SUM(pv.total_voters)::numeric / NULLIF(SUM(pv.total_registered),0)) * 100, 2) ELSE 0 END AS participation_pct,
-  CASE WHEN SUM(pv.total_voters) > 0 THEN ROUND((SUM(pv.votes_expressed)::numeric / NULLIF(SUM(pv.total_voters),0)) * 100, 2) ELSE 0 END AS score_pct
+  CASE WHEN SUM(pv.total_registered) > 0 THEN ROUND((SUM(pv.total_voters)::numeric / NULLIF(SUM(pv.total_registered),0)) * 100, 2)::numeric(10,2) ELSE 0::numeric(10,2) END AS participation_pct,
+  CASE WHEN SUM(pv.total_voters) > 0 THEN ROUND((SUM(pv.votes_expressed)::numeric / NULLIF(SUM(pv.total_voters),0)) * 100, 2)::numeric(10,2) ELSE 0::numeric(10,2) END AS score_pct
 FROM procès_verbaux pv
 JOIN voting_bureaux vb ON vb.id = pv.bureau_id
 JOIN voting_centers vc ON vc.id = vb.center_id
@@ -70,8 +70,8 @@ SELECT
   SUM(pv.total_voters) AS total_voters,
   SUM(pv.null_votes) AS total_null_votes,
   SUM(pv.votes_expressed) AS total_expressed_votes,
-  CASE WHEN SUM(pv.total_registered) > 0 THEN ROUND((SUM(pv.total_voters)::numeric / NULLIF(SUM(pv.total_registered),0)) * 100, 2) ELSE 0 END AS participation_pct,
-  CASE WHEN SUM(pv.total_voters) > 0 THEN ROUND((SUM(pv.votes_expressed)::numeric / NULLIF(SUM(pv.total_voters),0)) * 100, 2) ELSE 0 END AS score_pct
+  CASE WHEN SUM(pv.total_registered) > 0 THEN ROUND((SUM(pv.total_voters)::numeric / NULLIF(SUM(pv.total_registered),0)) * 100, 2)::numeric(10,2) ELSE 0::numeric(10,2) END AS participation_pct,
+  CASE WHEN SUM(pv.total_voters) > 0 THEN ROUND((SUM(pv.votes_expressed)::numeric / NULLIF(SUM(pv.total_voters),0)) * 100, 2)::numeric(10,2) ELSE 0::numeric(10,2) END AS score_pct
 FROM procès_verbaux pv
 JOIN voting_bureaux vb ON vb.id = pv.bureau_id
 WHERE pv.status = 'validated'
@@ -109,18 +109,18 @@ SELECT
   b.candidate_id,
   b.candidate_name,
   b.candidate_votes,
-  ROUND(
+  (ROUND(
     CASE WHEN SUM(b.candidate_votes) OVER (PARTITION BY b.election_id, b.center_id) > 0
       THEN (b.candidate_votes::numeric / NULLIF(SUM(b.candidate_votes) OVER (PARTITION BY b.election_id, b.center_id), 0)) * 100
       ELSE 0
     END
-  , 2) AS candidate_percentage,
-  ROUND(
+  , 2))::numeric(10,2) AS candidate_percentage,
+  (ROUND(
     CASE WHEN r.total_registered > 0
       THEN (b.candidate_votes::numeric / NULLIF(r.total_registered, 0)) * 100
       ELSE 0
     END
-  , 2) AS candidate_participation_pct
+  , 2))::numeric(10,2) AS candidate_participation_pct
 FROM base b
 LEFT JOIN reg r ON r.election_id = b.election_id AND r.center_id = b.center_id;
 
@@ -156,17 +156,17 @@ SELECT
   b.candidate_id,
   b.candidate_name,
   b.candidate_votes,
-  ROUND(
+  (ROUND(
     CASE WHEN SUM(b.candidate_votes) OVER (PARTITION BY b.election_id, b.bureau_id) > 0
       THEN (b.candidate_votes::numeric / NULLIF(SUM(b.candidate_votes) OVER (PARTITION BY b.election_id, b.bureau_id), 0)) * 100
       ELSE 0
     END
-  , 2) AS candidate_percentage,
-  ROUND(
+  , 2))::numeric(10,2) AS candidate_percentage,
+  (ROUND(
     CASE WHEN r.total_registered > 0
       THEN (b.candidate_votes::numeric / NULLIF(r.total_registered, 0)) * 100
       ELSE 0
     END
-  , 2) AS candidate_participation_pct
+  , 2))::numeric(10,2) AS candidate_participation_pct
 FROM base b
 LEFT JOIN reg r ON r.election_id = b.election_id AND r.bureau_id = b.bureau_id;
