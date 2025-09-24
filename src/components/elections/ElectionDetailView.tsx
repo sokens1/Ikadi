@@ -22,6 +22,9 @@ import { toast } from 'sonner';
 import AddCenterModal from './AddCenterModal';
 import AddCandidateModal from './AddCandidateModal';
 import CenterDetailModal from './CenterDetailModal';
+import EditCenterModal from './EditCenterModal';
+import EditCandidateModal from './EditCandidateModal';
+import EditBureauModal from './EditBureauModal';
 
 interface Election {
   id: string; // UUID
@@ -73,7 +76,12 @@ interface ElectionDetailViewProps {
 const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBack, onDataChange }) => {
   const [showAddCenter, setShowAddCenter] = useState(false);
   const [showAddCandidate, setShowAddCandidate] = useState(false);
+  const [showEditCenter, setShowEditCenter] = useState(false);
+  const [showEditCandidate, setShowEditCandidate] = useState(false);
+  const [showEditBureau, setShowEditBureau] = useState(false);
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [selectedBureau, setSelectedBureau] = useState<any>(null);
   const [centers, setCenters] = useState<Center[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -355,6 +363,86 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
       },
       duration: 6000
     });
+  };
+
+  // Fonctions CRUD pour les centres
+  const handleEditCenter = (center: Center) => {
+    setSelectedCenter(center);
+    setShowEditCenter(true);
+  };
+
+  const handleUpdateCenter = (updatedCenter: Center) => {
+    setCenters(centers.map(c => c.id === updatedCenter.id ? updatedCenter : c));
+    setShowEditCenter(false);
+    setSelectedCenter(null);
+    if (onDataChange) {
+      onDataChange();
+    }
+  };
+
+  // Fonctions CRUD pour les candidats
+  const handleEditCandidate = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+    setShowEditCandidate(true);
+  };
+
+  const handleUpdateCandidate = (updatedCandidate: Candidate) => {
+    setCandidates(candidates.map(c => c.id === updatedCandidate.id ? updatedCandidate : c));
+    setShowEditCandidate(false);
+    setSelectedCandidate(null);
+    if (onDataChange) {
+      onDataChange();
+    }
+  };
+
+  // Fonctions CRUD pour les bureaux
+  const handleEditBureau = (bureau: any) => {
+    setSelectedBureau(bureau);
+    setShowEditBureau(true);
+  };
+
+  const handleUpdateBureau = (updatedBureau: any) => {
+    // Mettre à jour le bureau dans la liste des centres
+    setCenters(centers.map(center => {
+      if (center.id === selectedCenter?.id) {
+        // Ici, vous devriez mettre à jour les bureaux du centre
+        // Pour simplifier, on recharge les centres
+        fetchCenters();
+      }
+      return center;
+    }));
+    setShowEditBureau(false);
+    setSelectedBureau(null);
+    if (onDataChange) {
+      onDataChange();
+    }
+  };
+
+  const handleDeleteBureau = async (bureauId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce bureau ?')) {
+      try {
+        const { error } = await supabase
+          .from('voting_bureaux')
+          .delete()
+          .eq('id', bureauId);
+
+        if (error) {
+          console.error('Erreur lors de la suppression du bureau:', error);
+          toast.error('Erreur lors de la suppression du bureau');
+          return;
+        }
+
+        toast.success('Bureau supprimé avec succès');
+        fetchCenters(); // Recharger les centres pour mettre à jour les bureaux
+        
+        if (onDataChange) {
+          onDataChange();
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression du bureau:', error);
+        toast.error('Erreur lors de la suppression du bureau');
+      }
+    }
   };
 
   if (loading) {
@@ -732,11 +820,26 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                       <Button 
                         variant="outline" 
                         size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCenter(center);
+                        }}
                         className="flex-1 bg-white border-gray-200 text-gray-700 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-300 text-xs py-1 sm:py-2"
                       >
                         <Eye className="w-3 h-3 mr-1" />
                         <span className="hidden xs:inline">Détails</span>
                         <span className="xs:hidden">Voir</span>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditCenter(center);
+                        }}
+                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-all duration-300"
+                      >
+                        <Edit className="w-3 h-3" />
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -841,7 +944,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            className="text-gray-500 hover:text-purple-600 hover:bg-purple-50 transition-all duration-300"
+                            onClick={() => handleEditCandidate(candidate)}
+                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-all duration-300"
                           >
                             <Edit className="w-3 h-3" />
                           </Button>
@@ -883,6 +987,41 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
           <CenterDetailModal
             center={selectedCenter}
             onClose={() => setSelectedCenter(null)}
+          />
+        )}
+
+        {/* Modales d'édition */}
+        {showEditCenter && selectedCenter && (
+          <EditCenterModal
+            center={selectedCenter}
+            onClose={() => {
+              setShowEditCenter(false);
+              setSelectedCenter(null);
+            }}
+            onUpdate={handleUpdateCenter}
+          />
+        )}
+
+        {showEditCandidate && selectedCandidate && (
+          <EditCandidateModal
+            candidate={selectedCandidate}
+            onClose={() => {
+              setShowEditCandidate(false);
+              setSelectedCandidate(null);
+            }}
+            onUpdate={handleUpdateCandidate}
+          />
+        )}
+
+        {showEditBureau && selectedBureau && (
+          <EditBureauModal
+            bureau={selectedBureau}
+            centerId={selectedCenter?.id || ''}
+            onClose={() => {
+              setShowEditBureau(false);
+              setSelectedBureau(null);
+            }}
+            onUpdate={handleUpdateBureau}
           />
         )}
       </div>
