@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Menu, X, Facebook, Link as LinkIcon } from 'lucide-react';
@@ -54,6 +56,7 @@ const ElectionResults: React.FC = () => {
   const [viewMode, setViewMode] = useState<'center' | 'bureau'>('bureau');
   const [centerRows, setCenterRows] = useState<any[]>([]);
   const [bureauRows, setBureauRows] = useState<any[]>([]);
+  const [openCandidateId, setOpenCandidateId] = useState<string | null>(null);
 
   useEffect(() => {
     if (electionId) {
@@ -92,14 +95,17 @@ const ElectionResults: React.FC = () => {
         total_voters: totalVoters,
         total_votes_cast: totalVotes,
         participation_rate: participationRate,
-        candidates: (summaryData || []).map((c: any) => ({
+        candidates: (summaryData || [])
+          .map((c: any) => ({
           candidate_id: c.candidate_id,
           candidate_name: c.candidate_name,
           party_name: c.candidate_party ?? c.party ?? '',
           total_votes: c.total_votes || 0,
-          percentage: c.percentage || 0,
-          rank: c.rank || 0
-        })),
+            percentage: totalVotes > 0 ? (100 * (c.total_votes || 0)) / totalVotes : 0,
+            rank: 0
+          }))
+          .sort((a: CandidateResult, b: CandidateResult) => b.total_votes - a.total_votes)
+          .map((c, idx) => ({ ...c, rank: idx + 1 })),
         last_updated: new Date().toISOString()
       });
 
@@ -283,7 +289,7 @@ const ElectionResults: React.FC = () => {
           ) : (
             <div className="space-y-3 sm:space-y-4">
               {results.candidates.map((candidate, index) => (
-                <Card key={candidate.candidate_id} className={`${index === 0 ? 'border-gov-blue border-2' : ''}`}>
+                <Card key={candidate.candidate_id} className={`${index === 0 ? 'border-gov-blue border-2' : ''} hover:shadow-md transition-shadow cursor-pointer`} onClick={() => setOpenCandidateId(candidate.candidate_id)}>
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
@@ -321,6 +327,82 @@ const ElectionResults: React.FC = () => {
           )}
         </div>
       </section>
+
+      {/* Modal détail candidat */}
+      <Dialog open={!!openCandidateId} onOpenChange={(o) => !o && setOpenCandidateId(null)}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Détails du candidat</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const c = results.candidates.find(x => x.candidate_id === openCandidateId);
+            if (!c) return <div className="text-gov-gray">Aucune donnée</div>;
+            return (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gov-dark">{c.candidate_name}</h3>
+                  <p className="text-gov-gray">{c.party_name}</p>
+                  <div className="mt-2 text-sm text-gov-gray">Voix: {c.total_votes.toLocaleString()} • Part: {c.percentage.toFixed(1)}%</div>
+                </div>
+                <Tabs defaultValue="center">
+                  <TabsList>
+                    <TabsTrigger value="center">Par centre</TabsTrigger>
+                    <TabsTrigger value="bureau">Par bureau</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="center">
+                    <div className="space-y-2 mt-3">
+                      {centerRows.map((row, idx) => (
+                        <div key={idx} className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded border">
+                          <div className="font-medium">{row.center_name}</div>
+                          <div>Inscrits: {row.total_registered}</div>
+                          <div>Votants: {row.total_voters}</div>
+                          <div>Exprimés: {row.total_expressed_votes}</div>
+                          <div className="col-span-2 sm:col-span-1">Participation: {typeof row.participation_pct === 'number' ? `${row.participation_pct.toFixed(2)}%` : '-'}</div>
+                          <div className="col-span-2 sm:col-span-1">Score: {typeof row.score_pct === 'number' ? `${row.score_pct.toFixed(2)}%` : '-'}</div>
+                        </div>
+                      ))}
+                      {centerRows.length === 0 && <div className="text-gov-gray">Aucun centre</div>}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="bureau">
+                    <div className="overflow-x-auto mt-3">
+                      <table className="min-w-full bg-white border">
+                        <thead className="bg-slate-100 text-gov-dark">
+                          <tr>
+                            <th className="text-left px-3 py-2 border">Bureau</th>
+                            <th className="text-right px-3 py-2 border">Inscrits</th>
+                            <th className="text-right px-3 py-2 border">Votants</th>
+                            <th className="text-right px-3 py-2 border">Exprimés</th>
+                            <th className="text-right px-3 py-2 border">Participation</th>
+                            <th className="text-right px-3 py-2 border">Score</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm">
+                          {bureauRows.map((b, idx) => (
+                            <tr key={idx} className="odd:bg-white even:bg-slate-50">
+                              <td className="px-3 py-2 border">{b.bureau_name}</td>
+                              <td className="px-3 py-2 border text-right">{b.total_registered ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{b.total_voters ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{b.total_expressed_votes ?? '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.participation_pct === 'number' ? `${b.participation_pct.toFixed(2)}%` : '-'}</td>
+                              <td className="px-3 py-2 border text-right">{typeof b.score_pct === 'number' ? `${b.score_pct.toFixed(2)}%` : '-'}</td>
+                            </tr>
+                          ))}
+                          {bureauRows.length === 0 && (
+                            <tr>
+                              <td className="px-3 py-4 text-center text-gov-gray" colSpan={6}>Aucun bureau</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Vue détaillée par centre / par bureau */}
       <section className="py-8 sm:py-12 bg-slate-50">
