@@ -35,9 +35,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     name: '',
     type: '',
     date: '',
-    seatsAvailable: 1,
-    budget: 0,
-    voteGoal: 0,
+    seatsAvailable: '',
+    budget: '',
+    voteGoal: '',
     
     // Étape 2
     province: '',
@@ -50,7 +50,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     
     // Étape 4 - Centres sélectionnés
     selectedCenters: [] as string[],
-    totalVoters: 0
+    totalVoters: ''
   });
 
   // États pour les données de candidats et centres
@@ -235,9 +235,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         name: formData.name,
         type: formData.type,
         date: formData.date,
-        seatsAvailable: formData.seatsAvailable,
-        budget: formData.budget,
-        voteGoal: formData.voteGoal,
+        seatsAvailable: Number(formData.seatsAvailable) || 1,
+        budget: Number(formData.budget) || 0,
+        voteGoal: Number(formData.voteGoal) || 0,
         province: formData.province,
         department: formData.department,
         commune: formData.commune,
@@ -246,7 +246,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         centers: selectedCentersData,
         totalCenters: selectedCentersData.length,
         totalBureaux: totalBureaux,
-        totalVoters: totalElecteurs || formData.totalVoters
+        totalVoters: totalElecteurs || Number(formData.totalVoters) || 0
       };
       
       onSubmit(election);
@@ -779,9 +779,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
 
         {/* Progress moderne - Mobile First */}
         <div className="px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
-          <div className="flex items-center justify-between overflow-x-auto">
+          <div className="flex items-center justify-center space-x-2 sm:space-x-4">
             {steps.map((step, index) => (
-              <div key={index} className="flex items-center flex-shrink-0">
+              <div key={index} className="flex items-center">
                 <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all duration-300 ${
                   index + 1 <= currentStep 
                     ? 'bg-gov-blue text-white shadow-lg' 
@@ -795,7 +795,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                   {step}
                 </span>
                 {index < steps.length - 1 && (
-                  <div className={`w-8 sm:w-12 h-1 mx-2 sm:mx-4 rounded-full transition-all duration-300 ${
+                  <div className={`w-4 sm:w-8 h-1 mx-2 sm:mx-4 rounded-full transition-all duration-300 ${
                     index + 1 < currentStep ? 'bg-gov-blue' : 'bg-gray-200'
                   }`} />
                 )}

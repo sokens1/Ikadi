@@ -106,7 +106,7 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-4 sm:p-6">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="pb-4 sm:pb-6">
           <DialogTitle className="flex items-center gap-2 sm:gap-3">
             <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
@@ -122,30 +122,35 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium text-gray-900 mb-2">Centres de Vote</h3>
-              <MultiSelect
-                options={(centers || []).map(c => ({
-                  value: c.id,
-                  label: c.name,
-                  subtitle: c.address
-                }))}
-                selected={selectedCenters}
-                onSelectionChange={setSelectedCenters}
-                placeholder="Sélectionnez des centres..."
-              />
+        <div className="flex-1 overflow-hidden">
+          <ModernForm onSubmit={handleSubmit} className="h-full flex flex-col">
+            <div className="flex-1 overflow-hidden">
+              <ModernFormSection title="Centres de Vote" className="h-full flex flex-col">
+                <div className="flex-1 overflow-hidden">
+                  <MultiSelect
+                    options={(centers || []).map(c => ({
+                      value: c.id,
+                      label: c.name,
+                      subtitle: c.address
+                    }))}
+                    selected={selectedCenters}
+                    onSelectionChange={setSelectedCenters}
+                    placeholder="Sélectionnez des centres..."
+                  />
+                </div>
+              </ModernFormSection>
             </div>
-          </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button type="button" variant="outline" onClick={onClose} className="text-sm px-4 py-2">Annuler</Button>
-            <Button type="button" onClick={handleSubmit} className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm px-4 py-2" disabled={selectedCenters.length === 0}>
-              <span className="hidden xs:inline">Ajouter {selectedCenters.length} centre{selectedCenters.length > 1 ? 's' : ''}</span>
-              <span className="xs:hidden">Ajouter {selectedCenters.length}</span>
-            </Button>
-          </div>
+            <div className="flex-shrink-0">
+              <ModernFormActions className="!relative !bg-white !border-t !border-gray-200 !-mx-6 !-mb-6 !px-6 !py-4 !rounded-b-2xl">
+                <Button type="button" variant="outline" onClick={onClose} className="text-sm px-4 py-2">Annuler</Button>
+                <Button type="submit" className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm px-4 py-2" disabled={selectedCenters.length === 0}>
+                  <span className="hidden xs:inline">Ajouter {selectedCenters.length} centre{selectedCenters.length > 1 ? 's' : ''}</span>
+                  <span className="xs:hidden">Ajouter {selectedCenters.length}</span>
+                </Button>
+              </ModernFormActions>
+            </div>
+          </ModernForm>
         </div>
       </DialogContent>
     </Dialog>

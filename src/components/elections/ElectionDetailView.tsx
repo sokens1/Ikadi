@@ -690,13 +690,13 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                     </div>
                     
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    {/* <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Département</label>
                         <p className="text-sm font-bold text-gray-900 mt-1">{election.department || 'Non spécifié'}</p>
                       </div>
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                    </div>
+                    </div> */}
                     
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
@@ -716,59 +716,6 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Objectifs et budget modernisés */}
-              {(election.budget > 0 || election.voteGoal > 0) && (
-                <Card className="lg:col-span-2 election-card group hover:shadow-lg transition-all duration-300">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <div className="p-2 bg-purple-100 rounded-lg">
-                        <Star className="w-5 h-5 text-purple-600" />
-                      </div>
-                      Objectifs et Budget
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {election.budget > 0 && (
-                        <div className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-                          <div className="absolute top-0 right-0 w-12 h-12 bg-purple-200 rounded-full -translate-y-6 translate-x-6"></div>
-                          <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="p-1.5 bg-purple-500 rounded-md">
-                                <Star className="w-4 h-4 text-white" />
-                              </div>
-                              <span className="text-xs font-medium text-purple-700 uppercase tracking-wide">Budget alloué</span>
-                            </div>
-                            <div className="text-xl font-bold text-purple-900">
-                              {election.budget.toLocaleString('fr-FR')} FCFA
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {election.voteGoal > 0 && (
-                        <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
-                          <div className="absolute top-0 right-0 w-12 h-12 bg-orange-200 rounded-full -translate-y-6 translate-x-6"></div>
-                          <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="p-1.5 bg-orange-500 rounded-md">
-                                <Users className="w-4 h-4 text-white" />
-                              </div>
-                              <span className="text-xs font-medium text-orange-700 uppercase tracking-wide">Objectif de voix</span>
-                            </div>
-                            <div className="text-xl font-bold text-orange-900">
-                              {election.voteGoal.toLocaleString('fr-FR')}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              
             </div>
           </TabsContent>
 

@@ -364,5 +364,217 @@ L'onglet "Par bureau" affiche maintenant :
 
 ---
 
+## ✅ Fonctionnalité Ajoutée : Système de Tri et Regroupement
+
+**Date :** Décembre 2024  
+**Fonctionnalité :** Système de tri et regroupement intelligent pour les centres et bureaux
+
+### 🎯 Objectif
+
+Organiser et structurer les données des centres de vote et bureaux pour faciliter l'analyse et la navigation.
+
+### 🚀 Fonctionnalités Implémentées
+
+#### **1. Contrôles de Tri Intuitifs**
+- **Sélecteur de critère :** Centre, Participation, Score, Votes
+- **Bouton d'ordre :** Croissant/Décroissant avec icônes visuelles
+- **Interface moderne :** Design cohérent avec le reste de l'application
+
+#### **2. Vue "Par Centre" Améliorée**
+- **Regroupement automatique :** Les bureaux sont regroupés par centre
+- **Tri des centres :** Selon le critère sélectionné
+- **Tri des bureaux :** Par numéro de bureau au sein de chaque centre
+- **Structure hiérarchique :** Centres → Bureaux
+
+#### **3. Vue "Par Bureau" Optimisée**
+- **Tri global :** Tous les bureaux triés selon le critère
+- **Regroupement visuel :** Centres avec avatars colorés
+- **Navigation facilitée :** Données organisées et lisibles
+
+### 🔧 Implémentation Technique
+
+#### **Types TypeScript :**
+```tsx
+type CenterGroup = {
+  center: any;
+  bureaux: any[];
+};
+
+type BureauData = any;
+```
+
+#### **Fonction de Tri et Regroupement :**
+```tsx
+const getSortedAndGroupedData = (): CenterGroup[] | BureauData[] => {
+  if (viewMode === 'center') {
+    // Regroupement par centre + tri
+    const groupedCenters = centerRows.reduce((acc, center) => {
+      // Logique de regroupement
+    }, {} as Record<string, CenterGroup>);
+    
+    // Tri selon le critère sélectionné
+    return sortedCenters;
+  } else {
+    // Tri direct des bureaux
+    return sortedBureaux;
+  }
+};
+```
+
+#### **Critères de Tri :**
+- **Centre :** Tri alphabétique par nom de centre
+- **Participation :** Tri par taux de participation (%)
+- **Score :** Tri par score (%)
+- **Votes :** Tri par nombre de votes exprimés
+
+### 🎨 Interface Utilisateur
+
+#### **Contrôles de Tri :**
+- **Sélecteur déroulant :** Critères de tri avec icônes
+- **Bouton d'ordre :** Toggle croissant/décroissant
+- **Design cohérent :** Style moderne avec Tailwind CSS
+- **Responsive :** Adaptation mobile/desktop
+
+#### **Améliorations Visuelles :**
+- **Icônes contextuelles :** TrendingUp/TrendingDown
+- **États visuels :** Couleurs pour ordre croissant/décroissant
+- **Transitions :** Animations fluides
+- **Accessibilité :** Labels et aria-labels
+
+### ✅ Avantages Obtenus
+
+#### **Pour l'Utilisateur :**
+- 📊 **Navigation facilitée** dans les données
+- 🔍 **Recherche rapide** de centres/bureaux spécifiques
+- 📈 **Analyse comparative** des performances
+- 🎯 **Identification facile** des meilleurs/pires résultats
+
+#### **Pour l'Analyse :**
+- 📋 **Données structurées** et organisées
+- 🔄 **Tri dynamique** selon différents critères
+- 📊 **Regroupement logique** par centre
+- 🎯 **Hiérarchie claire** des informations
+
+### 🚀 Cas d'Usage
+
+#### **Tri par Centre :**
+- Trouver rapidement un centre spécifique
+- Navigation alphabétique
+
+#### **Tri par Participation :**
+- Identifier les centres avec la meilleure participation
+- Analyser les centres avec faible participation
+
+#### **Tri par Score :**
+- Comparer les performances des centres
+- Identifier les centres les plus performants
+
+#### **Tri par Votes :**
+- Analyser le volume de votes par centre
+- Comparer l'activité électorale
+
+### 🎯 Résultat Final
+
+Le système de tri et regroupement permet maintenant :
+- ✅ **Organisation intelligente** des données
+- ✅ **Navigation intuitive** dans les résultats
+- ✅ **Analyse comparative** facilitée
+- ✅ **Interface moderne** et responsive
+- ✅ **Performance optimisée** avec tri côté client
+
+### 🔄 Amélioration Ajoutée : Tri Hiérarchique des Bureaux
+
+**Date :** Décembre 2024  
+**Amélioration :** Tri hiérarchique intelligent dans la vue "Par bureau"
+
+#### **Problème Identifié :**
+Les bureaux n'étaient pas dans l'ordre logique dans la colonne "Bureau" de la vue "Par bureau".
+
+#### **Solution Implémentée :**
+
+##### **Tri Hiérarchique Intelligent :**
+- **Tri principal :** Selon le critère sélectionné (Centre, Participation, Score, Votes)
+- **Tri secondaire :** Par nom de centre (si valeurs identiques)
+- **Tri tertiaire :** Par numéro de bureau (si centres identiques)
+
+##### **Logique de Tri :**
+
+```typescript
+// Tri par Centre
+if (sortBy === 'center') {
+  // 1. Trier par nom de centre
+  comparison = centerA.localeCompare(centerB);
+  
+  // 2. Si centres identiques, trier par numéro de bureau
+  if (comparison === 0) {
+    const numA = parseInt(a.bureau_name?.match(/\d+/)?.[0] || '0');
+    const numB = parseInt(b.bureau_name?.match(/\d+/)?.[0] || '0');
+    comparison = numA - numB;
+  }
+}
+
+// Tri par autres critères (Participation, Score, Votes)
+else {
+  // 1. Trier selon le critère sélectionné
+  comparison = (a.criteria_value || 0) - (b.criteria_value || 0);
+  
+  // 2. Si valeurs identiques, trier par centre
+  if (comparison === 0) {
+    comparison = centerA.localeCompare(centerB);
+    
+    // 3. Si centres identiques, trier par numéro de bureau
+    if (comparison === 0) {
+      const numA = parseInt(a.bureau_name?.match(/\d+/)?.[0] || '0');
+      const numB = parseInt(b.bureau_name?.match(/\d+/)?.[0] || '0');
+      comparison = numA - numB;
+    }
+  }
+}
+```
+
+#### **Avantages Obtenus :**
+
+##### **Pour l'Utilisateur :**
+- 📊 **Ordre logique** des bureaux dans tous les tris
+- 🔍 **Navigation cohérente** entre centres et bureaux
+- 📈 **Analyse facilitée** avec structure hiérarchique claire
+- 🎯 **Identification rapide** des bureaux par numéro
+
+##### **Pour l'Analyse :**
+- 📋 **Données structurées** de manière cohérente
+- 🔄 **Tri prévisible** selon la logique métier
+- 📊 **Regroupement naturel** Centre → Bureau
+- 🎯 **Hiérarchie respectée** dans tous les contextes
+
+#### **Cas d'Usage Améliorés :**
+
+##### **Tri par Centre :**
+- Centres triés alphabétiquement
+- Bureaux triés par numéro au sein de chaque centre
+- Structure : ALLIANCE → Bureau 1, Bureau 2, Bureau 3, Bureau 4
+
+##### **Tri par Participation :**
+- Bureaux triés par taux de participation
+- En cas d'égalité : tri par centre puis par numéro
+- Structure cohérente même avec valeurs identiques
+
+##### **Tri par Score/Votes :**
+- Bureaux triés par performance
+- Tri secondaire par centre pour cohérence
+- Tri tertiaire par numéro pour ordre logique
+
+### 🎯 Résultat Final Amélioré
+
+Le système de tri et regroupement permet maintenant :
+- ✅ **Organisation intelligente** des données
+- ✅ **Navigation intuitive** dans les résultats
+- ✅ **Analyse comparative** facilitée
+- ✅ **Interface moderne** et responsive
+- ✅ **Performance optimisée** avec tri côté client
+- ✅ **Tri hiérarchique** cohérent et logique
+- ✅ **Ordre des bureaux** respecté dans tous les contextes
+
+---
+
 *Documentation créée le : Décembre 2024*  
 *Dernière mise à jour : Décembre 2024*

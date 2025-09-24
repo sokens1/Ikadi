@@ -36,10 +36,10 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     department: election.location.department,
     commune: election.location.commune,
     arrondissement: election.location.arrondissement,
-    seatsAvailable: election.configuration.seatsAvailable,
-    budget: election.configuration.budget,
-    voteGoal: election.configuration.voteGoal,
-    nbElecteurs: election.statistics.totalVoters,
+    seatsAvailable: election.configuration.seatsAvailable || '',
+    budget: election.configuration.budget || '',
+    voteGoal: election.configuration.voteGoal || '',
+    nbElecteurs: election.statistics.totalVoters || '',
     selectedCandidates: [] as string[],
     selectedCenters: [] as string[],
   });
@@ -371,15 +371,15 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
           fullAddress: `${formData.commune}, ${formData.province}`,
         },
         configuration: {
-          seatsAvailable: formData.seatsAvailable,
-          budget: formData.budget,
-          voteGoal: formData.voteGoal,
+          seatsAvailable: Number(formData.seatsAvailable) || 1,
+          budget: Number(formData.budget) || 0,
+          voteGoal: Number(formData.voteGoal) || 0,
           allowMultipleCandidates: election.configuration.allowMultipleCandidates,
           requirePhotoValidation: election.configuration.requirePhotoValidation,
         },
         statistics: {
           ...election.statistics,
-          totalVoters: formData.nbElecteurs,
+          totalVoters: Number(formData.nbElecteurs) || 0,
         },
       };
 

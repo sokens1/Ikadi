@@ -88,7 +88,8 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
               "px-3 pt-4 pb-1",
               icon && "pl-10",
               "text-gray-900 placeholder-transparent",
-              "transition-all duration-200"
+              "transition-all duration-200",
+              props.type === 'date' && "date-input-custom"
             )}
             placeholder=" "
             {...props}
