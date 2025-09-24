@@ -291,7 +291,20 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
                       {center.bureaux
                         .filter(bureau => !showAnomaliesOnly || bureau.status === 'anomaly')
                         .map((bureau) => (
-                        <div key={bureau.id} className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                        <div 
+                          key={bureau.id} 
+                          className="flex items-center justify-between p-3 bg-white rounded-lg border cursor-pointer hover:bg-gray-50"
+                          onClick={() => {
+                            setShowPVEntry(true);
+                            // pré-remplir via stockage local minimal
+                            try {
+                              localStorage.setItem('pv_prefill_center_id', center.id);
+                              localStorage.setItem('pv_prefill_center_name', center.name);
+                              localStorage.setItem('pv_prefill_bureau_id', bureau.id);
+                              localStorage.setItem('pv_prefill_bureau_name', bureau.name);
+                            } catch {}
+                          }}
+                        >
                           <div className="flex items-center space-x-3">
                             {getStatusIcon(bureau.status)}
                             <div>

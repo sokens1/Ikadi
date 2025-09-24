@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,8 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
   const [editMode, setEditMode] = useState(false);
   const [editValues, setEditValues] = useState<{ total_registered: number; total_voters: number; null_votes: number; votes_expressed: number }>({ total_registered: 0, total_voters: 0, null_votes: 0, votes_expressed: 0 });
   const [candidateResults, setCandidateResults] = useState<Array<{ id: string; name: string; votes: number }>>([]);
+  const [newPvFile, setNewPvFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -275,8 +277,8 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                 {getPriorityBadge(selectedPVData.status)}
                       </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
                   <h4 className="font-medium text-gray-900 mb-3">Participation</h4>
                   <div className="p-3 bg-gray-50 rounded-lg space-y-1 text-sm">
                     {editMode ? (
@@ -286,18 +288,18 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                           <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.total_registered} onChange={e => setEditValues(v => ({ ...v, total_registered: parseInt(e.target.value) || 0 }))} />
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <span>Votants:</span>
+                            <span>Votants:</span>
                           <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.total_voters} onChange={e => setEditValues(v => ({ ...v, total_voters: parseInt(e.target.value) || 0 }))} />
-                              </div>
+                          </div>
                         <div className="flex items-center justify-between gap-4">
-                          <span>Bulletins nuls:</span>
+                            <span>Bulletins nuls:</span>
                           <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.null_votes} onChange={e => setEditValues(v => ({ ...v, null_votes: parseInt(e.target.value) || 0 }))} />
-                            </div>
+                          </div>
                         <div className="flex items-center justify-between gap-4">
-                          <span>Suffrages exprimés:</span>
+                            <span>Suffrages exprimés:</span>
                           <input className="border rounded px-2 py-1 w-28" type="number" value={editValues.votes_expressed} onChange={e => setEditValues(v => ({ ...v, votes_expressed: parseInt(e.target.value) || 0 }))} />
+                          </div>
                         </div>
-                      </div>
                             ) : (
                               <>
                         <div className="flex justify-between"><span>Inscrits:</span><span className="font-medium">{editValues.total_registered || 0}</span></div>
@@ -306,36 +308,66 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                         <div className="flex justify-between"><span>Suffrages exprimés:</span><span className="font-medium">{editValues.votes_expressed || 0}</span></div>
                               </>
                             )}
-                          </div>
                         </div>
+                      </div>
                   <div>
                     <h4 className="font-medium text-gray-900 mb-3">Document Scanné</h4>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-                    <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                    <h5 className="font-medium text-gray-900 mb-2">{selectedPVData.pv_photo_url ? 'Document attaché' : 'Aucun document'}</h5>
-                    <Button variant="outline" size="sm" disabled={!selectedPVData.pv_photo_url} onClick={() => selectedPVData.pv_photo_url && window.open(selectedPVData.pv_photo_url, '_blank')}>
-                      <Eye className="w-4 h-4 mr-2" /> Voir le document
-                      </Button>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+                      <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                      {!selectedPVData.pv_photo_url && (
+                        <h5 className="font-medium text-gray-900 mb-2">Aucun document</h5>
+                      )}
+                      <div className="flex items-center justify-center gap-3 flex-wrap">
+                        <Button variant="outline" size="sm" disabled={!selectedPVData.pv_photo_url} onClick={() => selectedPVData.pv_photo_url && window.open(selectedPVData.pv_photo_url, '_blank')}>
+                          <Eye className="w-4 h-4 mr-2" /> Voir
+                        </Button>
+                        {editMode && (
+                          <>
+                            <input 
+                              ref={fileInputRef}
+                              type="file" 
+                              accept="image/*,application/pdf" 
+                              onChange={e => setNewPvFile(e.target.files?.[0] || null)}
+                              className="hidden"
+                            />
+                            <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                              Remplacer le document
+                            </Button>
+                              </>
+                            )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
               {/* Résultats par candidat */}
-              <div>
+                  <div>
                 <h4 className="font-medium text-gray-900 mb-3">Résultats par Candidat</h4>
                 {candidateResults.length > 0 ? (
                   <div className="space-y-2">
                     {candidateResults.map(cr => (
                       <div key={cr.id} className="flex items-center justify-between text-sm">
                         <span className="text-gray-700">{cr.name}</span>
-                        <span className="font-semibold">{cr.votes}</span>
-                      </div>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            className="border rounded px-2 py-1 w-24 text-right"
+                            value={cr.votes}
+                            onChange={e => {
+                              const value = parseInt(e.target.value || '0');
+                              setCandidateResults(prev => prev.map(c => c.id === cr.id ? { ...c, votes: value } : c));
+                            }}
+                          />
+                        ) : (
+                          <span className="font-semibold">{cr.votes}</span>
+                        )}
+                    </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-sm text-gray-500">Aucun résultat détaillé saisi</div>
                 )}
-              </div>
+                </div>
 
                 <div>
                   <Label htmlFor="comment">Commentaire de validation</Label>
@@ -359,21 +391,53 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                 {editMode && (
                   <Button onClick={async () => {
                     if (!selectedPV) return;
-                    const { error } = await supabase
-                      .from('procès_verbaux')
-                      .update({
+                    let pvPhotoUrl: string | null = null;
+                    try {
+                      if (newPvFile) {
+                        const bucket = 'pv-uploads';
+                        const path = `${selectedElection}/${selectedPV}/${Date.now()}_${newPvFile.name.replace(/\s+/g,'_')}`;
+                        const { error: upErr } = await supabase.storage.from(bucket).upload(path, newPvFile, { upsert: true });
+                        if (upErr) throw upErr;
+                        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+                        pvPhotoUrl = pub?.publicUrl || null;
+                      }
+                      const updatePayload: any = {
                         total_registered: editValues.total_registered || 0,
                         total_voters: editValues.total_voters || 0,
                         null_votes: editValues.null_votes || 0,
                         votes_expressed: editValues.votes_expressed || 0,
-                      })
-                      .eq('id', selectedPV);
-                    if (!error) {
-                      // Refléter en local
-                      setPvs(prev => prev.map(p => p.id === selectedPV ? { ...p, total_voters: editValues.total_voters, null_votes: editValues.null_votes, votes_expressed: editValues.votes_expressed } : p));
+                      };
+                      if (pvPhotoUrl) updatePayload.pv_photo_url = pvPhotoUrl;
+                      const { error: pvErr } = await supabase
+                        .from('procès_verbaux')
+                        .update(updatePayload)
+                        .eq('id', selectedPV);
+                      if (pvErr) throw pvErr;
+
+                      for (const cr of candidateResults) {
+                        const { data: existing } = await supabase
+                          .from('candidate_results')
+                          .select('id')
+                          .eq('pv_id', selectedPV)
+                          .eq('candidate_id', cr.id)
+                          .maybeSingle();
+                        if (existing?.id) {
+                          await supabase
+                            .from('candidate_results')
+                            .update({ votes: cr.votes })
+                            .eq('id', existing.id);
+                        } else {
+                          await supabase
+                            .from('candidate_results')
+                            .insert({ pv_id: selectedPV, candidate_id: cr.id, votes: cr.votes });
+                        }
+                      }
+
+                      setPvs(prev => prev.map(p => p.id === selectedPV ? { ...p, total_voters: editValues.total_voters, null_votes: editValues.null_votes, votes_expressed: editValues.votes_expressed, pv_photo_url: pvPhotoUrl || p.pv_photo_url } : p));
                       setEditMode(false);
-                    } else {
-                      console.error('Erreur maj PV:', error);
+                      setNewPvFile(null);
+                    } catch (err) {
+                      console.error('Erreur maj PV/candidats:', err);
                     }
                   }} className="bg-green-600 hover:bg-green-700 text-white">
                     Enregistrer
