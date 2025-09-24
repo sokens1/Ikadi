@@ -276,7 +276,6 @@ const ElectionManagementUnified = () => {
     setSelectedElection(null);
     // Rafraîchir les données pour s'assurer que les cartes sont à jour
     await refreshElectionsData();
-    toast.success('Données mises à jour');
   };
 
   const handleEditElection = (election: Election) => {
