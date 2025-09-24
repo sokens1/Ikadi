@@ -94,26 +94,31 @@ const ElectionResults: React.FC = () => {
         fetchBureauSummary(id)
       ]);
 
-      // Calculer les totaux
-      const totalVotes = summaryData?.reduce((sum, candidate) => sum + (candidate.total_votes || 0), 0) || 0;
-      const totalVoters = election.nb_electeurs || 0;
-      const participationRate = totalVoters > 0 ? (totalVotes / totalVoters) * 100 : 0;
+      // Calculer les totaux globaux à partir des tableaux de bureaux (plus fiable)
+      const registeredSum = (bureaux || []).reduce((sum: number, b: any) => sum + (Number(b.total_registered) || 0), 0);
+      const votersSum = (bureaux || []).reduce((sum: number, b: any) => sum + (Number(b.total_voters) || 0), 0);
+      const expressedSum = (bureaux || []).reduce((sum: number, b: any) => sum + (Number(b.total_expressed_votes) || 0), 0);
+
+      // Totaux affichés en tête
+      const totalVotesCast = expressedSum; // bulletins exprimés
+      const totalRegistered = registeredSum || (election.nb_electeurs || 0);
+      const participationRate = totalRegistered > 0 ? Math.min(Math.max((votersSum / totalRegistered) * 100, 0), 100) : 0;
 
       setCenterRows(centers || []);
       setBureauRows(bureaux || []);
 
       setResults({
         election,
-        total_voters: totalVoters,
-        total_votes_cast: totalVotes,
+        total_voters: totalRegistered,
+        total_votes_cast: totalVotesCast,
         participation_rate: participationRate,
         candidates: (summaryData || [])
           .map((c: any) => ({
           candidate_id: c.candidate_id,
           candidate_name: c.candidate_name,
           party_name: c.candidate_party ?? c.party ?? '',
-          total_votes: c.total_votes || 0,
-            percentage: totalVotes > 0 ? (100 * (c.total_votes || 0)) / totalVotes : 0,
+            total_votes: c.total_votes || 0,
+            percentage: totalVotesCast > 0 ? (100 * (c.total_votes || 0)) / totalVotesCast : 0,
             rank: 0
           }))
           .sort((a: CandidateResult, b: CandidateResult) => b.total_votes - a.total_votes)
