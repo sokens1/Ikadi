@@ -646,15 +646,15 @@ const ElectionManagementUnified = () => {
           allowMultipleCandidates: true,
           requirePhotoValidation: false,
         },
-        statistics: {
-          totalVoters: (electionData as any).totalVoters || electionData.statistics?.totalVoters || 0,
-          totalCandidates: (electionData as any).totalCandidates || electionData.statistics?.totalCandidates || 0,
-          totalCenters: (electionData as any).totalCenters || electionData.statistics?.totalCenters || 0,
-          totalBureaux: (electionData as any).totalBureaux || electionData.statistics?.totalBureaux || 0,
+        statistics: ({
+          totalVoters: Number((electionData as any).totalVoters) || electionData.statistics?.totalVoters || 0,
+          totalCandidates: Number((electionData as any).totalCandidates) || 0,
+          totalCenters: Number((electionData as any).totalCenters) || 0,
+          totalBureaux: Number((electionData as any).totalBureaux) || 0,
           completedSteps: 1,
           totalSteps: 5,
           progressPercentage: 20,
-        },
+        } as any),
         timeline: {
           created: new Date(),
           configured: new Date(),
@@ -968,15 +968,15 @@ const ElectionManagementUnified = () => {
                   key={election.id} 
                   className="election-card group hover:shadow-lg transition-all duration-300"
                 >
-                  <CardHeader className="p-4 sm:p-6">
+                  <CardHeader className="p-3 sm:p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base sm:text-lg font-semibold group-hover:text-primary-blue mb-2 sm:mb-3 line-clamp-2 leading-tight">
+                        <CardTitle className="text-sm sm:text-base font-semibold group-hover:text-primary-blue mb-1 sm:mb-2 line-clamp-2 leading-snug">
                           {election.title}
                         </CardTitle>
                         <Badge 
                           variant={getStatusVariant(getStatusColor(election.status))}
-                          className="status-badge text-xs px-2 py-1"
+                          className="status-badge text-[10px] px-2 py-0.5"
                           data-status={getStatusColor(election.status)}
                         >
                           {election.status}
@@ -1015,10 +1015,10 @@ const ElectionManagementUnified = () => {
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="p-3 sm:p-4 pt-0">
-                    <div className="space-y-2 sm:space-y-3">
-                      <div className="space-y-1 sm:space-y-2">
-                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                  <CardContent className="p-3 sm:p-3 pt-0">
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-gray-600">
                           <div className="p-1 bg-[#1e40af]/10 rounded flex-shrink-0">
                             <Calendar className="h-3 w-3 text-[#1e40af]" />
                           </div>
@@ -1031,7 +1031,7 @@ const ElectionManagementUnified = () => {
                             }) : 'Date non définie'}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                        <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-gray-600">
                           <div className="p-1 bg-green-100 rounded flex-shrink-0">
                             <MapPin className="h-3 w-3 text-green-600" />
                           </div>
@@ -1039,31 +1039,31 @@ const ElectionManagementUnified = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
+                      <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-gray-200">
                         <div className="text-center p-2 bg-green-50 rounded">
-                          <div className="flex items-center justify-center gap-1 text-green-600 mb-1">
+                          <div className="flex items-center justify-center gap-1 text-green-600 mb-0.5">
                             <Building className="h-3 w-3" />
-                            <span className="text-xs font-semibold">Centres</span>
+                            <span className="text-[11px] font-semibold">Centres</span>
                           </div>
-                          <p className="text-sm font-bold text-green-700">
+                          <p className="text-xs font-bold text-green-700">
                             {election.statistics.totalCenters}
                           </p>
                         </div>
                         <div className="text-center p-2 bg-[#1e40af]/10 rounded">
-                          <div className="flex items-center justify-center gap-1 text-[#1e40af] mb-1">
+                          <div className="flex items-center justify-center gap-1 text-[#1e40af] mb-0.5">
                             <Building className="h-3 w-3" />
-                            <span className="text-xs font-semibold">Bureaux</span>
+                            <span className="text-[11px] font-semibold">Bureaux</span>
                           </div>
-                          <p className="text-sm font-bold text-[#1e40af]">
+                          <p className="text-xs font-bold text-[#1e40af]">
                             {election.statistics.totalBureaux}
                           </p>
                         </div>
                         <div className="text-center p-2 bg-purple-50 rounded col-span-2">
-                          <div className="flex items-center justify-center gap-1 text-purple-600 mb-1">
+                          <div className="flex items-center justify-center gap-1 text-purple-600 mb-0.5">
                             <Users className="h-3 w-3" />
-                            <span className="text-xs font-semibold">Électeurs</span>
+                            <span className="text-[11px] font-semibold">Électeurs</span>
                           </div>
-                          <p className="text-sm font-bold text-purple-700">
+                          <p className="text-xs font-bold text-purple-700">
                             {election.statistics.totalVoters.toLocaleString()}
                           </p>
                         </div>
@@ -1071,7 +1071,7 @@ const ElectionManagementUnified = () => {
 
                       <Button
                         variant="outline"
-                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-[#1e40af] hover:text-white hover:border-[#1e40af] hover:shadow-md transition-all duration-300 py-2 text-sm group-hover:bg-[#1e40af] group-hover:text-white group-hover:border-[#1e40af] group-hover:shadow-md"
+                        className="w-full flex items-center justify-center gap-2 bg-white border-gray-200 text-gray-700 hover:bg-[#1e40af] hover:text-white hover:border-[#1e40af] hover:shadow-md transition-all duration-300 py-1.5 text-xs group-hover:bg-[#1e40af] group-hover:text-white group-hover:border-[#1e40af] group-hover:shadow-md"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewElection(election);

@@ -18,7 +18,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/contexts/NotificationContext';
 import MetricCard from '@/components/dashboard/MetricCard';
-import PerformanceWidget from '@/components/dashboard/PerformanceWidget';
 
 interface DashboardStats {
   elections: {
@@ -39,11 +38,6 @@ interface DashboardStats {
     communes: number;
     candidates: number;
   };
-  performance: {
-    participation: number;
-    efficiency: number;
-    satisfaction: number;
-  };
 }
 
 const DashboardModernSimple = () => {
@@ -53,8 +47,7 @@ const DashboardModernSimple = () => {
   const [stats, setStats] = useState<DashboardStats>({
     elections: { total: 0, byStatus: {}, upcoming: 0, completed: 0 },
     voters: { total: 0, registered: 0, trend: 0 },
-    infrastructure: { centers: 0, bureaux: 0, provinces: 0, communes: 0 },
-    performance: { participation: 0, efficiency: 0, satisfaction: 0 }
+    infrastructure: { centers: 0, bureaux: 0, provinces: 0, communes: 0, candidates: 0 },
   });
 
   // Charger les données du tableau de bord
@@ -132,17 +125,12 @@ const DashboardModernSimple = () => {
             provinces: provincesCount || 0,
             communes: communesCount || 0,
             candidates: candidatesCount || 0
-          },
-          performance: {
-            participation: 78.5,
-            efficiency: 92.3,
-            satisfaction: 88.7
           }
         });
 
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error);
-        addNotification('Erreur lors du chargement des données', 'error');
+        addNotification({ title: 'Erreur', message: 'Erreur lors du chargement des données', type: 'error' });
       } finally {
         setLoading(false);
       }
@@ -188,14 +176,6 @@ const DashboardModernSimple = () => {
                   <Vote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   <span className="hidden xs:inline">Gérer les Élections</span>
                   <span className="xs:hidden">Élections</span>
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/voters')}
-                  className="border-[#1e40af] text-[#1e40af] hover:bg-[#1e40af] hover:text-white text-xs sm:text-sm"
-                >
-                  <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  Électeurs
                 </Button>
               </div>
             </div>
@@ -327,62 +307,29 @@ const DashboardModernSimple = () => {
             </Button>
             
             <Button 
-              onClick={() => navigate('/elections?action=create')}
+              onClick={() => navigate('/voters')}
               className="h-16 sm:h-20 flex flex-col items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white"
             >
-              <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
-              <span className="text-xs sm:text-sm font-medium">Nouvelle</span>
+              <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs sm:text-sm font-medium">Inscrits</span>
             </Button>
             
             <Button 
-              onClick={() => navigate('/elections?view=centers')}
+              onClick={() => navigate('/results')}
               className="h-16 sm:h-20 flex flex-col items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
             >
-              <Building className="h-5 w-5 sm:h-6 sm:w-6" />
-              <span className="text-xs sm:text-sm font-medium">Centres</span>
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs sm:text-sm font-medium">Résultats</span>
             </Button>
             
             <Button 
-              onClick={() => navigate('/elections?view=candidates')}
+              onClick={() => navigate('/users')}
               className="h-16 sm:h-20 flex flex-col items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
             >
-              <Users className="h-5 w-5 sm:h-6 sm:w-6" />
-              <span className="text-xs sm:text-sm font-medium">Candidats</span>
+              <Shield className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs sm:text-sm font-medium">Utilisateurs</span>
             </Button>
           </div>
-        </div>
-
-        {/* Indicateurs de performance - Mobile First */}
-        <div className="space-y-4 sm:space-y-6">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Performance</h2>
-          <PerformanceWidget
-            metrics={[
-              {
-                label: "Efficacité",
-                value: stats.performance.efficiency,
-                target: 90,
-                color: "#10b981",
-                icon: Zap,
-                description: "Système opérationnel"
-              },
-              {
-                label: "Satisfaction",
-                value: stats.performance.satisfaction,
-                target: 85,
-                color: "#f59e0b",
-                icon: Star,
-                description: "Utilisateurs satisfaits"
-              },
-              {
-                label: "Participation",
-                value: stats.performance.participation,
-                target: 80,
-                color: "#8b5cf6",
-                icon: Target,
-                description: "Taux moyen"
-              }
-            ]}
-          />
         </div>
       </div>
     </Layout>
