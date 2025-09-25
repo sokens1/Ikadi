@@ -136,6 +136,11 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
                     selected={selectedCenters}
                     onSelectionChange={setSelectedCenters}
                     placeholder="Sélectionnez des centres..."
+                    title="Centres de Vote"
+                    icon={<Building className="w-5 h-5 text-[#1e40af]" />}
+                    searchable={true}
+                    emptyMessage="Aucun centre sélectionné"
+                    className="w-full"
                   />
                 </div>
               </ModernFormSection>

@@ -143,10 +143,9 @@ export function useElectionState() {
 
     // Filtrage par localisation
     if (state.filters.location) {
-      const { province, department, commune } = state.filters.location;
+      const { province, commune } = state.filters.location;
       filtered = filtered.filter(election => {
         if (province && election.location.province !== province) return false;
-        if (department && election.location.department !== department) return false;
         if (commune && election.location.commune !== commune) return false;
         return true;
       });
@@ -168,7 +167,6 @@ export function useElectionState() {
         election.title.toLowerCase().includes(query) ||
         election.description?.toLowerCase().includes(query) ||
         election.location.commune.toLowerCase().includes(query) ||
-        election.location.department.toLowerCase().includes(query) ||
         election.location.province.toLowerCase().includes(query)
       );
     }

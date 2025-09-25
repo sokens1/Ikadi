@@ -335,3 +335,101 @@
   background-size: 200px 100%;
   animation: shimmer 1.5s infinite;
 }
+
+/* Améliorations pour la compatibilité MultiSelect */
+.multi-select-container {
+  width: 100%;
+  min-height: 240px; /* 3 éléments de 60px + padding */
+}
+
+.multi-select-option {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.multi-select-option:hover {
+  background-color: #f9fafb;
+}
+
+.multi-select-option:last-child {
+  border-bottom: none;
+}
+
+.multi-select-option-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.multi-select-option-content {
+  flex: 1;
+  min-width: 0;
+  margin-right: 12px;
+}
+
+.multi-select-option-label {
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.multi-select-option-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.multi-select-checkbox {
+  flex-shrink: 0;
+}
+
+/* Améliorations pour les modals */
+.dialog-content-responsive {
+  width: 95vw;
+  max-width: 42rem;
+  max-height: 90vh;
+}
+
+@media (min-width: 640px) {
+  .dialog-content-responsive {
+    width: 100%;
+  }
+}
+
+/* Améliorations pour les boutons de sélection en masse */
+.selection-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .selection-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .selection-actions > div:first-child {
+    order: 2;
+  }
+  
+  .selection-actions > div:last-child {
+    order: 1;
+  }
+}
