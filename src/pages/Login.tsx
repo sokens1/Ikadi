@@ -107,59 +107,59 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Section gauche - Fond bleu avec sélection d'élection */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gov-blue via-blue-700 to-gov-blue-dark flex-col items-center justify-center p-8 relative overflow-hidden">
         {/* Logo */}
-        <div className="absolute top-8 left-8">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <span className="text-gov-blue font-bold text-lg">iK</span>
+        <div className="absolute top-6 lg:top-8 left-6 lg:left-8">
+          <div className="flex items-center space-x-2 lg:space-x-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-white rounded-full flex items-center justify-center">
+              <span className="text-gov-blue font-bold text-sm lg:text-lg">iK</span>
             </div>
             <div>
-              <h1 className="text-white font-bold text-2xl">iKadi</h1>
+              <h1 className="text-white font-bold text-xl lg:text-2xl">iKadi</h1>
               <p className="text-blue-100 text-xs">Plateforme Électorale</p>
             </div>
           </div>
         </div>
 
         {/* Contenu principal */}
-        <div className="flex-1 flex flex-col items-center justify-center text-center text-white max-w-lg">
+        <div className="flex-1 flex flex-col items-center justify-center text-center text-white max-w-lg px-4 pt-16">
           {/* Titre principal */}
-          <div className="mb-8">
-            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+          <div className="mb-6 lg:mb-8">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-3 lg:mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
               Choisissez votre élection
             </h2>
-            <p className="text-blue-100 text-lg leading-relaxed">
+            <p className="text-blue-100 text-base lg:text-lg leading-relaxed">
               Sélectionnez le type d'élection pour accéder aux résultats de l'élection dédiés
             </p>
           </div>
 
            {/* Boutons de sélection d'élection */}
-           <div className="space-y-4 w-full max-w-md">
+           <div className="space-y-3 lg:space-y-4 w-full max-w-md">
              {/* Bouton Élection Législative */}
              <button
                onClick={() => handleElectionRedirect('legislative')}
                disabled={electionsLoading}
-               className={`w-full p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+               className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
                  electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
                }`}
              >
                <div className="flex items-center justify-between">
-                 <div className="flex items-center space-x-4">
-                   <div className="p-3 rounded-lg bg-white/20 text-white">
+                 <div className="flex items-center space-x-3 lg:space-x-4">
+                   <div className="p-2 lg:p-3 rounded-lg bg-white/20 text-white">
                      {electionsLoading ? (
-                       <Loader2 className="w-6 h-6 animate-spin" />
+                       <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 animate-spin" />
                      ) : (
-                       <Building className="w-6 h-6" />
+                       <Building className="w-5 h-5 lg:w-6 lg:h-6" />
                      )}
                    </div>
                    <div className="text-left">
-                     <h3 className="font-bold text-lg">Élection Législative</h3>
-                     <p className="text-sm opacity-80">Élection des députés</p>
+                     <h3 className="font-bold text-base lg:text-lg">Élection Législative</h3>
+                     <p className="text-xs lg:text-sm opacity-80">Élection des députés</p>
                    </div>
                  </div>
-                 {!electionsLoading && <ArrowRight className="w-5 h-5 transition-transform text-white/60" />}
+                 {!electionsLoading && <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 transition-transform text-white/60" />}
                </div>
              </button>
 
@@ -167,45 +167,45 @@ const Login = () => {
              <button
                onClick={() => handleElectionRedirect('local')}
                disabled={electionsLoading}
-               className={`w-full p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+               className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
                  electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
                }`}
              >
                <div className="flex items-center justify-between">
-                 <div className="flex items-center space-x-4">
-                   <div className="p-3 rounded-lg bg-white/20 text-white">
+                 <div className="flex items-center space-x-3 lg:space-x-4">
+                   <div className="p-2 lg:p-3 rounded-lg bg-white/20 text-white">
                      {electionsLoading ? (
-                       <Loader2 className="w-6 h-6 animate-spin" />
+                       <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 animate-spin" />
                      ) : (
-                       <Vote className="w-6 h-6" />
+                       <Vote className="w-5 h-5 lg:w-6 lg:h-6" />
                      )}
                    </div>
                    <div className="text-left">
-                     <h3 className="font-bold text-lg">Élection Locale</h3>
-                     <p className="text-sm opacity-80">Élection des conseils municipaux</p>
+                     <h3 className="font-bold text-base lg:text-lg">Élection Locale</h3>
+                     <p className="text-xs lg:text-sm opacity-80">Élection des conseils municipaux</p>
                    </div>
                  </div>
-                 {!electionsLoading && <ArrowRight className="w-5 h-5 transition-transform text-white/60" />}
+                 {!electionsLoading && <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 transition-transform text-white/60" />}
                </div>
              </button>
            </div>
 
           {/* Avantages de la plateforme */}
-          <div className="mt-8 grid grid-cols-2 gap-4 w-full max-w-md">
-            <div className="flex items-center space-x-2 text-blue-100">
-              <Shield className="w-4 h-4 text-green-400" />
+          <div className="mt-6 lg:mt-8 grid grid-cols-2 gap-3 lg:gap-4 w-full max-w-md">
+            <div className="flex items-center space-x-1 lg:space-x-2 text-blue-100">
+              <Shield className="w-3 h-3 lg:w-4 lg:h-4 text-green-400" />
               <span className="text-xs">Sécurisé</span>
             </div>
-            <div className="flex items-center space-x-2 text-blue-100">
-              <CheckCircle className="w-4 h-4 text-green-400" />
+            <div className="flex items-center space-x-1 lg:space-x-2 text-blue-100">
+              <CheckCircle className="w-3 h-3 lg:w-4 lg:h-4 text-green-400" />
               <span className="text-xs">Transparent</span>
             </div>
-            <div className="flex items-center space-x-2 text-blue-100">
-              <Users className="w-4 h-4 text-green-400" />
+            <div className="flex items-center space-x-1 lg:space-x-2 text-blue-100">
+              <Users className="w-3 h-3 lg:w-4 lg:h-4 text-green-400" />
               <span className="text-xs">Accessible</span>
             </div>
-            <div className="flex items-center space-x-2 text-blue-100">
-              <BarChart3 className="w-4 h-4 text-green-400" />
+            <div className="flex items-center space-x-1 lg:space-x-2 text-blue-100">
+              <BarChart3 className="w-3 h-3 lg:w-4 lg:h-4 text-green-400" />
               <span className="text-xs">Analytique</span>
             </div>
           </div>
@@ -213,34 +213,117 @@ const Login = () => {
 
       </div>
 
-      {/* Section droite - Formulaire */}
-      <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
+      {/* Section mobile - Boutons d'élection (visible uniquement sur mobile/tablette) */}
+      <div className="lg:hidden bg-gradient-to-br from-gov-blue via-blue-700 to-gov-blue-dark text-white pt-8 pb-6 px-6">
+        <div className="max-w-md mx-auto">
           {/* Logo mobile */}
-          <div className="lg:hidden text-center mb-8">
+          <div className="text-center mb-8">
             <div className="flex items-center justify-center space-x-3 mb-6">
-              <div className="w-12 h-12 bg-gov-blue rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-xl">iK</span>
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                <span className="text-gov-blue font-bold text-lg">iK</span>
               </div>
               <div className="text-left">
-                <h1 className="text-gov-blue font-bold text-3xl">iKadi</h1>
-                <p className="text-gray-600 text-sm">Plateforme Électorale</p>
+                <h1 className="text-white font-bold text-2xl">iKadi</h1>
+                <p className="text-blue-100 text-xs">Plateforme Électorale</p>
               </div>
             </div>
             
+            <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+              Choisissez votre élection
+            </h2>
+            <p className="text-blue-100 text-sm leading-relaxed">
+              Sélectionnez le type d'élection pour accéder aux résultats
+            </p>
           </div>
 
+          {/* Boutons de sélection d'élection mobile */}
+          <div className="space-y-3">
+            {/* Bouton Élection Législative */}
+            <button
+              onClick={() => handleElectionRedirect('legislative')}
+              disabled={electionsLoading}
+              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+                electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-white/20 text-white">
+                  {electionsLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Building className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-bold text-base">Élection Législative</h3>
+                  <p className="text-xs opacity-80">Élection des députés</p>
+                </div>
+                {!electionsLoading && <ArrowRight className="w-4 h-4 text-white/60" />}
+              </div>
+            </button>
+
+            {/* Bouton Élection Locale */}
+            <button
+              onClick={() => handleElectionRedirect('local')}
+              disabled={electionsLoading}
+              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+                electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-white/20 text-white">
+                  {electionsLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Vote className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-bold text-base">Élection Locale</h3>
+                  <p className="text-xs opacity-80">Élection des conseils municipaux</p>
+                </div>
+                {!electionsLoading && <ArrowRight className="w-4 h-4 text-white/60" />}
+              </div>
+            </button>
+          </div>
+
+          {/* Avantages de la plateforme mobile */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="flex items-center space-x-1 text-blue-100">
+              <Shield className="w-3 h-3 text-green-400" />
+              <span className="text-xs">Sécurisé</span>
+            </div>
+            <div className="flex items-center space-x-1 text-blue-100">
+              <CheckCircle className="w-3 h-3 text-green-400" />
+              <span className="text-xs">Transparent</span>
+            </div>
+            <div className="flex items-center space-x-1 text-blue-100">
+              <Users className="w-3 h-3 text-green-400" />
+              <span className="text-xs">Accessible</span>
+            </div>
+            <div className="flex items-center space-x-1 text-blue-100">
+              <BarChart3 className="w-3 h-3 text-green-400" />
+              <span className="text-xs">Analytique</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section droite - Formulaire */}
+      <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-md">
+
           <Card className="bg-white shadow-2xl border-0">
-            <CardHeader className="pb-6">
-               <CardTitle className="text-center text-2xl text-gray-800">
+            <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
+               <CardTitle className="text-center text-xl sm:text-2xl text-gray-800">
                  Connexion
                </CardTitle>
-               <p className="text-center text-gray-600 text-sm">
+               <p className="text-center text-gray-600 text-xs sm:text-sm">
                  Accédez à votre tableau de bord sécurisé
                </p>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <CardContent className="px-4 sm:px-6">
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                   <Input
@@ -250,7 +333,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-12 border-gray-200 focus:ring-gov-blue focus:border-gov-blue transition-colors"
+                    className="h-10 sm:h-12 border-gray-200 focus:ring-gov-blue focus:border-gov-blue transition-colors text-sm sm:text-base"
                   />
                 </div>
                 
@@ -264,13 +347,13 @@ const Login = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="h-12 border-gray-200 focus:ring-gov-blue focus:border-gov-blue pr-12 transition-colors"
+                      className="h-10 sm:h-12 border-gray-200 focus:ring-gov-blue focus:border-gov-blue pr-10 sm:pr-12 transition-colors text-sm sm:text-base"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-2 sm:px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
@@ -284,13 +367,14 @@ const Login = () => {
 
                  <Button
                    type="submit"
-                   className="w-full h-12 bg-gov-blue hover:bg-gov-blue-dark text-white font-medium transition-colors"
+                   className="w-full h-10 sm:h-12 bg-gov-blue hover:bg-gov-blue-dark text-white font-medium transition-colors text-sm sm:text-base"
                    disabled={isLoading}
                  >
                    {isLoading ? (
                      <>
                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                       Connexion...
+                       <span className="hidden sm:inline">Connexion...</span>
+                       <span className="sm:hidden">Connexion...</span>
                      </>
                    ) : (
                      "Se connecter"
@@ -298,7 +382,7 @@ const Login = () => {
                  </Button>
               </form>
 
-              <div className="mt-6 text-center">
+              <div className="mt-4 sm:mt-6 text-center">
                 <p className="text-xs text-gray-500">
                   Plateforme sécurisée de gestion électorale
                 </p>
