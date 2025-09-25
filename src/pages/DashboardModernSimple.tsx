@@ -37,6 +37,7 @@ interface DashboardStats {
     bureaux: number;
     provinces: number;
     communes: number;
+    candidates: number;
   };
   performance: {
     participation: number;
@@ -109,6 +110,10 @@ const DashboardModernSimple = () => {
           .from('communes')
           .select('*', { count: 'exact', head: true });
 
+        const { count: candidatesCount } = await supabase
+          .from('candidates')
+          .select('*', { count: 'exact', head: true });
+
         setStats({
           elections: {
             total: electionsData?.length || 0,
@@ -125,7 +130,8 @@ const DashboardModernSimple = () => {
             centers: centersCount || 0,
             bureaux: bureauxCount || 0,
             provinces: provincesCount || 0,
-            communes: communesCount || 0
+            communes: communesCount || 0,
+            candidates: candidatesCount || 0
           },
           performance: {
             participation: 78.5,
@@ -160,34 +166,35 @@ const DashboardModernSimple = () => {
 
   return (
     <Layout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Header moderne avec gradient */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-[#1e40af]/5 to-[#3b82f6]/5 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 mb-6">
+      <div className="space-y-4 sm:space-y-6 animate-fade-in">
+        {/* Header moderne avec gradient - Mobile First */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#1e40af]/5 to-[#3b82f6]/5 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="space-y-2">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+              <div className="space-y-1 sm:space-y-2">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
                   Tableau de Bord
                 </h1>
-                <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed">
+                <p className="text-xs sm:text-sm lg:text-base text-gray-600 leading-relaxed">
                   Vue d'ensemble du système électoral iKADI
                 </p>
               </div>
               <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
                 <Button 
                   onClick={() => navigate('/elections')}
-                  className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm"
                 >
-                  <Vote className="h-4 w-4 mr-2" />
-                  Gérer les Élections
+                  <Vote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline">Gérer les Élections</span>
+                  <span className="xs:hidden">Élections</span>
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={() => navigate('/voters')}
-                  className="border-[#1e40af] text-[#1e40af] hover:bg-[#1e40af] hover:text-white"
+                  className="border-[#1e40af] text-[#1e40af] hover:bg-[#1e40af] hover:text-white text-xs sm:text-sm"
                 >
-                  <Users className="h-4 w-4 mr-2" />
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Électeurs
                 </Button>
               </div>
@@ -195,145 +202,188 @@ const DashboardModernSimple = () => {
           </div>
         </div>
 
-        {/* Statistiques principales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <MetricCard
-            title="Total Élections"
-            value={stats.elections.total}
-            subtitle="Système actif"
-            icon={Vote}
-            color="#1e40af"
-            trend={{ value: 5.2, isPositive: true, label: "ce mois" }}
-          />
-          
-          <MetricCard
-            title="Électeurs Inscrits"
-            value={stats.voters.total.toLocaleString()}
-            subtitle="Inscriptions totales"
-            icon={Users}
-            color="#10b981"
-            trend={{ value: stats.voters.trend, isPositive: true, label: "croissance" }}
-          />
-          
+        {/* Statistiques principales - Ordre: Centres, Bureaux, Candidats, Électeurs */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           <MetricCard
             title="Centres de Vote"
             value={stats.infrastructure.centers}
-            subtitle={`${stats.infrastructure.bureaux} bureaux`}
+            subtitle="Centres actifs"
             icon={Building}
             color="#8b5cf6"
+            className="col-span-2 lg:col-span-1"
           />
           
           <MetricCard
-            title="Taux de Participation"
-            value={`${stats.performance.participation}%`}
-            subtitle="Moyenne générale"
+            title="Bureaux de Vote"
+            value={stats.infrastructure.bureaux}
+            subtitle="Bureaux total"
+            icon={Vote}
+            color="#1e40af"
+            className="col-span-2 lg:col-span-1"
+          />
+          
+          <MetricCard
+            title="Candidats"
+            value={stats.infrastructure.candidates || 0}
+            subtitle="Candidats inscrits"
+            icon={Users}
+            color="#10b981"
+            className="col-span-2 lg:col-span-1"
+          />
+          
+          <MetricCard
+            title="Électeurs"
+            value={stats.voters.total.toLocaleString()}
+            subtitle="Inscriptions totales"
             icon={Target}
             color="#f59e0b"
-            trend={{ value: 2.1, isPositive: true, label: "vs mois dernier" }}
+            trend={{ value: stats.voters.trend, isPositive: true, label: "croissance" }}
+            className="col-span-2 lg:col-span-1"
           />
         </div>
 
-        {/* Statistiques détaillées */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Statistiques détaillées - Mobile First */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="election-card">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-[#1e40af]" />
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-[#1e40af]" />
                 Élections
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">À venir</span>
-                <span className="font-semibold text-gray-900">{stats.elections.upcoming}</span>
+                <span className="text-xs sm:text-sm text-gray-600">À venir</span>
+                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.elections.upcoming}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Terminées</span>
-                <span className="font-semibold text-green-600">{stats.elections.completed}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Terminées</span>
+                <span className="font-semibold text-green-600 text-sm sm:text-base">{stats.elections.completed}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">En cours</span>
-                <span className="font-semibold text-orange-600">{stats.elections.byStatus['En cours'] || 0}</span>
+                <span className="text-xs sm:text-sm text-gray-600">En cours</span>
+                <span className="font-semibold text-orange-600 text-sm sm:text-base">{stats.elections.byStatus['En cours'] || 0}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card className="election-card">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5 text-[#1e40af]" />
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Building className="h-4 w-4 sm:h-5 sm:w-5 text-[#1e40af]" />
                 Infrastructure
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Provinces</span>
-                <span className="font-semibold text-gray-900">{stats.infrastructure.provinces}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Provinces</span>
+                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.infrastructure.provinces}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Communes</span>
-                <span className="font-semibold text-gray-900">{stats.infrastructure.communes}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Communes</span>
+                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.infrastructure.communes}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Bureaux</span>
-                <span className="font-semibold text-purple-600">{stats.infrastructure.bureaux}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Bureaux</span>
+                <span className="font-semibold text-purple-600 text-sm sm:text-base">{stats.infrastructure.bureaux}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card className="election-card">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-[#1e40af]" />
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-[#1e40af]" />
                 Système
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4">
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-green-600">Système opérationnel</span>
+                <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                <span className="text-xs sm:text-sm text-green-600">Système opérationnel</span>
               </div>
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-blue-500" />
-                <span className="text-sm text-blue-600">Performance optimale</span>
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                <span className="text-xs sm:text-sm text-blue-600">Performance optimale</span>
               </div>
               <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-yellow-500" />
-                <span className="text-sm text-yellow-600">Satisfaction élevée</span>
+                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
+                <span className="text-xs sm:text-sm text-yellow-600">Satisfaction élevée</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Indicateurs de performance */}
-        <PerformanceWidget
-          metrics={[
-            {
-              label: "Efficacité",
-              value: stats.performance.efficiency,
-              target: 90,
-              color: "#10b981",
-              icon: Zap,
-              description: "Système opérationnel"
-            },
-            {
-              label: "Satisfaction",
-              value: stats.performance.satisfaction,
-              target: 85,
-              color: "#f59e0b",
-              icon: Star,
-              description: "Utilisateurs satisfaits"
-            },
-            {
-              label: "Participation",
-              value: stats.performance.participation,
-              target: 80,
-              color: "#8b5cf6",
-              icon: Target,
-              description: "Taux moyen"
-            }
-          ]}
-        />
+        {/* Actions rapides - Mobile First */}
+        <div className="space-y-4 sm:space-y-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Actions Rapides</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <Button 
+              onClick={() => navigate('/elections')}
+              className="h-16 sm:h-20 flex flex-col items-center justify-center gap-2 bg-[#1e40af] hover:bg-[#1e3a8a] text-white"
+            >
+              <Vote className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs sm:text-sm font-medium">Élections</span>
+            </Button>
+            
+            <Button 
+              onClick={() => navigate('/elections?action=create')}
+              className="h-16 sm:h-20 flex flex-col items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs sm:text-sm font-medium">Nouvelle</span>
+            </Button>
+            
+            <Button 
+              onClick={() => navigate('/elections?view=centers')}
+              className="h-16 sm:h-20 flex flex-col items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Building className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs sm:text-sm font-medium">Centres</span>
+            </Button>
+            
+            <Button 
+              onClick={() => navigate('/elections?view=candidates')}
+              className="h-16 sm:h-20 flex flex-col items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs sm:text-sm font-medium">Candidats</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Indicateurs de performance - Mobile First */}
+        <div className="space-y-4 sm:space-y-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Performance</h2>
+          <PerformanceWidget
+            metrics={[
+              {
+                label: "Efficacité",
+                value: stats.performance.efficiency,
+                target: 90,
+                color: "#10b981",
+                icon: Zap,
+                description: "Système opérationnel"
+              },
+              {
+                label: "Satisfaction",
+                value: stats.performance.satisfaction,
+                target: 85,
+                color: "#f59e0b",
+                icon: Star,
+                description: "Utilisateurs satisfaits"
+              },
+              {
+                label: "Participation",
+                value: stats.performance.participation,
+                target: 80,
+                color: "#8b5cf6",
+                icon: Target,
+                description: "Taux moyen"
+              }
+            ]}
+          />
+        </div>
       </div>
     </Layout>
   );

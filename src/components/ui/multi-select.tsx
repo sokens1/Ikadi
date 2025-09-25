@@ -86,46 +86,65 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     onSelectionChange(selected.filter(value => value !== optionValue));
   };
 
+  const handleSelectAll = () => {
+    const allValues = filteredOptions.map(option => option.value);
+    const newSelection = [...new Set([...selected, ...allValues])];
+    onSelectionChange(newSelection);
+  };
+
+  const handleDeselectAll = () => {
+    const filteredValues = filteredOptions.map(option => option.value);
+    const newSelection = selected.filter(value => !filteredValues.includes(value));
+    onSelectionChange(newSelection);
+  };
+
+  const isAllSelected = filteredOptions.length > 0 && filteredOptions.every(option => selected.includes(option.value));
+  const isSomeSelected = filteredOptions.some(option => selected.includes(option.value));
+
   const defaultRenderOption = (option: MultiSelectOption) => (
-    <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-      <div className="w-10 h-10 bg-[#1e40af]/10 rounded-full flex items-center justify-center">
+    <div className="multi-select-option">
+      <div className="multi-select-option-icon bg-[#1e40af]/10">
         {icon || <div className="w-5 h-5 bg-[#1e40af] rounded-full" />}
       </div>
-      <div className="flex-1">
-        <p className="font-medium text-gray-900">{option.label}</p>
+      <div className="multi-select-option-content">
+        <p className="multi-select-option-label">{option.label}</p>
         {option.subtitle && (
-          <p className="text-sm text-gray-600">{option.subtitle}</p>
+          <p className="multi-select-option-subtitle">{option.subtitle}</p>
         )}
       </div>
-      <Checkbox
-        checked={selected.includes(option.value)}
-        onCheckedChange={() => handleToggleOption(option.value)}
-        disabled={maxSelections && selected.length >= maxSelections && !selected.includes(option.value)}
-      />
+      <div className="multi-select-checkbox">
+        <Checkbox
+          checked={selected.includes(option.value)}
+          onCheckedChange={() => handleToggleOption(option.value)}
+          disabled={maxSelections && selected.length >= maxSelections && !selected.includes(option.value)}
+        />
+      </div>
     </div>
   );
 
   const defaultRenderSelected = (option: MultiSelectOption) => (
-    <div className="flex items-center justify-between bg-[#1e40af]/5 rounded-lg p-3">
-      <div className="flex items-center space-x-3">
-        <div className="w-8 h-8 bg-[#1e40af] rounded-full flex items-center justify-center">
+    <div className="flex items-center justify-between bg-[#1e40af]/5 rounded-lg p-3 min-h-[60px]">
+      <div className="flex items-center space-x-3 flex-1 min-w-0">
+        <div className="w-8 h-8 bg-[#1e40af] rounded-full flex items-center justify-center flex-shrink-0">
           {icon || <div className="w-4 h-4 bg-white rounded-full" />}
         </div>
-        <div>
-          <p className="font-medium text-gray-900">{option.label}</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-gray-900 truncate">{option.label}</p>
           {option.subtitle && (
-            <p className="text-sm text-gray-600">{option.subtitle}</p>
+            <p className="text-sm text-gray-600 truncate">{option.subtitle}</p>
           )}
         </div>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => handleRemoveSelected(option.value)}
-        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-      >
-        <X className="w-4 h-4" />
-      </Button>
+      <div className="flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleRemoveSelected(option.value)}
+          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 
@@ -144,7 +163,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       )}
 
       {/* Zone de sélection */}
-      <div className="min-h-[120px] border-2 border-dashed border-gray-300 rounded-xl p-4">
+      <div className="multi-select-container border-2 border-dashed border-gray-300 rounded-xl p-4 overflow-hidden min-h-[240px]">
         {selectedOptions.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -153,9 +172,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             <p className="text-sm">{emptyMessage}</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[240px] overflow-y-auto">
             {selectedOptions.map(option => (
-              <div key={option.value}>
+              <div key={option.value} className="w-full">
                 {renderSelected ? renderSelected(option) : defaultRenderSelected(option)}
               </div>
             ))}
@@ -183,63 +202,93 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
       {/* Modal de sélection */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="dialog-content-responsive">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               {icon}
               {title || 'Sélectionner des éléments'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Recherchez et sélectionnez les éléments souhaités dans la liste ci-dessous.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
-            {/* Barre de recherche */}
-            {searchable && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Rechercher..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            )}
+            {/* Barre de recherche et actions de sélection */}
+            <div className="space-y-3">
+              {searchable && (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Rechercher..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              )}
+              
+              {/* Actions de sélection en masse */}
+              {filteredOptions.length > 0 && (
+                <div className="selection-actions">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={isAllSelected ? handleDeselectAll : handleSelectAll}
+                      className="text-xs"
+                    >
+                      {isAllSelected ? 'Désélectionner tout' : 'Sélectionner tout'}
+                    </Button>
+                    {isSomeSelected && !isAllSelected && (
+                      <span className="text-xs text-gray-500">
+                        {filteredOptions.filter(option => selected.includes(option.value)).length} sur {filteredOptions.length} sélectionnés
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {filteredOptions.length} élément{filteredOptions.length > 1 ? 's' : ''} disponible{filteredOptions.length > 1 ? 's' : ''}
+                  </div>
+                </div>
+              )}
+            </div>
 
-            {/* Liste des options */}
-            <div className="max-h-96 overflow-y-auto space-y-1">
+            {/* Liste des options - 3 éléments avant scroll */}
+            <div className="max-h-[240px] overflow-y-auto space-y-1 border border-gray-200 rounded-lg">
               {filteredOptions.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Search className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                   <p>Aucun résultat trouvé</p>
                 </div>
               ) : (
-                filteredOptions.map(option => (
-                  <div key={option.value}>
-                    {renderOption ? renderOption(option) : defaultRenderOption(option)}
-                  </div>
-                ))
+                <div className="divide-y divide-gray-100">
+                  {filteredOptions.map(option => (
+                    <div key={option.value} className="w-full">
+                      {renderOption ? renderOption(option) : defaultRenderOption(option)}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t gap-3">
               <div className="text-sm text-gray-600">
                 {selected.length} élément{selected.length > 1 ? 's' : ''} sélectionné{selected.length > 1 ? 's' : ''}
                 {maxSelections && ` / ${maxSelections} maximum`}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   onClick={() => setIsOpen(false)}
+                  className="flex-1 sm:flex-none"
                 >
                   Annuler
                 </Button>
                 <Button
                   onClick={() => setIsOpen(false)}
-                  className="bg-[#1e40af] hover:bg-[#1e3a8a]"
+                  className="bg-[#1e40af] hover:bg-[#1e3a8a] flex-1 sm:flex-none"
                 >
                   <Check className="w-4 h-4 mr-2" />
                   Valider
