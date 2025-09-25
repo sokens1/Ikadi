@@ -10,6 +10,7 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import PublicHomePage from "./pages/PublicHomePage";
 import ElectionResults from "./pages/ElectionResults";
 import Dashboard from "./pages/Dashboard";
+import DashboardModernSimple from "./pages/DashboardModernSimple";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ElectionManagementUnified from "./pages/ElectionManagementUnified";
 import UserManagement from "./pages/UserManagement";
@@ -43,7 +44,7 @@ const App = () => {
                   <Route path="/" element={<PublicHomePage />} />
                   <Route path="/election/:electionId/results" element={<ElectionResults />} />
                   <Route path="/login" element={<Login />} />
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={<ProtectedRoute><DashboardModernSimple /></ProtectedRoute>} />
                   <Route path="/elections" element={<ProtectedRoute><ElectionManagementUnified /></ProtectedRoute>} />
                   <Route path="/centers" element={<ProtectedRoute><VotingCenters /></ProtectedRoute>} />
                   <Route path="/voters" element={<ProtectedRoute><Voters /></ProtectedRoute>} />

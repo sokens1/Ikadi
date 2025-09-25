@@ -48,7 +48,17 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   
   const filteredOptions = useMemo(() => {
-    if (!options || !Array.isArray(options)) return [];
+    console.log('🔍 MultiSelect - Filtrage des options:', { 
+      optionsCount: options?.length || 0, 
+      searchQuery, 
+      searchable,
+      options: options?.slice(0, 3) // Afficher les 3 premiers pour debug
+    });
+    
+    if (!options || !Array.isArray(options)) {
+      console.log('❌ MultiSelect - Options invalides:', options);
+      return [];
+    }
     if (!searchable || !searchQuery) return options;
     return options.filter(option => 
       option.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
