@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,15 +7,74 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Vote, Building, ArrowRight, Shield, CheckCircle, Users, BarChart3 } from 'lucide-react';
+import { fetchAllElections } from '../api/elections';
+
+interface Election {
+  id: string;
+  title: string;
+  election_date: string;
+  status: string;
+  description?: string;
+  localisation?: string;
+  nb_electeurs?: number;
+  is_published?: boolean;
+}
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [elections, setElections] = useState<Election[]>([]);
+  const [electionsLoading, setElectionsLoading] = useState(true);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Charger les élections depuis la base de données
+  useEffect(() => {
+    const fetchElections = async () => {
+      try {
+        setElectionsLoading(true);
+        const electionsData = await fetchAllElections();
+        setElections(electionsData || []);
+        console.log('Élections chargées:', electionsData); // Debug pour voir les élections disponibles
+      } catch (error) {
+        console.error('Erreur lors du chargement des élections:', error);
+      } finally {
+        setElectionsLoading(false);
+      }
+    };
+
+    fetchElections();
+  }, []);
+
+  const handleElectionRedirect = (type: 'legislative' | 'local') => {
+    // Trouver l'élection correspondante dans la base de données
+    const electionTypeMap = {
+      legislative: ['Législative', 'Législatives', 'Legislative'],
+      local: ['Locale', 'Locales', 'Local', 'Municipale', 'Municipales']
+    };
+    
+    const targetTypes = electionTypeMap[type];
+    const foundElection = elections.find(election => 
+      targetTypes.some(targetType => 
+        election.title?.toLowerCase().includes(targetType.toLowerCase()) ||
+        election.description?.toLowerCase().includes(targetType.toLowerCase()) ||
+        election.localisation?.toLowerCase().includes(targetType.toLowerCase())
+      )
+    );
+    
+    if (foundElection) {
+      navigate(`/election/${foundElection.id}/results`);
+    } else {
+      toast({
+        title: "Élection non disponible",
+        description: `Aucune élection ${type === 'legislative' ? 'Législative' : 'Locale'} n'est disponible pour le moment.`,
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,39 +108,109 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Section gauche - Fond bleu avec image */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gov-blue to-gov-blue-dark flex-col items-center justify-center p-8 relative overflow-hidden">
+      {/* Section gauche - Fond bleu avec sélection d'élection */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gov-blue via-blue-700 to-gov-blue-dark flex-col items-center justify-center p-8 relative overflow-hidden">
         {/* Logo */}
         <div className="absolute top-8 left-8">
-          <Link to="/" className="inline-block">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <span className="text-gov-blue font-bold text-lg">iK</span>
-              </div>
-              <div>
-                <h1 className="text-white font-bold text-2xl">iKadi</h1>
-                <p className="text-blue-100 text-xs">Gestion Électorale</p>
-              </div>
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+              <span className="text-gov-blue font-bold text-lg">iK</span>
             </div>
-          </Link>
+            <div>
+              <h1 className="text-white font-bold text-2xl">iKadi</h1>
+              <p className="text-blue-100 text-xs">Plateforme Électorale</p>
+            </div>
+          </div>
         </div>
 
-        {/* Image SVG */}
-        <div className="flex-1 flex items-center justify-center">
-          <img 
-            src="/images/Login-user.svg" 
-            alt="Login Illustration" 
-            className="max-w-md w-full h-auto object-contain"
-          />
+        {/* Contenu principal */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center text-white max-w-lg">
+          {/* Titre principal */}
+          <div className="mb-8">
+            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+              Choisissez votre élection
+            </h2>
+            <p className="text-blue-100 text-lg leading-relaxed">
+              Sélectionnez le type d'élection pour accéder aux résultats de l'élection dédiés
+            </p>
+          </div>
+
+           {/* Boutons de sélection d'élection */}
+           <div className="space-y-4 w-full max-w-md">
+             {/* Bouton Élection Législative */}
+             <button
+               onClick={() => handleElectionRedirect('legislative')}
+               disabled={electionsLoading}
+               className={`w-full p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
+               }`}
+             >
+               <div className="flex items-center justify-between">
+                 <div className="flex items-center space-x-4">
+                   <div className="p-3 rounded-lg bg-white/20 text-white">
+                     {electionsLoading ? (
+                       <Loader2 className="w-6 h-6 animate-spin" />
+                     ) : (
+                       <Building className="w-6 h-6" />
+                     )}
+                   </div>
+                   <div className="text-left">
+                     <h3 className="font-bold text-lg">Élection Législative</h3>
+                     <p className="text-sm opacity-80">Élection des députés</p>
+                   </div>
+                 </div>
+                 {!electionsLoading && <ArrowRight className="w-5 h-5 transition-transform text-white/60" />}
+               </div>
+             </button>
+
+             {/* Bouton Élection Locale */}
+             <button
+               onClick={() => handleElectionRedirect('local')}
+               disabled={electionsLoading}
+               className={`w-full p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
+               }`}
+             >
+               <div className="flex items-center justify-between">
+                 <div className="flex items-center space-x-4">
+                   <div className="p-3 rounded-lg bg-white/20 text-white">
+                     {electionsLoading ? (
+                       <Loader2 className="w-6 h-6 animate-spin" />
+                     ) : (
+                       <Vote className="w-6 h-6" />
+                     )}
+                   </div>
+                   <div className="text-left">
+                     <h3 className="font-bold text-lg">Élection Locale</h3>
+                     <p className="text-sm opacity-80">Élection des conseils municipaux</p>
+                   </div>
+                 </div>
+                 {!electionsLoading && <ArrowRight className="w-5 h-5 transition-transform text-white/60" />}
+               </div>
+             </button>
+           </div>
+
+          {/* Avantages de la plateforme */}
+          <div className="mt-8 grid grid-cols-2 gap-4 w-full max-w-md">
+            <div className="flex items-center space-x-2 text-blue-100">
+              <Shield className="w-4 h-4 text-green-400" />
+              <span className="text-xs">Sécurisé</span>
+            </div>
+            <div className="flex items-center space-x-2 text-blue-100">
+              <CheckCircle className="w-4 h-4 text-green-400" />
+              <span className="text-xs">Transparent</span>
+            </div>
+            <div className="flex items-center space-x-2 text-blue-100">
+              <Users className="w-4 h-4 text-green-400" />
+              <span className="text-xs">Accessible</span>
+            </div>
+            <div className="flex items-center space-x-2 text-blue-100">
+              <BarChart3 className="w-4 h-4 text-green-400" />
+              <span className="text-xs">Analytique</span>
+            </div>
+          </div>
         </div>
 
-        {/* Texte en bas */}
-        <div className="text-center text-white">
-          <h2 className="text-2xl font-bold mb-2">Système de Gestion Électorale</h2>
-          <p className="text-blue-100 text-sm max-w-md">
-            Plateforme sécurisée pour la gestion transparente et efficace des processus électoraux au Gabon
-          </p>
-        </div>
       </div>
 
       {/* Section droite - Formulaire */}
@@ -89,27 +218,26 @@ const Login = () => {
         <div className="w-full max-w-md">
           {/* Logo mobile */}
           <div className="lg:hidden text-center mb-8">
-            <Link to="/" className="inline-block">
-              <div className="flex items-center justify-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gov-blue rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">iK</span>
-                </div>
-                <div className="text-left">
-                  <h1 className="text-gov-blue font-bold text-3xl">iKadi</h1>
-                  <p className="text-gray-600 text-sm">Gestion Électorale</p>
-                </div>
+            <div className="flex items-center justify-center space-x-3 mb-6">
+              <div className="w-12 h-12 bg-gov-blue rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-xl">iK</span>
               </div>
-            </Link>
+              <div className="text-left">
+                <h1 className="text-gov-blue font-bold text-3xl">iKadi</h1>
+                <p className="text-gray-600 text-sm">Plateforme Électorale</p>
+              </div>
+            </div>
+            
           </div>
 
           <Card className="bg-white shadow-2xl border-0">
             <CardHeader className="pb-6">
-              <CardTitle className="text-center text-2xl text-gray-800">
-                Connexion
-              </CardTitle>
-              <p className="text-center text-gray-600 text-sm">
-                Accédez à votre tableau de bord sécurisé
-              </p>
+               <CardTitle className="text-center text-2xl text-gray-800">
+                 Connexion
+               </CardTitle>
+               <p className="text-center text-gray-600 text-sm">
+                 Accédez à votre tableau de bord sécurisé
+               </p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -154,29 +282,26 @@ const Login = () => {
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-gov-blue hover:bg-gov-blue-dark text-white font-medium transition-colors"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Connexion...
-                    </>
-                  ) : (
-                    "Se connecter"
-                  )}
-                </Button>
+                 <Button
+                   type="submit"
+                   className="w-full h-12 bg-gov-blue hover:bg-gov-blue-dark text-white font-medium transition-colors"
+                   disabled={isLoading}
+                 >
+                   {isLoading ? (
+                     <>
+                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                       Connexion...
+                     </>
+                   ) : (
+                     "Se connecter"
+                   )}
+                 </Button>
               </form>
 
               <div className="mt-6 text-center">
-                <Link 
-                  to="/" 
-                  className="text-sm text-gov-blue hover:text-gov-blue-dark hover:underline transition-colors"
-                >
-                  ← Retour à l'accueil public
-                </Link>
+                <p className="text-xs text-gray-500">
+                  Plateforme sécurisée de gestion électorale
+                </p>
               </div>
             </CardContent>
           </Card>
