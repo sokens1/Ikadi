@@ -219,6 +219,10 @@ const ElectionResults: React.FC = () => {
   const [resultsMenuOpen, setResultsMenuOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'center' | 'participation' | 'score' | 'votes'>('center');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  
+  // États de tri pour les modales des candidats
+  const [candidateModalSortBy, setCandidateModalSortBy] = useState<'center' | 'participation' | 'score' | 'votes'>('center');
+  const [candidateModalSortOrder, setCandidateModalSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Build center name map for global views (must be declared before any early returns)
   React.useEffect(() => {
@@ -438,6 +442,77 @@ const ElectionResults: React.FC = () => {
       return sortedBureaux;
     }
   };
+
+  // Fonctions de tri pour les modales des candidats
+  const getSortedCandidateCenters = () => {
+    return [...candidateCenters].sort((a, b) => {
+      let comparison = 0;
+      switch (candidateModalSortBy) {
+        case 'center':
+          comparison = (a.center_name || '').localeCompare(b.center_name || '');
+          break;
+        case 'participation':
+          comparison = (a.candidate_participation_pct || 0) - (b.candidate_participation_pct || 0);
+          break;
+        case 'score':
+          comparison = (a.candidate_percentage || 0) - (b.candidate_percentage || 0);
+          break;
+        case 'votes':
+          comparison = (a.candidate_votes || 0) - (b.candidate_votes || 0);
+          break;
+      }
+      return candidateModalSortOrder === 'asc' ? comparison : -comparison;
+    });
+  };
+
+  const getSortedCandidateBureaux = () => {
+    return [...candidateBureaux].sort((a, b) => {
+      let comparison = 0;
+      
+      // Si le tri est par centre, trier d'abord par centre puis par numéro de bureau
+      if (candidateModalSortBy === 'center') {
+        const centerA = a.center_name || candidateCenterNameById[a.center_id] || '';
+        const centerB = b.center_name || candidateCenterNameById[b.center_id] || '';
+        comparison = centerA.localeCompare(centerB);
+        
+        // Si les centres sont identiques, trier par numéro de bureau
+        if (comparison === 0) {
+          const numA = parseInt(a.bureau_name?.match(/\d+/)?.[0] || '0');
+          const numB = parseInt(b.bureau_name?.match(/\d+/)?.[0] || '0');
+          comparison = numA - numB;
+        }
+      } else {
+        // Pour les autres critères, trier selon le critère sélectionné
+        switch (candidateModalSortBy) {
+          case 'participation':
+            comparison = (a.candidate_participation_pct || 0) - (b.candidate_participation_pct || 0);
+            break;
+          case 'score':
+            comparison = (a.candidate_percentage || 0) - (b.candidate_percentage || 0);
+            break;
+          case 'votes':
+            comparison = (a.candidate_votes || 0) - (b.candidate_votes || 0);
+            break;
+        }
+        
+        // Si les valeurs sont identiques, trier par centre puis par bureau
+        if (comparison === 0) {
+          const centerA = a.center_name || candidateCenterNameById[a.center_id] || '';
+          const centerB = b.center_name || candidateCenterNameById[b.center_id] || '';
+          comparison = centerA.localeCompare(centerB);
+          
+          if (comparison === 0) {
+            const numA = parseInt(a.bureau_name?.match(/\d+/)?.[0] || '0');
+            const numB = parseInt(b.bureau_name?.match(/\d+/)?.[0] || '0');
+            comparison = numA - numB;
+          }
+        }
+      }
+      
+      return candidateModalSortOrder === 'asc' ? comparison : -comparison;
+    });
+  };
+
   const handleOpenCandidate = async (candidateId: string) => {
     setOpenCandidateId(candidateId);
     if (results?.election) {
@@ -678,9 +753,43 @@ const ElectionResults: React.FC = () => {
                     <TabsTrigger value="center">Par centre</TabsTrigger>
                     <TabsTrigger value="bureau">Par bureau</TabsTrigger>
                   </TabsList>
+                  
+                  {/* Contrôles de tri pour les modales des candidats */}
+                  <div className="flex items-center justify-between mt-4 p-4 bg-gray-50 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-700">Trier par :</span>
+                      <select 
+                        value={candidateModalSortBy} 
+                        onChange={(e) => setCandidateModalSortBy(e.target.value as any)}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="center">Centre</option>
+                        <option value="participation">Participation</option>
+                        <option value="score">Score</option>
+                        <option value="votes">Voix</option>
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => setCandidateModalSortOrder(candidateModalSortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
+                    >
+                      {candidateModalSortOrder === 'asc' ? (
+                        <>
+                          <TrendingUp className="w-4 h-4" />
+                          Croissant
+                        </>
+                      ) : (
+                        <>
+                          <TrendingDown className="w-4 h-4" />
+                          Décroissant
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
                   <TabsContent value="center">
                     <div className="space-y-3 mt-3">
-                      {candidateCenters.map((row, idx) => (
+                      {getSortedCandidateCenters().map((row, idx) => (
                         <details key={idx} className="bg-white rounded border">
                           <summary className="cursor-pointer px-4 py-3 flex items-center justify-between bg-slate-100">
                             <span className="font-semibold">{row.center_name}</span>
@@ -702,7 +811,7 @@ const ElectionResults: React.FC = () => {
                                   </tr>
                                 </thead>
                                 <tbody className="text-sm">
-                                  {candidateBureaux.filter(b => b.center_id === row.center_id).map((b, i2) => (
+                                  {getSortedCandidateBureaux().filter(b => b.center_id === row.center_id).map((b, i2) => (
                                     <tr key={i2} className="odd:bg-white even:bg-slate-50">
                                       <td className="px-3 py-2 border">{b.bureau_name}</td>
                                       <td className="px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
@@ -710,7 +819,7 @@ const ElectionResults: React.FC = () => {
                                       <td className="px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct,0),100).toFixed(2)}%` : '-'}</td>
                                     </tr>
                                   ))}
-                                  {candidateBureaux.filter(b => b.center_id === row.center_id).length === 0 && (
+                                  {getSortedCandidateBureaux().filter(b => b.center_id === row.center_id).length === 0 && (
                                     <tr>
                                       <td className="px-3 py-4 text-center text-gov-gray" colSpan={4}>Aucun bureau</td>
                                     </tr>
@@ -721,7 +830,7 @@ const ElectionResults: React.FC = () => {
                           </div>
                         </details>
                       ))}
-                      {candidateCenters.length === 0 && <div className="text-gov-gray">Aucun centre</div>}
+                      {getSortedCandidateCenters().length === 0 && <div className="text-gov-gray">Aucun centre</div>}
                     </div>
                   </TabsContent>
                   <TabsContent value="bureau">
@@ -736,7 +845,7 @@ const ElectionResults: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="text-sm">
-                          {candidateBureaux.map((b, idx) => (
+                          {getSortedCandidateBureaux().map((b, idx) => (
                             <tr key={idx} className="odd:bg-white even:bg-slate-50">
                               <td className="px-3 py-2 border">{b.bureau_name}</td>
                               <td className="px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
@@ -744,7 +853,7 @@ const ElectionResults: React.FC = () => {
                               <td className="px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct,0),100).toFixed(2)}%` : '-'}</td>
                             </tr>
                           ))}
-                          {candidateBureaux.length === 0 && (
+                          {getSortedCandidateBureaux().length === 0 && (
                             <tr>
                               <td className="px-3 py-4 text-center text-gov-gray" colSpan={4}>Aucun bureau</td>
                             </tr>
