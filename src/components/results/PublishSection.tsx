@@ -135,6 +135,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         let totalVotants = 0;
         let bulletinsNuls = 0;
         let totalInscrits = 0;
+        let totalExprimesPV = 0;
 
         // Agrégation locale à partir des candidate_results (respecte le filtre précédent)
         crRows.forEach((r: any) => {
@@ -147,14 +148,17 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           totalVotants += Number(pv.total_voters) || 0;
           bulletinsNuls += Number(pv.null_votes) || 0;
           totalInscrits += Number(pv.total_registered) || 0;
+          totalExprimesPV += Number(pv.votes_expressed) || 0;
         });
 
         const candidates = Object.values(votesByCandidate).sort((a, b) => b.votes - a.votes);
         const totalVotes = candidates.reduce((s, c) => s + c.votes, 0);
+        // Base de pourcentage: privilégier la valeur des PV (plus fiable), fallback sur somme candidats
+        const baseExprimes = totalExprimesPV > 0 ? totalExprimesPV : totalVotes;
         const colorPalette = ['#22c55e','#ef4444','#3b82f6','#a855f7','#f59e0b','#06b6d4'];
         const candidatesWithPct = candidates.map((c, idx) => ({
           ...c,
-          percentage: totalVotes > 0 ? Number(((100 * c.votes) / totalVotes).toFixed(2)) : 0,
+          percentage: baseExprimes > 0 ? Number(((100 * c.votes) / baseExprimes).toFixed(2)) : 0,
           color: colorPalette[idx % colorPalette.length]
         }));
 
@@ -167,7 +171,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             totalVotants,
             tauxParticipation: totalInscrits > 0 ? Number(((totalVotants / totalInscrits) * 100).toFixed(2)) : 0,
             bulletinsNuls,
-            suffragesExprimes: totalVotes
+            suffragesExprimes: baseExprimes
           },
           candidates: candidatesWithPct,
           validatedBureaux,
