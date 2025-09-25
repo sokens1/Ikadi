@@ -131,6 +131,11 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
                     selected={selectedCandidates}
                     onSelectionChange={setSelectedCandidates}
                     placeholder="Sélectionnez des candidats..."
+                    title="Candidats"
+                    icon={<Users className="w-5 h-5 text-[#1e40af]" />}
+                    searchable={true}
+                    emptyMessage="Aucun candidat sélectionné"
+                    className="w-full"
                   />
                 </div>
               </ModernFormSection>
