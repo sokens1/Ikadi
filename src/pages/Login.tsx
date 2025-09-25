@@ -51,37 +51,51 @@ const Login = () => {
     <div className="min-h-screen flex">
       {/* Section gauche - Fond bleu avec image */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gov-blue to-gov-blue-dark flex-col items-center justify-center p-8 relative overflow-hidden">
-        {/* Logo */}
-        <div className="absolute top-8 left-8">
-          <Link to="/" className="inline-block">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <span className="text-gov-blue font-bold text-lg">iK</span>
-              </div>
-              <div>
-                <h1 className="text-white font-bold text-2xl">iKadi</h1>
-                <p className="text-blue-100 text-xs">Gestion Électorale</p>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Image SVG */}
-        <div className="flex-1 flex items-center justify-center">
+        {/* Dessins en rapport avec les élections */}
+        <div className="absolute inset-0 z-0">
           <img 
-            src="/images/Login-user.svg" 
-            alt="Login Illustration" 
-            className="max-w-md w-full h-auto object-contain"
+            src="/images/election-icons.svg" 
+            alt="" 
+            className="w-full h-full object-cover opacity-10"
           />
         </div>
-
-        {/* Texte en bas */}
-        <div className="text-center text-white">
-          <h2 className="text-2xl font-bold mb-2">Système de Gestion Électorale</h2>
-          <p className="text-blue-100 text-sm max-w-md">
-            Plateforme sécurisée pour la gestion transparente et efficace des processus électoraux au Gabon
-          </p>
+        
+        {/* Fond avec motif subtil */}
+        <div className="absolute inset-0 z-0">
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.1)"/>
+            </pattern>
+            <rect width="100%" height="100%" fill="url(#dots)" />
+          </svg>
         </div>
+        {/* Carte supérieure */}
+        <Link to="/election-results?type=legislative" className="block mb-4">
+          <Card className="bg-white/90 shadow-2xl border-0 w-full max-w-xs h-[100px] flex items-center justify-center hover:bg-white/100 transition-all transform hover:scale-105">
+            <CardHeader className="py-2">
+              <CardTitle className="text-center text-base text-gray-800">
+                 Elections Législatives
+              </CardTitle>
+              <p className="text-center text-gray-600 text-xs mt-1">
+                Résultats officiels par bureau et par centre
+              </p>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        {/* Carte inférieure */}
+        <Link to="/election-results?type=local" className="block">
+          <Card className="bg-white/90 shadow-2xl border-0 w-full max-w-xs h-[100px] flex items-center justify-center hover:bg-white/100 transition-all transform hover:scale-105">
+            <CardHeader className="py-2">
+              <CardTitle className="text-center text-base text-gray-800">
+                Elections Locales
+              </CardTitle>
+              <p className="text-center text-gray-600 text-xs mt-1">
+                Résultats officiels par bureau et par centre
+              </p>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
 
       {/* Section droite - Formulaire */}
