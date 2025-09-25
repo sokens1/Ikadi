@@ -39,11 +39,10 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     budget: '',
     voteGoal: '',
     
-    // Étape 2
-    province: '',
-    department: '',
-    commune: '',
-    arrondissement: '',
+     // Étape 2
+     province: '',
+     commune: '',
+     arrondissement: '',
     
     // Étape 3 - Candidats sélectionnés
     selectedCandidates: [] as string[],
@@ -53,19 +52,26 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     totalVoters: ''
   });
 
+  // Initialiser la date avec la date d'aujourd'hui
+  useEffect(() => {
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    setFormData(prev => ({ ...prev, date: prev.date || formattedDate }));
+  }, []);
+
   // États pour les données de candidats et centres
   const [candidates, setCandidates] = useState<Array<{identifiant: string, nom: string, parti: string, est_notre_candidat: boolean}>>([]);
   const [centers, setCenters] = useState<Array<{identifiant: string, nom: string, adresse: string, total_voters: number, total_bureaux: number}>>([]);
 
   // États pour les données de localisation
   const [provinces, setProvinces] = useState<Array<{id: string, name: string}>>([]);
-  const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([]);
+  // const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([]);
   const [communes, setCommunes] = useState<Array<{id: string, name: string}>>([]);
   const [arrondissements, setArrondissements] = useState<Array<{id: string, name: string}>>([]);
   
   // États pour les IDs sélectionnés
   const [selectedProvinceId, setSelectedProvinceId] = useState<string>('');
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+  // const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [selectedCommuneId, setSelectedCommuneId] = useState<string>('');
   const [selectedArrondissementId, setSelectedArrondissementId] = useState<string>('');
 
@@ -85,19 +91,19 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
   };
 
   // Charger les départements
-  const loadDepartments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('id, name')
-        .order('name');
+  // const loadDepartments = async () => {
+  //   try {
+  //     const { data, error } = await supabase
+  //       .from('departments')
+  //       .select('id, name')
+  //       .order('name');
       
-      if (error) throw error;
-      setDepartments(data || []);
-    } catch (error) {
-      console.error('Erreur lors du chargement des départements:', error);
-    }
-  };
+  //     if (error) throw error;
+  //     setDepartments(data || []);
+  //   } catch (error) {
+  //     console.error('Erreur lors du chargement des départements:', error);
+  //   }
+  // };
 
   // Charger les communes
   const loadCommunes = async () => {
@@ -190,7 +196,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
   // Charger toutes les données
   useEffect(() => {
     loadProvinces();
-    loadDepartments();
+    // loadDepartments();
     loadCommunes();
     loadArrondissements();
     loadCandidates();
@@ -238,16 +244,18 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         seatsAvailable: Number(formData.seatsAvailable) || 1,
         budget: Number(formData.budget) || 0,
         voteGoal: Number(formData.voteGoal) || 0,
-        province: formData.province,
-        department: formData.department,
-        commune: formData.commune,
-        arrondissement: formData.arrondissement,
+         province: formData.province,
+         commune: formData.commune,
+         arrondissement: formData.arrondissement,
         candidates: selectedCandidatesData,
         centers: selectedCentersData,
         totalCenters: selectedCentersData.length,
         totalBureaux: totalBureaux,
         totalVoters: totalElecteurs || Number(formData.totalVoters) || 0
       };
+
+      console.log('Données de l\'élection à valider:', election);
+      console.log('Date formatée:', formData.date, 'Type:', typeof formData.date);
       
       onSubmit(election);
     } else if (onSuccess) {
@@ -452,7 +460,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                                 {formData.type === "Locales" ? "C'est notre liste" : "Notre Candidat"}
                               </Badge>
                             )}
-                          </div>
+            </div>
                   <Checkbox
                     checked={formData.selectedCandidates.includes(option.value)}
                     onCheckedChange={(checked) => {
@@ -470,8 +478,8 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                         });
                       }
                     }}
-                  />
-                </div>
+              />
+            </div>
               )}
             />
           </ModernFormSection>
@@ -515,7 +523,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                   <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
                     <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                       <Building className="w-5 h-5 text-green-600" />
-                        </div>
+                </div>
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{option.label}</p>
                       <p className="text-sm text-gray-600">{option.subtitle}</p>
@@ -526,8 +534,8 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                         <Badge variant="outline" className="text-xs">
                           {option.metadata?.total_voters || 0} électeurs
                         </Badge>
-                      </div>
-                    </div>
+                </div>
+              </div>
                     <Checkbox
                       checked={formData.selectedCenters.includes(option.value)}
                       onCheckedChange={(checked) => {
@@ -546,7 +554,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                         }
                       }}
                     />
-                  </div>
+              </div>
                 )}
               />
             </ModernFormSection>
@@ -562,21 +570,21 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                   <div className="text-center p-3 bg-white rounded-lg">
                     <div className="text-2xl font-bold text-gov-blue">{selectedCentersData.length}</div>
                     <div className="text-sm text-gov-blue">Centres</div>
-                  </div>
+            </div>
                   <div className="text-center p-3 bg-white rounded-lg">
                     <div className="text-2xl font-bold text-green-600">{totalBureaux}</div>
                     <div className="text-sm text-green-600">Bureaux</div>
-                  </div>
+                          </div>
                   <div className="text-center p-3 bg-white rounded-lg">
                     <div className="text-2xl font-bold text-purple-600">{totalElecteurs.toLocaleString('fr-FR')}</div>
                     <div className="text-sm text-purple-600">Électeurs</div>
-                  </div>
+                        </div>
                   <div className="text-center p-3 bg-white rounded-lg">
                     <div className="text-2xl font-bold text-orange-600">
                       {totalBureaux > 0 ? Math.round(totalElecteurs / totalBureaux) : 0}
-                    </div>
+                      </div>
                     <div className="text-sm text-orange-600">Électeurs/bureau</div>
-                  </div>
+                    </div>
                 </div>
               </div>
             )}
@@ -595,7 +603,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                 disabled
               />
             </ModernFormGrid>
-          </div>
+            </div>
         );
       }
         
@@ -654,7 +662,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                       Circonscription
                     </h5>
                     <div className="text-sm text-green-900">
-                      {formData.province} {formData.department ? `→ ${formData.department}` : ''} {formData.commune ? `→ ${formData.commune}` : ''} {formData.arrondissement ? `→ ${formData.arrondissement}` : ''}
+                       {formData.province} {formData.commune ? `→ ${formData.commune}` : ''} {formData.arrondissement ? `→ ${formData.arrondissement}` : ''}
                     </div>
                   </div>
                 </div>
@@ -684,9 +692,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                       </div>
                   </div>
                   </div>
-                </div>
-              </div>
-
+                  </div>
+                  </div>
+                  
               {/* Détail des candidats sélectionnés */}
               {selectedCandidatesData.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
@@ -700,20 +708,20 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                         <div className="flex items-center space-x-2 flex-1 min-w-0">
                           <div className="w-6 h-6 bg-gov-blue rounded-full flex items-center justify-center flex-shrink-0">
                             <Users className="w-3 h-3 text-white" />
-                          </div>
+                  </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-sm font-medium text-gray-900 line-clamp-1">{candidate.nom}</span>
                             <span className="text-xs text-gray-500 block">{candidate.parti}</span>
-                          </div>
+                    </div>
                           {candidate.est_notre_candidat && (
                             <Badge className="bg-gov-blue text-white px-1.5 py-1 text-xs flex-shrink-0">
                               <Star className="w-2 h-2 mr-1" />
                               <span className="hidden xs:inline">Notre Candidat</span>
                               <span className="xs:hidden">Notre</span>
                             </Badge>
-                          )}
-                        </div>
-                      </div>
+                  )}
+                </div>
+              </div>
                     ))}
                   </div>
                 </div>
@@ -743,7 +751,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                         </div>
                       </div>
                     ))}
-              </div>
+            </div>
             </div>
               )}
             </ModernFormSection>
@@ -766,14 +774,14 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
           <div className="flex-1 min-w-0">
               <h2 className="text-lg sm:text-xl lg:text-2xl font-bold leading-tight">Configurer une nouvelle élection</h2>
               <p className="text-gov-blue-light/80 mt-1 text-sm sm:text-base">Étape {currentStep} sur 5 : {steps[currentStep - 1]}</p>
-            </div>
+          </div>
             <Button 
               variant="ghost" 
               onClick={onClose} 
               className="text-white hover:bg-white/20 rounded-xl p-2 flex-shrink-0 ml-2"
             >
-              <X className="w-5 h-5 sm:w-6 sm:h-6" />
-            </Button>
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
+          </Button>
           </div>
         </div>
 
@@ -820,7 +828,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
             disabled={currentStep === 1}
               className="flex items-center px-3 sm:px-6 py-2 sm:py-3 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300 text-sm sm:text-base"
           >
-              <ChevronLeft className="w-4 h-4 mr-1 sm:mr-2" />
+            <ChevronLeft className="w-4 h-4 mr-1 sm:mr-2" />
             <span className="hidden xs:inline">Précédent</span>
             <span className="xs:hidden">Préc.</span>
           </Button>

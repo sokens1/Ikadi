@@ -33,7 +33,6 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     date: election.date.toISOString().split('T')[0],
     description: election.description || '',
     province: election.location.province,
-    department: election.location.department,
     commune: election.location.commune,
     arrondissement: election.location.arrondissement,
     seatsAvailable: election.configuration.seatsAvailable || '',
@@ -48,13 +47,13 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
   
   // États pour les données de localisation
   const [provinces, setProvinces] = useState<Array<{id: string, name: string}>>([]);
-  const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([]);
+  // const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([]);
   const [communes, setCommunes] = useState<Array<{id: string, name: string}>>([]);
   const [arrondissements, setArrondissements] = useState<Array<{id: string, name: string}>>([]);
   
   // États pour les IDs sélectionnés
   const [selectedProvinceId, setSelectedProvinceId] = useState<string>('');
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+  // const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [selectedCommuneId, setSelectedCommuneId] = useState<string>('');
   const [selectedArrondissementId, setSelectedArrondissementId] = useState<string>('');
 
@@ -78,19 +77,19 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
   };
 
   // Charger les départements
-  const loadDepartments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('id, name')
-        .order('name');
+  // const loadDepartments = async () => {
+  //   try {
+  //     const { data, error } = await supabase
+  //       .from('departments')
+  //       .select('id, name')
+  //       .order('name');
       
-      if (error) throw error;
-      setDepartments(data || []);
-    } catch (error) {
-      console.error('Erreur lors du chargement des départements:', error);
-    }
-  };
+  //     if (error) throw error;
+  //     setDepartments(data || []);
+  //   } catch (error) {
+  //     console.error('Erreur lors du chargement des départements:', error);
+  //   }
+  // };
 
   // Charger les communes
   const loadCommunes = async () => {
@@ -179,7 +178,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
   // Charger toutes les données
   useEffect(() => {
     loadProvinces();
-    loadDepartments();
+    // loadDepartments();
     loadCommunes();
     loadArrondissements();
     loadCandidates();
@@ -220,12 +219,12 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     }
   }, [provinces, formData.province]);
 
-  useEffect(() => {
-    if (departments.length > 0) {
-      const currentDepartment = departments.find(d => d.name === formData.department);
-      if (currentDepartment) setSelectedDepartmentId(currentDepartment.id);
-    }
-  }, [departments, formData.department]);
+  // useEffect(() => {
+  //   if (departments.length > 0) {
+  //     const currentDepartment = departments.find(d => d.name === formData.department);
+  //     if (currentDepartment) setSelectedDepartmentId(currentDepartment.id);
+  //   }
+  // }, [departments, formData.department]);
 
   useEffect(() => {
     if (communes.length > 0) {
@@ -365,7 +364,6 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
         description: formData.description.trim(),
         location: {
           province: formData.province,
-          department: '',
           commune: formData.commune,
           arrondissement: formData.arrondissement,
           fullAddress: `${formData.commune}, ${formData.province}`,

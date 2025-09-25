@@ -142,11 +142,9 @@ const ElectionManagementUnified = () => {
       const transformedElections: Election[] = electionsWithCounts.map(election => {
         console.log('Données de localisation pour l\'élection:', election.title, {
           province_name: election.province_name,
-          department_name: election.department_name,
           commune_name: election.commune_name,
           arrondissement_name: election.arrondissement_name,
           province: election.province,
-          department: election.department,
           commune: election.commune,
           arrondissement: election.arrondissement
         });
@@ -159,12 +157,11 @@ const ElectionManagementUnified = () => {
           description: election.description || '',
           location: {
             province: election.province_name || election.province || 'Haut-Ogooué',
-            department: election.department_name || election.department || 'Moanda',
             commune: election.commune_name || election.commune || 'Moanda',
             arrondissement: election.arrondissement_name || election.arrondissement || '1er Arrondissement',
             fullAddress: election.localisation || 
-              `${election.commune_name || election.commune || 'Moanda'}, ${election.department_name || election.department || 'Moanda'}` ||
-              'Moanda, Moanda',
+              `${election.commune_name || election.commune || 'Moanda'}, ${election.province_name || election.province || 'Haut-Ogooué'}` ||
+              'Moanda, Haut-Ogooué',
           },
           configuration: {
             seatsAvailable: election.seats_available || 1,
@@ -225,7 +222,6 @@ const ElectionManagementUnified = () => {
       election.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       election.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       election.location.commune.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      election.location.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
       election.location.province.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || election.status === statusFilter;
@@ -472,10 +468,26 @@ const ElectionManagementUnified = () => {
 
   const handleCreateElection = async (electionData: CreateElectionData) => {
     try {
+      console.log('Validation des données d\'élection:', electionData);
+      console.log('Structure des données reçues:', {
+        hasLocation: !!electionData.location,
+        hasConfiguration: !!electionData.configuration,
+        hasStatistics: !!electionData.statistics,
+        directProps: {
+          province: (electionData as any).province,
+          commune: (electionData as any).commune,
+          seatsAvailable: (electionData as any).seatsAvailable,
+          totalVoters: (electionData as any).totalVoters
+        }
+      });
+      
       // Validation des données
       const validation = validateCreateElection(electionData);
+      console.log('Résultat de la validation:', validation);
+      
       if (!validation.success) {
         const errors = formatValidationErrors(validation.error);
+        console.log('Erreurs de validation détaillées:', errors);
         const errorMessages = Object.values(errors).flat();
         toast.error(`Erreurs de validation: ${errorMessages.join(', ')}`);
         return;
@@ -485,15 +497,15 @@ const ElectionManagementUnified = () => {
 
       // Préparer les données pour Supabase
       const supabaseData = {
-        title: electionData.title,
-        type: electionData.type, // Utiliser 'type' au lieu de 'election_type'
+        title: (electionData as any).name || electionData.title,
+        type: electionData.type,
         election_date: electionData.date,
         status: 'À venir',
         description: electionData.description || '',
-        seats_available: electionData.configuration.seatsAvailable,
-        budget: electionData.configuration.budget ,
-        vote_goal: electionData.configuration.voteGoal ,
-        nb_electeurs: electionData.statistics?.totalVoters ,
+        seats_available: (electionData as any).seatsAvailable || electionData.configuration?.seatsAvailable || 1,
+        budget: (electionData as any).budget || electionData.configuration?.budget || 0,
+        vote_goal: (electionData as any).voteGoal || electionData.configuration?.voteGoal || 0,
+        nb_electeurs: (electionData as any).totalVoters || electionData.statistics?.totalVoters || 0,
         // Note: Les relations géographiques seraient gérées séparément
       };
 
@@ -567,19 +579,23 @@ const ElectionManagementUnified = () => {
         date: new Date(electionData.date),
         description: electionData.description,
         location: {
-          ...electionData.location,
-          fullAddress: `${electionData.location.commune}, ${electionData.location.department}`,
+          province: (electionData as any).province || electionData.location?.province || '',
+          commune: (electionData as any).commune || electionData.location?.commune || '',
+          arrondissement: (electionData as any).arrondissement || electionData.location?.arrondissement || '',
+          fullAddress: `${(electionData as any).commune || electionData.location?.commune || ''}, ${(electionData as any).province || electionData.location?.province || ''}`,
         },
         configuration: {
-          ...electionData.configuration,
+          seatsAvailable: (electionData as any).seatsAvailable || electionData.configuration?.seatsAvailable || 1,
+          budget: (electionData as any).budget || electionData.configuration?.budget || 0,
+          voteGoal: (electionData as any).voteGoal || electionData.configuration?.voteGoal || 0,
           allowMultipleCandidates: true,
           requirePhotoValidation: false,
         },
         statistics: {
-          totalVoters: 0,
-          totalCandidates: 0,
-          totalCenters: 0,
-          totalBureaux: 0,
+          totalVoters: (electionData as any).totalVoters || electionData.statistics?.totalVoters || 0,
+          totalCandidates: (electionData as any).totalCandidates || electionData.statistics?.totalCandidates || 0,
+          totalCenters: (electionData as any).totalCenters || electionData.statistics?.totalCenters || 0,
+          totalBureaux: (electionData as any).totalBureaux || electionData.statistics?.totalBureaux || 0,
           completedSteps: 1,
           totalSteps: 5,
           progressPercentage: 20,
@@ -619,7 +635,7 @@ const ElectionManagementUnified = () => {
       title: selectedElection.title,
       date: selectedElection.date.toISOString().split('T')[0],
       status: selectedElection.status,
-      description: selectedElection.description || `${selectedElection.location.commune}, ${selectedElection.location.department}, ${selectedElection.location.province}`,
+      description: selectedElection.description || `${selectedElection.location.commune}, ${selectedElection.location.province}`,
       voters: selectedElection.statistics.totalVoters,
       centers: selectedElection.statistics.totalCenters,
       candidates: selectedElection.statistics.totalCandidates,
@@ -629,7 +645,6 @@ const ElectionManagementUnified = () => {
       voteGoal: selectedElection.configuration.voteGoal ,
       seatsAvailable: selectedElection.configuration.seatsAvailable,
       province: selectedElection.location.province,
-      department: selectedElection.location.department,
       commune: selectedElection.location.commune,
       arrondissement: selectedElection.location.arrondissement,
     };

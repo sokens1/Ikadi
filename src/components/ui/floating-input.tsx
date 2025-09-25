@@ -48,7 +48,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
       onChange?.(e);
     };
 
-    const isLabelFloating = isFocused || hasValue;
+    const isLabelFloating = isFocused || hasValue || (props.type === 'date' && value);
 
     const baseClasses = "relative w-full transition-all duration-200 ease-in-out";
     const sizeClasses = {
@@ -89,7 +89,8 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
               icon && "pl-10",
               "text-gray-900 placeholder-transparent",
               "transition-all duration-200",
-              props.type === 'date' && "date-input-custom"
+              props.type === 'date' && "date-input-custom",
+              props.type === 'date' && value && "text-gray-900"
             )}
             placeholder=" "
             {...props}
