@@ -18,8 +18,10 @@ import {
   Shield,
   Eye,
   FileText,
-  CheckCircle
+  CheckCircle,
+  Mail
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Type definitions
 type UserRole = 'super-admin' | 'agent-saisie' | 'validateur' | 'observateur';
@@ -42,6 +44,12 @@ const UserManagement = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState<UserRole>('observateur');
+  const [newActive, setNewActive] = useState(true);
 
   // Charger les utilisateurs depuis Supabase
   useEffect(() => {
@@ -143,6 +151,100 @@ const UserManagement = () => {
       ));
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
+    }
+  };
+
+  const resetNewUserForm = () => {
+    setNewName('');
+    setNewEmail('');
+    setNewPassword('');
+    setNewRole('observateur');
+    setNewActive(true);
+  };
+
+  const handleCreateUser = async () => {
+    try {
+      if (!newName.trim() || !newEmail.trim() || !newPassword.trim()) {
+        toast.error('Nom, email et mot de passe sont requis');
+        return;
+      }
+      if (newPassword.length < 6) {
+        toast.error('Le mot de passe doit contenir au moins 6 caractères');
+        return;
+      }
+      setCreating(true);
+
+      // Créer l'utilisateur d'auth (Supabase Auth)
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email: newEmail.trim(),
+        password: newPassword,
+        options: {
+          emailRedirectTo: window.location.origin + '/login'
+        }
+      });
+      if (signUpErr) {
+        console.error('Erreur signUp:', signUpErr);
+        toast.error("Échec de la création de l'utilisateur (auth)");
+        return;
+      }
+      const authUserId = signUpData.user?.id;
+      if (!authUserId) {
+        toast.warning("Utilisateur créé, en attente de confirmation d'email");
+      }
+
+      // Insérer dans la table applicative users
+      const { data: inserted, error: insertErr } = await supabase
+        .from('users')
+        .insert({
+          id: authUserId || crypto.randomUUID(),
+          name: newName.trim(),
+          email: newEmail.trim(),
+          role: newRole,
+          is_active: newActive
+        })
+        .select()
+        .single();
+      if (insertErr) {
+        console.error('Erreur insert users:', insertErr);
+        toast.error("Échec d'enregistrement en base");
+        return;
+      }
+
+      const createdUser: User = {
+        id: inserted.id,
+        name: inserted.name,
+        email: inserted.email,
+        role: inserted.role,
+        assignedCenter: inserted.assigned_center_id || undefined,
+        isActive: inserted.is_active,
+        createdAt: new Date(inserted.created_at).toISOString().split('T')[0]
+      };
+      setUsers(prev => [createdUser, ...prev]);
+      toast.success("Utilisateur créé avec succès");
+      toast.message('Email de confirmation envoyé', { description: 'Demandez à l’utilisateur de vérifier sa boîte mail.' });
+      setShowAddModal(false);
+      resetNewUserForm();
+    } catch (e) {
+      console.error(e);
+      toast.error("Erreur inattendue lors de la création");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleResendConfirmation = async (email: string) => {
+    try {
+      if (!email) return;
+      const { data, error } = await supabase.auth.resend({ type: 'signup', email });
+      if (error) {
+        console.error('Erreur resend:', error);
+        toast.error("Échec d'envoi de l'email de confirmation");
+        return;
+      }
+      toast.success('Email de confirmation renvoyé');
+    } catch (e) {
+      console.error(e);
+      toast.error("Erreur lors de l'envoi");
     }
   };
 
@@ -287,6 +389,9 @@ const UserManagement = () => {
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleResendConfirmation(user.email)} title="Renvoyer l'email de confirmation">
+                          <Mail className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -306,15 +411,19 @@ const UserManagement = () => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="name">Nom complet</Label>
-                  <Input id="name" placeholder="Nom complet" />
+                  <Input id="name" placeholder="Nom complet" value={newName} onChange={(e)=>setNewName(e.target.value)} />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="email@example.com" />
+                  <Input id="email" type="email" placeholder="email@example.com" value={newEmail} onChange={(e)=>setNewEmail(e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="password">Mot de passe</Label>
+                  <Input id="password" type="password" placeholder="••••••••" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} />
                 </div>
                 <div>
                   <Label htmlFor="role">Rôle</Label>
-                  <Select>
+                  <Select value={newRole} onValueChange={(v: UserRole)=>setNewRole(v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un rôle" />
                     </SelectTrigger>
@@ -326,13 +435,17 @@ const UserManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={newActive} onCheckedChange={(v)=>setNewActive(!!v)} />
+                  <span className="text-sm text-gray-600">Actif</span>
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setShowAddModal(false)}>
                     Annuler
                   </Button>
-                  <Button>
+                  <Button disabled={creating} onClick={handleCreateUser}>
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Créer l'utilisateur
+                    {creating ? 'Création...' : "Créer l'utilisateur"}
                   </Button>
                 </div>
               </div>
