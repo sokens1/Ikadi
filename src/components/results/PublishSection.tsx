@@ -171,7 +171,12 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             totalVotants,
             tauxParticipation: totalInscrits > 0 ? Number(((totalVotants / totalInscrits) * 100).toFixed(2)) : 0,
             bulletinsNuls,
-            suffragesExprimes: baseExprimes
+            suffragesExprimes: baseExprimes,
+            // Vérification (modèle précédent basé sur somme des voix candidats)
+            verificationAlt: {
+              exprimesAlt: totalVotes,
+              tauxAlt: totalInscrits > 0 ? Number(((totalVotes / totalInscrits) * 100).toFixed(2)) : 0
+            }
           },
           candidates: candidatesWithPct,
           validatedBureaux,
@@ -418,6 +423,14 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                   <div className="text-gray-600">Bulletins nuls</div>
                 </div>
               </div>
+
+              {finalResults?.participation?.verificationAlt && (
+                <div className="mt-3 text-xs">
+                  <span className="inline-block px-2 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                    Vérif (modèle 2) — Inscrits: {Number(finalResults.participation.totalInscrits).toLocaleString()} • Exprimés: {Number(finalResults.participation.verificationAlt.exprimésAlt || finalResults.participation.verificationAlt.exprimesAlt).toLocaleString()} • Taux: {Number(finalResults.participation.verificationAlt.tauxAlt).toFixed(2)}%
+                  </span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
