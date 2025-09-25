@@ -409,7 +409,8 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
   const canSubmit = () => {
     const step2Valid = Object.keys(validateParticipation()).length === 0;
     const step3Valid = Object.keys(validateCandidateVotes()).length === 0;
-    return step2Valid && step3Valid && formData.uploadedFile;
+    // La pièce-jointe n'est pas obligatoire à la saisie
+    return step2Valid && step3Valid;
   };
 
   const getStepIcon = (step: number) => {
@@ -669,6 +670,11 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
               <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h4 className="text-lg font-medium text-gray-900 mb-2">Téléverser le PV physique</h4>
               <p className="text-sm text-gray-600 mb-4">Formats acceptés: PDF, JPG, PNG (max. 10MB)</p>
+              {!formData.uploadedFile && (
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                  ⚠️ Aucun fichier ajouté. Le PV peut être saisi et apparaître dans l'onglet Publier, mais ne pourra pas être validé sans PV physique.
+                </div>
+              )}
               
               <input
                 ref={fileInputRef}
@@ -854,6 +860,24 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
       {/* Step content */}
       <Card className="gov-card">
         <CardContent className="p-6">
+          {(() => {
+            const centerName = votingCenters.find(c => c.id === formData.centre)?.name || '—';
+            const bureauName = votingBureaux.find(b => b.id === formData.bureau)?.name || '—';
+            const hasContext = !!formData.centre || !!formData.bureau;
+            return hasContext ? (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded flex items-center justify-between text-sm text-blue-900">
+                <div>
+                  <span>Centre: <span className="font-semibold">{centerName}</span></span>
+                  <span className="mx-2">•</span>
+                  <span>Bureau: <span className="font-semibold">{bureauName}</span></span>
+                </div>
+                {formData.inscrits && (
+                  <div className="text-blue-800">Inscrits: <span className="font-semibold">{formData.inscrits}</span></div>
+                )}
+              </div>
+            ) : null;
+          })()}
+
           {renderWizardStep()}
           
           <div className="flex justify-between mt-8">

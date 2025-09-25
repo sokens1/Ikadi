@@ -40,22 +40,29 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
   const [detailedResults, setDetailedResults] = useState<any[]>([]);
   const [centerBreakdown, setCenterBreakdown] = useState<any[]>([]);
   const [bureauBreakdown, setBureauBreakdown] = useState<any[]>([]);
+  const [nonValidatedByCenter, setNonValidatedByCenter] = useState<any[]>([]);
+  const [nonValidatedByBureau, setNonValidatedByBureau] = useState<any[]>([]);
+  const [nonValidatedCount, setNonValidatedCount] = useState<number>(0);
 
-  // Charger les résultats validés et calculer les agrégats (sans jointures PostgREST complexes)
+  // Charger les résultats (provisoires = entered + validés) et calculer les agrégats
   useEffect(() => {
     const loadFinalResults = async () => {
       if (!selectedElection) return;
       try {
         setLoading(true);
-        // 1) Récupérer PV avec statut validé UNIQUEMENT
+        // 1) Récupérer PV par statut
         const fetchPVs = async (status: string) => supabase
           .from('procès_verbaux')
           .select('id, bureau_id, total_registered, total_voters, null_votes, votes_expressed, status, entered_at')
           .eq('election_id', selectedElection)
           .eq('status', status);
 
-        const { data: pvs, error: pvError } = await fetchPVs('validated');
-        if (pvError) throw pvError;
+        const [{ data: pvsValidated, error: pvValErr }, { data: pvsEntered, error: pvEntErr }] = await Promise.all([
+          fetchPVs('validated'),
+          fetchPVs('entered')
+        ]);
+        if (pvValErr) throw pvValErr;
+        if (pvEntErr) throw pvEntErr;
 
         // Restreindre aux centres liés à l'élection via election_centers
         const { data: ecRows, error: ecCentersErr } = await supabase
@@ -65,7 +72,8 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         if (ecCentersErr) throw ecCentersErr;
         const allowedCenterIds = new Set((ecRows || []).map((r: any) => r.center_id));
 
-        let filteredPvs = pvs || [];
+        let filteredValidatedPvs = pvsValidated || [];
+        let filteredEnteredPvs = pvsEntered || [];
         if (allowedCenterIds.size > 0) {
           const { data: bureauRows, error: bureauErr } = await supabase
           .from('voting_bureaux')
@@ -73,11 +81,14 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             .in('center_id', Array.from(allowedCenterIds));
           if (bureauErr) throw bureauErr;
           const allowedBureauIds = new Set((bureauRows || []).map((b: any) => b.id));
-          filteredPvs = filteredPvs.filter((pv: any) => allowedBureauIds.has(pv.bureau_id));
+          filteredValidatedPvs = filteredValidatedPvs.filter((pv: any) => allowedBureauIds.has(pv.bureau_id));
+          filteredEnteredPvs = filteredEnteredPvs.filter((pv: any) => allowedBureauIds.has(pv.bureau_id));
         }
+        const filteredPvsAll = [...filteredValidatedPvs, ...filteredEnteredPvs];
+        setNonValidatedCount(filteredEnteredPvs.length);
 
         // 2) Récupérer résultats par candidat pour ces PV
-        const pvIds = (filteredPvs || []).map(p => p.id);
+        const pvIds = (filteredPvsAll || []).map(p => p.id);
         let crRows: any[] = [];
         if (pvIds.length > 0) {
           const { data: cr, error: crErr } = await supabase
@@ -103,7 +114,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         }));
 
         // 4) Récupérer libellés bureaux/centres
-        const bureauIds = Array.from(new Set((filteredPvs || []).map(p => p.bureau_id).filter(Boolean)));
+        const bureauIds = Array.from(new Set((filteredPvsAll || []).map(p => p.bureau_id).filter(Boolean)));
         let bureaux: any[] = [];
         let centers: any[] = [];
         if (bureauIds.length > 0) {
@@ -135,6 +146,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         let totalVotants = 0;
         let bulletinsNuls = 0;
         let totalInscrits = 0;
+        let totalExprimesPV = 0;
 
         // Agrégation locale à partir des candidate_results (respecte le filtre précédent)
         crRows.forEach((r: any) => {
@@ -143,22 +155,25 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             votesByCandidate[cid].votes += r.votes || 0;
           });
 
-        (filteredPvs || []).forEach((pv: any) => {
+        (filteredPvsAll || []).forEach((pv: any) => {
           totalVotants += Number(pv.total_voters) || 0;
           bulletinsNuls += Number(pv.null_votes) || 0;
           totalInscrits += Number(pv.total_registered) || 0;
+          totalExprimesPV += Number(pv.votes_expressed) || 0;
         });
 
         const candidates = Object.values(votesByCandidate).sort((a, b) => b.votes - a.votes);
         const totalVotes = candidates.reduce((s, c) => s + c.votes, 0);
+        // Base de pourcentage: privilégier la valeur des PV (plus fiable), fallback sur somme candidats
+        const baseExprimes = totalExprimesPV > 0 ? totalExprimesPV : totalVotes;
         const colorPalette = ['#22c55e','#ef4444','#3b82f6','#a855f7','#f59e0b','#06b6d4'];
         const candidatesWithPct = candidates.map((c, idx) => ({
           ...c,
-          percentage: totalVotes > 0 ? Number(((100 * c.votes) / totalVotes).toFixed(2)) : 0,
+          percentage: baseExprimes > 0 ? Number(((100 * c.votes) / baseExprimes).toFixed(2)) : 0,
           color: colorPalette[idx % colorPalette.length]
         }));
 
-        const validatedBureaux = (filteredPvs || []).length;
+        const validatedBureaux = (filteredValidatedPvs || []).length;
         const totalBureaux = validatedBureaux; // fallback si total inconnu
 
         setFinalResults({
@@ -167,7 +182,12 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             totalVotants,
             tauxParticipation: totalInscrits > 0 ? Number(((totalVotants / totalInscrits) * 100).toFixed(2)) : 0,
             bulletinsNuls,
-            suffragesExprimes: totalVotes
+            suffragesExprimes: baseExprimes,
+            // Vérification (modèle précédent basé sur somme des voix candidats)
+            verificationAlt: {
+              exprimesAlt: totalVotes,
+              tauxAlt: totalInscrits > 0 ? Number(((((totalVotes) + bulletinsNuls) / totalInscrits) * 100).toFixed(2)) : 0
+            }
           },
           candidates: candidatesWithPct,
           validatedBureaux,
@@ -176,7 +196,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         });
 
         // 5) Résultats détaillés par bureau
-        const detailed = (filteredPvs || []).map((pv: any) => {
+        const detailed = (filteredPvsAll || []).map((pv: any) => {
           const b = bureauMap.get(pv.bureau_id);
           const c = b ? centerMap.get(b.center_id) : undefined;
           return {
@@ -207,9 +227,38 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             return ax.localeCompare(bx, 'fr', { numeric: true, sensitivity: 'base' });
           });
           setBureauBreakdown(sortedBureaux);
+          // Construire les lignes non validées (jaunes)
+          const enteredByBureau = (filteredEnteredPvs || []).map((pv: any) => {
+            const b = bureauMap.get(pv.bureau_id);
+            const c = b ? centerMap.get(b.center_id) : undefined;
+            return {
+              election_id: selectedElection,
+              center_id: b?.center_id,
+              center_name: c?.name || 'Centre',
+              bureau_id: pv.bureau_id,
+              bureau_name: b?.name || 'Bureau',
+              total_voters: Number(pv.total_voters) || 0,
+              total_null_votes: Number(pv.null_votes) || 0,
+              total_expressed_votes: Number(pv.votes_expressed) || 0
+            };
+          });
+          setNonValidatedByBureau(enteredByBureau);
+          // Agréger par centre pour la section centre
+          const centerAggMap = new Map<string, { center_id: string; center_name: string; total_voters: number; total_null_votes: number; total_expressed_votes: number }>();
+          for (const row of enteredByBureau) {
+            const key = String(row.center_id || '');
+            const prev = centerAggMap.get(key) || { center_id: row.center_id, center_name: row.center_name, total_voters: 0, total_null_votes: 0, total_expressed_votes: 0 };
+            prev.total_voters += row.total_voters;
+            prev.total_null_votes += row.total_null_votes;
+            prev.total_expressed_votes += row.total_expressed_votes;
+            centerAggMap.set(key, prev);
+          }
+          setNonValidatedByCenter(Array.from(centerAggMap.values()));
         } catch (_) {
           setCenterBreakdown([]);
           setBureauBreakdown([]);
+          setNonValidatedByCenter([]);
+          setNonValidatedByBureau([]);
         }
       } catch (e) {
         console.error('Erreur chargement résultats finaux:', e);
@@ -238,17 +287,22 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
       ? finalResults.candidates.map((candidate: any) => ({
           name: (candidate.name || '—').split(' ').slice(0, 2).join(' '),
           votes: Number(candidate.votes) || 0,
-          color: candidate.color
+    color: candidate.color
         }))
       : []
   ), [finalResults]);
 
   const CenterAndBureauTables = () => (
     <div className="mt-8 space-y-8">
-      {centerBreakdown.length > 0 && (
+      {(nonValidatedByCenter.length > 0 || centerBreakdown.length > 0) && (
         <Card className="gov-card">
           <CardHeader>
-            <CardTitle className="text-gov-dark">Par Centre de Vote</CardTitle>
+            <CardTitle className="text-gov-dark flex items-center justify-between">
+              <span>Par Centre de Vote</span>
+              {nonValidatedByCenter.length > 0 && (
+                <Badge className="bg-yellow-100 text-yellow-800">{nonValidatedByCenter.length} centre(s) avec PV non validés</Badge>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -261,6 +315,14 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {nonValidatedByCenter.map((row: any, idx: number) => (
+                  <TableRow key={`nv-center-${idx}`} className="bg-yellow-50">
+                    <TableCell className="font-medium text-yellow-900">{row.center_name}</TableCell>
+                    <TableCell className="text-right text-yellow-900">{Number(row.total_voters || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-yellow-900">{Number(row.total_null_votes || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-yellow-900">{Number(row.total_expressed_votes || 0).toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
                 {centerBreakdown.map((row: any) => (
                   <TableRow key={`${row.center_id}`}>
                     <TableCell>{row.center_name}</TableCell>
@@ -275,10 +337,15 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         </Card>
       )}
 
-      {bureauBreakdown.length > 0 && (
+      {(nonValidatedByBureau.length > 0 || bureauBreakdown.length > 0) && (
         <Card className="gov-card">
           <CardHeader>
-            <CardTitle className="text-gov-dark">Par Bureau</CardTitle>
+            <CardTitle className="text-gov-dark flex items-center justify-between">
+              <span>Par Bureau</span>
+              {nonValidatedByBureau.length > 0 && (
+                <Badge className="bg-yellow-100 text-yellow-800">{nonValidatedByBureau.length} PV non validés</Badge>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -292,6 +359,15 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {nonValidatedByBureau.map((row: any, idx: number) => (
+                  <TableRow key={`nv-bureau-${idx}`} className="bg-yellow-50">
+                    <TableCell className="font-medium text-yellow-900">{row.center_name}</TableCell>
+                    <TableCell className="text-yellow-900">{row.bureau_name}</TableCell>
+                    <TableCell className="text-right text-yellow-900">{Number(row.total_voters || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-yellow-900">{Number(row.total_null_votes || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-yellow-900">{Number(row.total_expressed_votes || 0).toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
                 {bureauBreakdown.map((row: any) => (
                   <TableRow key={`${row.bureau_id}`}>
                     <TableCell>{centerBreakdown.find((c:any)=>c.center_id===row.center_id)?.center_name || 'Centre'}</TableCell>
@@ -382,7 +458,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           <CardContent>
             <div className="space-y-4">
               <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">
+              <div className="text-3xl font-bold text-blue-600 mb-2">
                   {finalResults ? Number(finalResults.participation.tauxParticipation).toFixed(2) : '0.00'}%
                 </div>
                 <div className="text-sm text-gray-600">Taux de participation</div>
@@ -414,6 +490,14 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                   <div className="text-gray-600">Bulletins nuls</div>
                 </div>
               </div>
+
+              {finalResults?.participation?.verificationAlt && (
+                <div className="mt-3 text-xs">
+                  <span className="inline-block px-2 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                    Vérif (modèle 2) — Exprimés: {Number(finalResults.participation.verificationAlt.exprimésAlt || finalResults.participation.verificationAlt.exprimesAlt).toLocaleString()} • Taux: {Number(finalResults.participation.verificationAlt.tauxAlt).toFixed(2)}%
+                  </span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -463,8 +547,8 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
               <TrendingUp className="w-5 h-5" />
               <span>Résultats Finaux par Candidat</span>
             </div>
-            <Badge className="bg-green-100 text-green-800">
-              Données validées uniquement
+            <Badge className="bg-yellow-100 text-yellow-800">
+              Inclut PV saisis non validés
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -497,7 +581,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           <div className="mt-6">
             {barChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={barChartData}>
+              <BarChart data={barChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis />
@@ -535,6 +619,8 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                     onClick={() => setShowPublishConfirm(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     size="lg"
+                    disabled={!finalResults || finalResults.validatedBureaux === 0}
+                    title={!finalResults || finalResults.validatedBureaux === 0 ? 'La publication nécessite au moins un PV validé' : undefined}
                   >
                      Publier les résultats
                   </Button>
