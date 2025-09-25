@@ -854,6 +854,24 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
       {/* Step content */}
       <Card className="gov-card">
         <CardContent className="p-6">
+          {(() => {
+            const centerName = votingCenters.find(c => c.id === formData.centre)?.name || '—';
+            const bureauName = votingBureaux.find(b => b.id === formData.bureau)?.name || '—';
+            const hasContext = !!formData.centre || !!formData.bureau;
+            return hasContext ? (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded flex items-center justify-between text-sm text-blue-900">
+                <div>
+                  <span>Centre: <span className="font-semibold">{centerName}</span></span>
+                  <span className="mx-2">•</span>
+                  <span>Bureau: <span className="font-semibold">{bureauName}</span></span>
+                </div>
+                {formData.inscrits && (
+                  <div className="text-blue-800">Inscrits: <span className="font-semibold">{formData.inscrits}</span></div>
+                )}
+              </div>
+            ) : null;
+          })()}
+
           {renderWizardStep()}
           
           <div className="flex justify-between mt-8">
