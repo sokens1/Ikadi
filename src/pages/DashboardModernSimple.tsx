@@ -217,7 +217,7 @@ const DashboardModernSimple = () => {
             subtitle="Inscriptions totales"
             icon={Target}
             color="#f59e0b"
-            trend={{ value: stats.voters.trend, isPositive: true, label: "croissance" }}
+            // trend={{ value: stats.voters.trend, isPositive: true, label: "croissance" }}
             className="col-span-2 lg:col-span-1"
           />
         </div>
