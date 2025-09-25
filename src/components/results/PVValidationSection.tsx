@@ -38,6 +38,43 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
   const [newPvFile, setNewPvFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Helpers d'upload (alignés avec PVEntrySection)
+  const ensureBucketExists = async (bucket: string) => {
+    try {
+      // @ts-ignore potentiellement non exposé selon droits
+      await supabase.storage.createBucket(bucket, { public: true });
+    } catch (err: any) {
+      if (!(`${err?.message || ''}`.toLowerCase().includes('already exists'))) {
+        // Ignorer: si réellement absent, l'upload échouera ensuite
+      }
+    }
+  };
+
+  const uploadPVFile = async (file: File, electionId: string, pvId: string) => {
+    const bucket = 'pv-uploads';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
+    const relPath = `${electionId}/${pvId}/${timestamp}_${safeName}`;
+
+    let { data: uploadData, error: uploadErr } = await supabase.storage
+      .from(bucket)
+      .upload(relPath, file, { cacheControl: '3600', upsert: true, contentType: file.type || 'application/octet-stream' });
+
+    if (uploadErr && (`${uploadErr?.message || ''}`.toLowerCase().includes('bucket not found') || `${uploadErr?.error || ''}`.toLowerCase().includes('bucket'))) {
+      await ensureBucketExists(bucket);
+      ({ data: uploadData, error: uploadErr } = await supabase.storage
+        .from(bucket)
+        .upload(relPath, file, { cacheControl: '3600', upsert: true, contentType: file.type || 'application/octet-stream' }));
+    }
+
+    if (uploadErr) throw uploadErr;
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(uploadData!.path);
+    return publicUrlData.publicUrl;
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -348,21 +385,29 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                         <h5 className="font-medium text-gray-900 mb-2">Aucun document</h5>
                       )}
                       <div className="flex items-center justify-center gap-3 flex-wrap">
-                        <Button variant="outline" size="sm" disabled={!selectedPVData.pv_photo_url} onClick={() => selectedPVData.pv_photo_url && window.open(selectedPVData.pv_photo_url, '_blank')}>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={!selectedPVData.pv_photo_url} 
+                          onClick={() => { if (selectedPVData.pv_photo_url) { setPreviewUrl(selectedPVData.pv_photo_url); setPreviewOpen(true); } }}
+                        >
                           <Eye className="w-4 h-4 mr-2" /> Voir
                         </Button>
                         {editMode && (
                           <>
-                            <input 
-                              ref={fileInputRef}
-                              type="file" 
-                              accept="application/pdf,image/*" 
-                              onChange={e => setNewPvFile(e.target.files?.[0] || null)}
-                              className="hidden"
-                            />
-                            <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
-                              Remplacer le document
-                            </Button>
+                          <input 
+                            ref={fileInputRef}
+                            type="file" 
+                            accept=".pdf,.jpg,.jpeg,.png,.webp"
+                            onChange={e => setNewPvFile(e.target.files?.[0] || null)}
+                            className="hidden"
+                          />
+                          <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                            Remplacer le document
+                          </Button>
+                          {newPvFile && (
+                            <span className="text-xs text-gray-600">{newPvFile.name}</span>
+                          )}
                               </>
                             )}
                         </div>
@@ -426,14 +471,20 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                       return;
                     }
                     let pvPhotoUrl: string | null = null;
+                    setSaving(true);
                     try {
                       if (newPvFile) {
-                        const bucket = 'pv-uploads';
-                        const path = `${selectedElection}/${selectedPV}/${Date.now()}_${newPvFile.name.replace(/\s+/g,'_')}`;
-                        const { error: upErr } = await supabase.storage.from(bucket).upload(path, newPvFile, { upsert: true });
-                        if (upErr) throw upErr;
-                        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
-                        pvPhotoUrl = pub?.publicUrl || null;
+                        try {
+                          pvPhotoUrl = await uploadPVFile(newPvFile, selectedElection, selectedPV);
+                        } catch (upErr: any) {
+                          const msg = upErr?.message || upErr?.error || 'Upload échoué';
+                          if ((msg || '').toLowerCase().includes('bucket')) {
+                            toast.error("Bucket 'pv-uploads' introuvable ou accès refusé. Veuillez le créer et autoriser l'upload.");
+                          } else {
+                            toast.error(`Échec upload PV: ${msg}`);
+                          }
+                          throw upErr;
+                        }
                       }
                       const updatePayload: any = {
                         total_registered: editValues.total_registered || 0,
@@ -472,10 +523,14 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                       setNewPvFile(null);
                     } catch (err) {
                       console.error('Erreur maj PV/candidats:', err);
-                      toast.error("Échec de l'enregistrement du PV");
+                      const msg = (err as any)?.message || (err as any)?.error || "Échec de l'enregistrement du PV";
+                      toast.error(msg);
+                    }
+                    finally {
+                      setSaving(false);
                     }
                   }} className="bg-green-600 hover:bg-green-700 text-white">
-                    Enregistrer
+                    {saving ? 'Enregistrement…' : 'Enregistrer'}
                   </Button>
                 )}
                 <Button onClick={async () => {
@@ -501,6 +556,10 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                   </Button>
                 <Button onClick={async () => {
                   if (!selectedPV) return;
+                  if (!selectedPVData?.pv_photo_url && !newPvFile) {
+                    toast.error('Un PV physique (document scanné) est requis pour valider.');
+                    return;
+                  }
                   const { error } = await supabase
                     .from('procès_verbaux')
                     .update({ status: 'validated', validated_at: new Date().toISOString() })
@@ -516,6 +575,23 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                   </Button>
                 </div>
               </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+      {/* Modal d'aperçu du document */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Aperçu du Document</DialogTitle>
+          </DialogHeader>
+          {previewUrl ? (
+            <div className="w-full h-[75vh]">
+              {previewUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe src={previewUrl} className="w-full h-full" />
+              ) : (
+                <img src={previewUrl} alt="PV" className="max-w-full max-h-full mx-auto" />
+              )}
+            </div>
           ) : null}
         </DialogContent>
       </Dialog>
