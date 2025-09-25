@@ -5,7 +5,6 @@ import { z } from 'zod';
 // Schéma pour la localisation géographique
 export const GeographicLocationSchema = z.object({
   province: z.string().min(1, 'La province est requise'),
-  department: z.string().min(1, 'Le département est requis'),
   commune: z.string().min(1, 'La commune est requise'),
   arrondissement: z.string().min(1, 'L\'arrondissement est requis'),
   fullAddress: z.string().optional(),
@@ -64,23 +63,28 @@ export const ElectionSchema = z.object({
 
 // Schéma pour la création d'une élection
 export const CreateElectionSchema = z.object({
-  title: z.string().min(3, 'Le titre doit contenir au moins 3 caractères').max(100, 'Le titre ne peut pas dépasser 100 caractères'),
-  type: z.enum(['Législatives', 'Locales', 'Présidentielle'], {
+  name: z.string().min(3, 'Le nom doit contenir au moins 3 caractères').max(100, 'Le nom ne peut pas dépasser 100 caractères'),
+  type: z.enum(['Législatives', 'Locales'], {
     errorMap: () => ({ message: 'Type d\'élection invalide' })
   }),
-  date: z.string().datetime('Format de date invalide'),
-  description: z.string().max(500, 'La description ne peut pas dépasser 500 caractères').optional(),
-  location: z.object({
-    province: z.string().min(1, 'La province est requise'),
-    department: z.string().min(1, 'Le département est requis'),
-    commune: z.string().min(1, 'La commune est requise'),
-    arrondissement: z.string().min(1, 'L\'arrondissement est requis'),
-  }),
-  configuration: z.object({
-    seatsAvailable: z.number().int().min(1, 'Le nombre de sièges doit être au moins 1'),
-    budget: z.number().min(0, 'Le budget ne peut pas être négatif').optional(),
-    voteGoal: z.number().int().min(0, 'L\'objectif de voix ne peut pas être négatif').optional(),
-  }),
+  date: z.string().min(1, 'La date est requise').refine((date) => {
+    // Vérifier que la date est au format YYYY-MM-DD et valide
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) return false;
+    const parsedDate = new Date(date);
+    return !isNaN(parsedDate.getTime());
+  }, 'Format de date invalide (YYYY-MM-DD)'),
+  province: z.string().min(1, 'La province est requise'),
+  commune: z.string().min(1, 'La commune est requise'),
+  arrondissement: z.string().min(1, 'L\'arrondissement est requis'),
+  seatsAvailable: z.number().int().min(1, 'Le nombre de sièges doit être au moins 1'),
+  budget: z.number().min(0, 'Le budget ne peut pas être négatif').optional(),
+  voteGoal: z.number().int().min(0, 'L\'objectif de voix ne peut pas être négatif').optional(),
+  candidates: z.array(z.any()).optional(),
+  centers: z.array(z.any()).optional(),
+  totalCenters: z.number().int().min(0).optional(),
+  totalBureaux: z.number().int().min(0).optional(),
+  totalVoters: z.number().int().min(0).optional(),
 });
 
 // Schéma pour la mise à jour d'une élection

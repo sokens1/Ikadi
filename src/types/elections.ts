@@ -6,7 +6,6 @@ export type UserRole = 'super-admin' | 'election-manager' | 'data-entry' | 'obse
 // Interface géographique unifiée
 export interface GeographicLocation {
   province: string;
-  department: string;
   commune: string;
   arrondissement: string;
   fullAddress: string;
@@ -92,7 +91,6 @@ export interface VotingCenter {
     latitude?: number;
     longitude?: number;
     province: string;
-    department: string;
     commune: string;
     arrondissement: string;
   };
@@ -145,7 +143,6 @@ export interface ElectionFilters {
   };
   location?: {
     province?: string;
-    department?: string;
     commune?: string;
   };
   search?: string;
