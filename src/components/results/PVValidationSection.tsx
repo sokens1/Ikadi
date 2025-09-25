@@ -309,19 +309,19 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                         <div className="flex items-center justify-between gap-4">
                           <span>Inscrits:</span>
                           <input className={`border rounded px-2 py-1 w-28 ${editErrors.votants ? 'border-red-500' : ''}`} type="number" value={editValues.total_registered} onChange={e => setEditValues(v => ({ ...v, total_registered: parseInt(e.target.value) || 0 }))} />
-                        </div>
+                              </div>
                         <div className="flex items-center justify-between gap-4">
                             <span>Votants:</span>
                           <input className={`border rounded px-2 py-1 w-28 ${editErrors.votants ? 'border-red-500' : ''}`} type="number" value={editValues.total_voters} onChange={e => setEditValues(v => ({ ...v, total_voters: parseInt(e.target.value) || 0 }))} />
-                          </div>
+                            </div>
                         <div className="flex items-center justify-between gap-4">
                             <span>Bulletins nuls:</span>
                           <input className={`border rounded px-2 py-1 w-28 ${editErrors.total ? 'border-red-500' : ''}`} type="number" value={editValues.null_votes} onChange={e => setEditValues(v => ({ ...v, null_votes: parseInt(e.target.value) || 0 }))} />
-                          </div>
+                        </div>
                         <div className="flex items-center justify-between gap-4">
                             <span>Suffrages exprimés:</span>
                           <input className={`border rounded px-2 py-1 w-28 ${editErrors.total || editErrors.candidateTotal ? 'border-red-500' : ''}`} type="number" value={editValues.votes_expressed} onChange={e => setEditValues(v => ({ ...v, votes_expressed: parseInt(e.target.value) || 0 }))} />
-                          </div>
+                      </div>
                         {(editErrors.votants || editErrors.total || editErrors.candidateTotal) && (
                           <div className="text-xs text-red-600 mt-2">
                             {editErrors.votants && <div>{editErrors.votants}</div>}
@@ -329,7 +329,7 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                             {editErrors.candidateTotal && <div>{editErrors.candidateTotal}</div>}
                           </div>
                         )}
-                        </div>
+                          </div>
                             ) : (
                               <>
                         <div className="flex justify-between"><span>Inscrits:</span><span className="font-medium">{editValues.total_registered || 0}</span></div>

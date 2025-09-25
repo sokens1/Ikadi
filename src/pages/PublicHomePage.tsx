@@ -199,30 +199,30 @@ const PublicHomePage = () => {
         .eq('election_id', currentElection.id);
 
         let processed: CandidateResult[] = [];
-        if (candidatesAgg) {
-          let totalVotes = 0;
-          candidatesAgg.forEach((item: any) => {
-            if (item.candidate_results && item.candidate_results.length > 0) {
-              totalVotes += item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0);
-            }
-          });
-          candidatesAgg.forEach((item: any, index: number) => {
-            if (item.candidates) {
-              const candidateVotes = item.candidate_results
-                ? item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0)
-                : 0;
-              processed.push({
-                id: item.candidates.id,
-                name: item.candidates.name,
-                party: item.candidates.party || 'Indépendant',
-                votes: candidateVotes,
-                percentage: totalVotes > 0 ? (candidateVotes / totalVotes) * 100 : 0,
-                color: candidateColors[index % candidateColors.length]
-              });
-            }
-          });
-          processed.sort((a, b) => b.votes - a.votes);
-        }
+      if (candidatesAgg) {
+        let totalVotes = 0;
+        candidatesAgg.forEach((item: any) => {
+          if (item.candidate_results && item.candidate_results.length > 0) {
+            totalVotes += item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0);
+          }
+        });
+        candidatesAgg.forEach((item: any, index: number) => {
+          if (item.candidates) {
+            const candidateVotes = item.candidate_results
+              ? item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0)
+              : 0;
+            processed.push({
+              id: item.candidates.id,
+              name: item.candidates.name,
+              party: item.candidates.party || 'Indépendant',
+              votes: candidateVotes,
+              percentage: totalVotes > 0 ? (candidateVotes / totalVotes) * 100 : 0,
+              color: candidateColors[index % candidateColors.length]
+            });
+          }
+        });
+        processed.sort((a, b) => b.votes - a.votes);
+      }
 
       setResults({
         election: currentElection,
@@ -303,20 +303,20 @@ const PublicHomePage = () => {
         keywords={`${dynamicTitle}, élections Gabon, résultats électoraux, ${results.election?.election_date ? new Date(results.election.election_date).getFullYear() : '2024'}, démocratie, transparence`}
         structuredData={homePageStructuredData}
       />
-      <div className="min-h-screen bg-white">
-        {/* Header bleu plateforme avec texte blanc */}
+    <div className="min-h-screen bg-white">
+      {/* Header bleu plateforme avec texte blanc */}
         <header className="border-b bg-gov-blue text-white" role="banner">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
                 <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm" aria-label="Aller à l'accueil">
-                  <span className="text-gov-blue font-bold text-lg">iK</span>
+                <span className="text-gov-blue font-bold text-lg">iK</span>
                 </Link>
-                <div>
-                  <h1 className="text-white font-bold text-2xl">iKADI</h1>
-                  <p className="text-white/80 text-sm">Plateforme de gestion électorale</p>
-                </div>
+              <div>
+                <h1 className="text-white font-bold text-2xl">iKADI</h1>
+                <p className="text-white/80 text-sm">Plateforme de gestion électorale</p>
               </div>
+            </div>
               <nav className="hidden md:flex items-center space-x-6" role="navigation" aria-label="Menu principal">
                 <Link to="/" className="hover:text-blue-200 transition-colors" aria-label="Accueil">Accueil</Link>
                 {/* <a href="#about" className="hover:text-blue-200 transition-colors" aria-label="En savoir plus sur iKADI">A propos</a>
@@ -348,7 +348,7 @@ const PublicHomePage = () => {
                 </div>
                 {/* <a href="#circonscriptions" className="hover:underline" aria-label="Circonscriptions et bureaux de vote">Circonscriptions / Bureaux</a>
                 <a href="#contact" className="hover:underline" aria-label="Nous contacter">Contact</a> */}
-              </nav>
+            </nav>
               <button className="md:hidden p-2 rounded hover:bg-white/10" aria-label="Ouvrir le menu" onClick={() => setMobileOpen(v => !v)}>
                 {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -374,77 +374,77 @@ const PublicHomePage = () => {
                     </a>
                   )
                 ))}
-              </div>
+          </div>
             )}
-          </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Hero Section (sans animation) */}
-        <section
+      {/* Hero Section (sans animation) */}
+      <section
           className="relative min-h-[380px] md:min-h-[460px] pb-10"
-          style={{
-            backgroundImage: heroOk
-              ? `url(${HERO_IMAGE})`
-              : `linear-gradient(135deg, hsl(var(--gov-blue)) 0%, hsl(var(--gov-blue-light)) 100%)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: heroOk ? 'fixed' : 'scroll'
-          }}
+        style={{
+          backgroundImage: heroOk
+            ? `url(${HERO_IMAGE})`
+            : `linear-gradient(135deg, hsl(var(--gov-blue)) 0%, hsl(var(--gov-blue-light)) 100%)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: heroOk ? 'fixed' : 'scroll'
+        }}
           aria-label="Section principale"
-        >
+      >
           <div className="absolute inset-0 bg-[rgba(0,0,0,0.45)]" aria-hidden="true" />
-          <div className="container mx-auto px-4 py-16 mb-20 md:py-20 relative">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-              <div className="text-white animate-[fadeIn_0.6s_ease-out]">
-                <p className="font-semibold tracking-wide text-blue-100">Commission Locale</p>
-                <h2 className="text-4xl md:text-5xl font-bold mt-3">
-                  {dynamicTitle}
-                </h2>
-                <p className="mt-5 max-w-2xl text-blue-100 text-lg">
-                  Suivez les résultats des élections en direct avec transparence et sécurité. Inspiré par les meilleures pratiques de communication électorale.
-                </p>
-                <div className="mt-7 flex flex-wrap gap-3">
+        <div className="container mx-auto px-4 py-16 mb-20 md:py-20 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <div className="text-white animate-[fadeIn_0.6s_ease-out]">
+              <p className="font-semibold tracking-wide text-blue-100">Commission Locale</p>
+              <h2 className="text-4xl md:text-5xl font-bold mt-3">
+                {dynamicTitle}
+              </h2>
+              <p className="mt-5 max-w-2xl text-blue-100 text-lg">
+                Suivez les résultats des élections en direct avec transparence et sécurité. Inspiré par les meilleures pratiques de communication électorale.
+              </p>
+              <div className="mt-7 flex flex-wrap gap-3">
                   <Link to="/login" aria-label="Accéder à l'interface d'administration">
-                    <Button className="bg-gov-blue text-white hover:bg-gov-blue/90">
-                      Accès admin
-                    </Button>
-                  </Link>
-                </div>
+                  <Button className="bg-gov-blue text-white hover:bg-gov-blue/90">
+                    Accès admin
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Bande statique style Ghana: stations, partis, électeurs — déplacée hors de la hero */}
-        <section className="w-full bg-slate-200 text-gov-dark">
-          <div className="container mx-auto px-4 py-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-around gap-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-white rounded-lg"><Landmark className="w-8 h-8 text-gov-blue" /></div>
-                <div>
-                  <div className="text-2xl md:text-3xl font-bold">{totalBureaux.toLocaleString()}</div>
-                  <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Bureaux de vote</div>
-                </div>
+      {/* Bande statique style Ghana: stations, partis, électeurs — déplacée hors de la hero */}
+      <section className="w-full bg-slate-200 text-gov-dark">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-around gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white rounded-lg"><Landmark className="w-8 h-8 text-gov-blue" /></div>
+              <div>
+                <div className="text-2xl md:text-3xl font-bold">{totalBureaux.toLocaleString()}</div>
+                <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Bureaux de vote</div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-white rounded-lg"><Flag className="w-8 h-8 text-gov-blue" /></div>
-                <div>
-                  <div className="text-2xl md:text-3xl font-bold">{distinctParties.toLocaleString()}</div>
-                  <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Partis politiques</div>
-                </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white rounded-lg"><Flag className="w-8 h-8 text-gov-blue" /></div>
+              <div>
+                <div className="text-2xl md:text-3xl font-bold">{distinctParties.toLocaleString()}</div>
+                <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Partis politiques</div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-white rounded-lg"><Users className="w-8 h-8 text-gov-blue" /></div>
-                <div>
-                  <div className="text-2xl md:text-3xl font-bold">{results.totalVoters.toLocaleString()}</div>
-                  <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Électeurs inscrits</div>
-                </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white rounded-lg"><Users className="w-8 h-8 text-gov-blue" /></div>
+              <div>
+                <div className="text-2xl md:text-3xl font-bold">{results.totalVoters.toLocaleString()}</div>
+                <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Électeurs inscrits</div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Ticker d'annonces (rouge) */}
+      {/* Ticker d'annonces (rouge) */}
         {/* <section className="bg-slate-300">
         <div className="container mx-auto px-4 py-3">
           <div className="bg-white rounded-sm shadow-sm border">
@@ -466,41 +466,41 @@ const PublicHomePage = () => {
         <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
       </section> */}
 
-        {/* Section compte à rebours type bannière verte */}
+      {/* Section compte à rebours type bannière verte */}
         <section className="bg-gov-blue text-white mt-20">
-          <div className="container mx-auto px-4 py-16">
-            <h3 className="text-center text-2xl md:text-3xl font-semibold tracking-wide">Résultats en temps réel</h3>
-            <p className="text-center text-white/90 mt-2 max-w-3xl mx-auto">Suivez les résultats des élections en direct avec transparence et sécurité.</p>
-            {nextElection && (
+        <div className="container mx-auto px-4 py-16">
+          <h3 className="text-center text-2xl md:text-3xl font-semibold tracking-wide">Résultats en temps réel</h3>
+          <p className="text-center text-white/90 mt-2 max-w-3xl mx-auto">Suivez les résultats des élections en direct avec transparence et sécurité.</p>
+          {nextElection && (
               <>
-                <p className="text-center text-white/90 mt-1">Publication à venir: <span className="font-bold">{nextElection.title}</span></p>
+            <p className="text-center text-white/90 mt-1">Publication à venir: <span className="font-bold">{nextElection.title}</span></p>
                 <p className="text-center text-white/80 mt-1">Date prévue: <strong>{new Date(nextElection.election_date).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}</strong></p>
               </>
-            )}
-            {!nextElection && (
-              <p className="text-center text-white/80 mt-1">Aucune élection programmée</p>
-            )}
+          )}
+          {!nextElection && (
+            <p className="text-center text-white/80 mt-1">Aucune élection programmée</p>
+          )}
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
               {[{ label: 'Jours', value: timeLeft.days }, { label: 'Heures', value: timeLeft.hours }, { label: 'Minutes', value: timeLeft.minutes }, { label: 'Secondes', value: timeLeft.seconds }].map((t) => (
                 <div key={t.label} className="text-center min-w-[64px] md:min-w-[80px]">
                   <div className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">{String(t.value).padStart(2, '0')}</div>
                   <div className="mt-1 text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wide border-t border-white/40 pt-1 opacity-90">{t.label}</div>
-                </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
             {isCountdownZero && (
-              <div className="mt-8 text-center">
+          <div className="mt-8 text-center">
                 {/* <Button
                   className="bg-white text-gov-blue hover:bg-blue-50"
                   aria-label="Voir les résultats"
                   onClick={() => nextElection && navigate(`/election/${nextElection.id}/results`)}
                 >
-                  Voir les résultats
+              Voir les résultats
                 </Button> */}
-              </div>
-            )}
           </div>
-        </section>
+            )}
+        </div>
+      </section>
 
         {/* Section “Bibliothèque des élections” (avec Tabs + scroll) */}
         <section className="bg-slate-200 mt-20">
@@ -527,7 +527,7 @@ const PublicHomePage = () => {
               >
                 Élections à venir
               </button>
-            </div>
+        </div>
             <div className="max-h-[600px] overflow-y-auto pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {selectedLibrary.map((e, idx) => (
@@ -541,8 +541,8 @@ const PublicHomePage = () => {
                     <div className="relative p-4 text-white">
                       <div className="text-xs sm:text-sm opacity-90">{new Date(e.election_date).getFullYear()}</div>
                       <div className="font-semibold line-clamp-2 text-sm sm:text-base">{e.title}</div>
-                    </div>
-                  </div>
+                          </div>
+                        </div>
                 )).slice(0, 100)}
                 {selectedLibrary.length === 0 && (
                   <div className="col-span-full text-center py-12">
@@ -551,32 +551,32 @@ const PublicHomePage = () => {
                     <p className="text-gov-gray">Aucune élection {libraryTab === 'past' ? 'passée' : libraryTab === 'current' ? 'en cours' : 'à venir'} à afficher pour le moment.</p>
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-        </section>
+                        </div>
+                      </div>
+                  </div>
+      </section>
 
-        {/* Footer bleu plateforme avec texte blanc */}
+      {/* Footer bleu plateforme avec texte blanc */}
         <footer id="contact" className="border-t bg-gov-blue mt-20 text-white">
-          <div className="container mx-auto px-4 pt-10 pb-6">
-            <div className="flex flex-col md:flex-row md:items-start justify-around gap-8">
-              {/* Colonne gauche: logo + description */}
-              <div className="order-1 max-w-sm">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
-                    <span className="text-gov-blue font-semibold">iK</span>
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold text-lg">iKADI</h3>
-                  </div>
+        <div className="container mx-auto px-4 pt-10 pb-6">
+          <div className="flex flex-col md:flex-row md:items-start justify-around gap-8">
+            {/* Colonne gauche: logo + description */}
+            <div className="order-1 max-w-sm">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
+                  <span className="text-gov-blue font-semibold">iK</span>
                 </div>
-                <p className="text-white/80 text-sm">Système de gestion des processus électoraux alliant transparence, sécurité et efficacité.</p>
+                <div>
+                  <h3 className="text-white font-bold text-lg">iKADI</h3>
+                </div>
               </div>
+              <p className="text-white/80 text-sm">Système de gestion des processus électoraux alliant transparence, sécurité et efficacité.</p>
+            </div>
 
-              {/* Ressources au milieu (non centré) */}
+            {/* Ressources au milieu (non centré) */}
                 <div className="order-3 md:order-2 text-sm text-white/90 max-w-sm w-full text-left">
-                <h4 className="font-semibold text-white mb-2">Ressources</h4>
-                <ul className="space-y-1">
+              <h4 className="font-semibold text-white mb-2">Ressources</h4>
+              <ul className="space-y-1">
                   {/* <li><a href="#candidats" className="hover:opacity-80">Candidats</a></li>
                   <li><a href="#circonscriptions" className="hover:opacity-80">Circonscriptions / Bureaux</a></li> */}
                   <li>
@@ -593,55 +593,55 @@ const PublicHomePage = () => {
                       )}
                     </div>
                   </li>
-                </ul>
-              </div>
-
-              {/* Partage à droite (ligne) */}
-              <div className="order-2 md:order-3 text-sm text-white/90 md:justify-self-end max-w-sm">
-                <h4 className="font-semibold text-white mb-2">Partager</h4>
-                <div className="flex flex-row flex-wrap gap-4 items-center">
-                  <a
-                    aria-label="Partager sur WhatsApp"
-                    href={`https://wa.me/?text=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 bg-white/10 rounded hover:bg-white/20"
-                    title="WhatsApp"
-                  >
-                    <WhatsAppIcon width={28} height={28} />
-                  </a>
-                  <a
-                    aria-label="Partager sur Facebook"
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 bg-white/10 rounded hover:bg-white/20"
-                    title="Facebook"
-                  >
-                    <Facebook className="w-7 h-7" />
-                  </a>
-                  <button
-                    aria-label="Copier le lien"
-                    onClick={() => {
-                      const url = typeof window !== 'undefined' ? window.location.href : '';
-                      navigator.clipboard?.writeText(url).then(() => {
-                        toast.success('Lien copié dans le presse-papiers');
-                      });
-                    }}
-                    className="p-2 bg-white/10 rounded hover:bg-white/20"
-                    title="Copier le lien"
-                  >
-                    <LinkIcon className="w-7 h-7" />
-                  </button>
-                </div>
-              </div>
+              </ul>
             </div>
 
-            {/* Copyright centré en bas */}
-            <div className="mt-12 text-center font-semibold">© {new Date().getFullYear()} iKADI. Tous droits réservés.</div>
+            {/* Partage à droite (ligne) */}
+            <div className="order-2 md:order-3 text-sm text-white/90 md:justify-self-end max-w-sm">
+              <h4 className="font-semibold text-white mb-2">Partager</h4>
+              <div className="flex flex-row flex-wrap gap-4 items-center">
+                <a
+                  aria-label="Partager sur WhatsApp"
+                  href={`https://wa.me/?text=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2 bg-white/10 rounded hover:bg-white/20"
+                  title="WhatsApp"
+                >
+                  <WhatsAppIcon width={28} height={28} />
+                </a>
+                <a
+                  aria-label="Partager sur Facebook"
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2 bg-white/10 rounded hover:bg-white/20"
+                  title="Facebook"
+                >
+                  <Facebook className="w-7 h-7" />
+                </a>
+                <button
+                  aria-label="Copier le lien"
+                  onClick={() => {
+                    const url = typeof window !== 'undefined' ? window.location.href : '';
+                    navigator.clipboard?.writeText(url).then(() => {
+                      toast.success('Lien copié dans le presse-papiers');
+                    });
+                  }}
+                  className="p-2 bg-white/10 rounded hover:bg-white/20"
+                  title="Copier le lien"
+                >
+                  <LinkIcon className="w-7 h-7" />
+                </button>
+              </div>
+            </div>
           </div>
-        </footer>
-      </div>
+
+          {/* Copyright centré en bas */}
+          <div className="mt-12 text-center font-semibold">© {new Date().getFullYear()} iKADI. Tous droits réservés.</div>
+        </div>
+      </footer>
+    </div>
     </>
   );
 };
