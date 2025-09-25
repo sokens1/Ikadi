@@ -138,27 +138,37 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
   // Charger les candidats (essaie les deux conventions de tables/colonnes)
   const loadCandidates = async () => {
     try {
+      console.log('🔄 Chargement des candidats...');
       // 1) Essai: table en anglais avec alias PostgREST → normaliser en champs FR attendus
       const { data, error } = await supabase
         .from('candidates')
         .select('identifiant:id, nom:name, parti:party, est_notre_candidat:is_our_candidate')
         .order('name');
+      
+      console.log('📊 Résultat candidats (table candidates):', { data, error });
+      
       if (!error) {
         setCandidates(data || []);
+        console.log('✅ Candidats chargés depuis table "candidates":', data?.length || 0);
         return;
       }
       throw error;
     } catch (_) {
       try {
+        console.log('🔄 Fallback: tentative table "candidats"...');
         // 2) Fallback: table/français
         const { data, error } = await supabase
           .from('candidats')
           .select('identifiant, nom, parti, est_notre_candidat')
           .order('nom');
+        
+        console.log('📊 Résultat candidats (table candidats):', { data, error });
+        
         if (error) throw error;
         setCandidates(data || []);
+        console.log('✅ Candidats chargés depuis table "candidats":', data?.length || 0);
       } catch (error) {
-        console.error('Erreur lors du chargement des candidats:', error);
+        console.error('❌ Erreur lors du chargement des candidats:', error);
         setCandidates([]);
       }
     }
@@ -167,27 +177,37 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
   // Charger les centres de vote (essaie anglais puis français)
   const loadCenters = async () => {
     try {
+      console.log('🔄 Chargement des centres de vote...');
       // 1) Essai: table en anglais avec alias → normaliser en champs FR
       const { data, error } = await supabase
         .from('voting_centers')
         .select('identifiant:id, nom:name, adresse:address, total_voters, total_bureaux')
         .order('name');
+      
+      console.log('📊 Résultat centres (table voting_centers):', { data, error });
+      
       if (!error) {
         setCenters(data || []);
+        console.log('✅ Centres chargés depuis table "voting_centers":', data?.length || 0);
         return;
       }
       throw error;
     } catch (_) {
       try {
+        console.log('🔄 Fallback: tentative table "centres_de_vote"...');
         // 2) Fallback: table/français
         const { data, error } = await supabase
           .from('centres_de_vote')
           .select('identifiant, nom, adresse, total_voters, total_bureaux')
           .order('nom');
+        
+        console.log('📊 Résultat centres (table centres_de_vote):', { data, error });
+        
         if (error) throw error;
         setCenters(data || []);
+        console.log('✅ Centres chargés depuis table "centres_de_vote":', data?.length || 0);
       } catch (error) {
-        console.error('Erreur lors du chargement des centres:', error);
+        console.error('❌ Erreur lors du chargement des centres:', error);
         setCenters([]);
       }
     }
@@ -254,8 +274,16 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         totalVoters: totalElecteurs || Number(formData.totalVoters) || 0
       };
 
-      console.log('Données de l\'élection à valider:', election);
-      console.log('Date formatée:', formData.date, 'Type:', typeof formData.date);
+      console.log('📋 Données de l\'élection à valider:', election);
+      console.log('📅 Date formatée:', formData.date, 'Type:', typeof formData.date);
+      console.log('👥 Candidats sélectionnés:', selectedCandidatesData);
+      console.log('🏢 Centres sélectionnés:', selectedCentersData);
+      console.log('🔢 Statistiques calculées:', {
+        totalCandidates: selectedCandidatesData.length,
+        totalCenters: selectedCentersData.length,
+        totalBureaux,
+        totalElecteurs
+      });
       
       onSubmit(election);
     } else if (onSuccess) {
@@ -423,12 +451,19 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         );
         
       case 3: {
+        console.log('🎯 Génération des options candidats:', { 
+          candidatesCount: candidates.length, 
+          candidates: candidates.slice(0, 3) // Afficher les 3 premiers pour debug
+        });
+        
         const candidatesOptions = candidates.map(candidate => ({
           value: candidate.identifiant,
           label: candidate.nom,
           subtitle: candidate.parti,
           metadata: { est_notre_candidat: candidate.est_notre_candidat }
         }));
+        
+        console.log('📋 Options candidats générées:', candidatesOptions.slice(0, 3));
 
         return (
           <ModernFormSection
@@ -487,6 +522,11 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
       }
         
       case 4: {
+        console.log('🎯 Génération des options centres:', { 
+          centersCount: centers.length, 
+          centers: centers.slice(0, 3) // Afficher les 3 premiers pour debug
+        });
+        
         const centersOptions = centers.map(center => ({
           value: center.identifiant,
           label: center.nom,
@@ -496,6 +536,8 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
             total_bureaux: center.total_bureaux 
           }
         }));
+        
+        console.log('📋 Options centres générées:', centersOptions.slice(0, 3));
 
         const selectedCentersData = formData.selectedCenters.map(id => 
           centers.find(c => c.identifiant === id)

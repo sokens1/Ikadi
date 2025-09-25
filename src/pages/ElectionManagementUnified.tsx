@@ -495,6 +495,52 @@ const ElectionManagementUnified = () => {
 
       setLoading(true);
 
+      // Récupérer les IDs des localisations
+      console.log('🔍 Récupération des IDs de localisation...');
+      
+      const provinceName = (electionData as any).province || electionData.location?.province || '';
+      const communeName = (electionData as any).commune || electionData.location?.commune || '';
+      const arrondissementName = (electionData as any).arrondissement || electionData.location?.arrondissement || '';
+
+      console.log('📍 Noms de localisation:', { provinceName, communeName, arrondissementName });
+
+      // Récupérer l'ID de la province
+      const { data: provinceData } = await supabase
+        .from('provinces')
+        .select('id')
+        .eq('name', provinceName)
+        .single();
+
+      // Récupérer l'ID de la commune
+      const { data: communeData } = await supabase
+        .from('communes')
+        .select('id')
+        .eq('name', communeName)
+        .single();
+
+      // Récupérer l'ID de l'arrondissement
+      const { data: arrondissementData } = await supabase
+        .from('arrondissements')
+        .select('id')
+        .eq('name', arrondissementName)
+        .single();
+
+      console.log('🆔 IDs récupérés:', {
+        provinceId: provinceData?.id,
+        communeId: communeData?.id,
+        arrondissementId: arrondissementData?.id
+      });
+
+      // Récupérer l'utilisateur authentifié pour filled created_by si UUID requis
+      let createdBy: string | null = null;
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        createdBy = auth?.user?.id ?? null;
+        console.log('👤 Utilisateur authentifié (created_by):', createdBy);
+      } catch (e) {
+        console.warn('Impossible de récupérer l\'utilisateur authentifié, created_by sera null');
+      }
+
       // Préparer les données pour Supabase
       const supabaseData = {
         title: (electionData as any).name || electionData.title,
@@ -502,11 +548,14 @@ const ElectionManagementUnified = () => {
         election_date: electionData.date,
         status: 'À venir',
         description: electionData.description || '',
+        province_id: provinceData?.id || null,
+        commune_id: communeData?.id || null,
+        arrondissement_id: arrondissementData?.id || null,
         seats_available: (electionData as any).seatsAvailable || electionData.configuration?.seatsAvailable || 1,
         budget: (electionData as any).budget || electionData.configuration?.budget || 0,
         vote_goal: (electionData as any).voteGoal || electionData.configuration?.voteGoal || 0,
         nb_electeurs: (electionData as any).totalVoters || electionData.statistics?.totalVoters || 0,
-        // Note: Les relations géographiques seraient gérées séparément
+        ...(createdBy ? { created_by: createdBy } : {}),
       };
 
       const { data, error } = await supabase
@@ -524,50 +573,56 @@ const ElectionManagementUnified = () => {
       const electionId = String(data.id);
 
       // Lier les candidats à l'élection
-      if (electionData.candidates && electionData.candidates.length > 0) {
-        const candidateLinks = electionData.candidates.map(candidate => ({
+      const candidates = (electionData as any).candidates || electionData.candidates || [];
+      console.log('👥 Candidats reçus:', candidates);
+      
+      if (candidates && candidates.length > 0) {
+        const candidateLinks = candidates.map((candidate: any) => ({
           election_id: electionId,
-          candidate_id: candidate.id,
-          is_our_candidate: candidate.isOurCandidate || false
+          candidate_id: candidate.identifiant || candidate.id,
+          is_our_candidate: candidate.est_notre_candidat || candidate.isOurCandidate || false
         }));
 
-        console.log('Candidats à lier:', candidateLinks);
+        console.log('🔗 Liens candidats à créer:', candidateLinks);
 
         const { error: candidateError } = await supabase
           .from('election_candidates')
           .insert(candidateLinks);
 
         if (candidateError) {
-          console.error('Erreur lors de la liaison des candidats:', candidateError);
+          console.error('❌ Erreur lors de la liaison des candidats:', candidateError);
           toast.error('Erreur lors de la liaison des candidats');
         } else {
-          console.log('Candidats liés avec succès');
+          console.log('✅ Candidats liés avec succès');
         }
       } else {
-        console.log('Aucun candidat à lier pour cette élection');
+        console.log('ℹ️ Aucun candidat à lier pour cette élection');
       }
 
       // Lier les centres à l'élection
-      if (electionData.centers && electionData.centers.length > 0) {
-        const centerLinks = electionData.centers.map(center => ({
+      const centers = (electionData as any).centers || electionData.centers || [];
+      console.log('🏢 Centres reçus:', centers);
+      
+      if (centers && centers.length > 0) {
+        const centerLinks = centers.map((center: any) => ({
           election_id: electionId,
-          center_id: center.id
+          center_id: center.identifiant || center.id
         }));
 
-        console.log('Centres à lier:', centerLinks);
+        console.log('🔗 Liens centres à créer:', centerLinks);
 
         const { error: centerError } = await supabase
           .from('election_centers')
           .insert(centerLinks);
 
         if (centerError) {
-          console.error('Erreur lors de la liaison des centres:', centerError);
+          console.error('❌ Erreur lors de la liaison des centres:', centerError);
           toast.error('Erreur lors de la liaison des centres');
         } else {
-          console.log('Centres liés avec succès');
+          console.log('✅ Centres liés avec succès');
         }
       } else {
-        console.log('Aucun centre à lier pour cette élection');
+        console.log('ℹ️ Aucun centre à lier pour cette élection');
       }
 
       // Créer l'objet Election complet
