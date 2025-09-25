@@ -399,16 +399,16 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="pb-4 sm:pb-6">
-          <DialogTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-            <div className="p-1.5 sm:p-2 bg-gov-blue/10 rounded-lg">
-              <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-gov-blue" />
+      <DialogContent className="max-w-4xl xl:max-w-5xl max-h-[90vh] lg:max-h-[85vh] overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <DialogHeader className="pb-4 sm:pb-6 lg:pb-8">
+          <DialogTitle className="flex items-center gap-2 sm:gap-3 lg:gap-4 text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900">
+            <div className="p-2 sm:p-3 lg:p-4 bg-gov-blue/10 rounded-lg">
+              <Calendar className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 text-gov-blue" />
             </div>
-            <span className="hidden xs:inline">Modification de l'élection</span>
-            <span className="xs:hidden">Modifier élection</span>
+            <span className="hidden sm:inline">Modification de l'élection</span>
+            <span className="sm:hidden">Modifier élection</span>
           </DialogTitle>
-          <DialogDescription className="text-gray-600 mt-2 text-sm sm:text-base">
+          <DialogDescription className="text-gray-600 mt-2 text-sm sm:text-base lg:text-lg">
             Modifiez les informations de l'élection sélectionnée. Les champs marqués d'un astérisque (*) sont obligatoires.
           </DialogDescription>
         </DialogHeader>
@@ -426,7 +426,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="Ex: Élections Locales 2025"
-                icon={<Building className="w-4 h-4" />}
+                icon={<Building className="w-4 h-4 sm:w-5 sm:h-5" />}
                 required
               />
               
@@ -439,7 +439,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                   { value: "Locales", label: "Locales" },
                   { value: "Présidentielle", label: "Présidentielle" }
                 ]}
-                icon={<Vote className="w-4 h-4" />}
+                icon={<Vote className="w-4 h-4 sm:w-5 sm:h-5" />}
                 required
               />
             </ModernFormGrid>
@@ -450,7 +450,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 type="date"
                 value={formData.date}
                 onChange={(e) => handleInputChange('date', e.target.value)}
-                icon={<Calendar className="w-4 h-4" />}
+                icon={<Calendar className="w-4 h-4 sm:w-5 sm:h-5" />}
                 required
               />
               
@@ -464,7 +464,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                   { value: "Terminée", label: "Terminée" },
                   { value: "Annulée", label: "Annulée" }
                 ]}
-                icon={<Target className="w-4 h-4" />}
+                icon={<Target className="w-4 h-4 sm:w-5 sm:h-5" />}
               />
             </ModernFormGrid>
 
@@ -475,7 +475,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Description de l'élection..."
                 rows={3}
-                icon={<Building className="w-4 h-4" />}
+                icon={<Building className="w-4 h-4 sm:w-5 sm:h-5" />}
                 // helperText="Décrivez les objectifs et le contexte de cette élection"
               />
             </ModernFormGrid>
@@ -556,7 +556,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 min="1"
                 value={formData.seatsAvailable}
                 onChange={(e) => handleInputChange('seatsAvailable', parseInt(e.target.value))}
-                icon={<Target className="w-4 h-4" />}
+                icon={<Target className="w-4 h-4 sm:w-5 sm:h-5" />}
                 // helperText="Nombre de sièges à pourvoir"
               />
               
@@ -567,7 +567,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 value={formData.nbElecteurs}
                 onChange={(e) => handleInputChange('nbElecteurs', parseInt(e.target.value))}
                 placeholder="Ex: 50000"
-                icon={<Users className="w-4 h-4" />}
+                icon={<Users className="w-4 h-4 sm:w-5 sm:h-5" />}
                 // helperText="Nombre total d'électeurs inscrits"
               />
             </ModernFormGrid>
@@ -579,7 +579,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 min="0"
                 value={formData.budget}
                 onChange={(e) => handleInputChange('budget', parseInt(e.target.value))}
-                icon={<Target className="w-4 h-4" />}
+                icon={<Target className="w-4 h-4 sm:w-5 sm:h-5" />}
                 // helperText="Budget alloué en francs CFA"
               />
               
@@ -589,7 +589,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 min="0"
                 value={formData.voteGoal}
                 onChange={(e) => handleInputChange('voteGoal', parseInt(e.target.value))}
-                icon={<Vote className="w-4 h-4" />}
+                icon={<Vote className="w-4 h-4 sm:w-5 sm:h-5" />}
                 // helperText="Nombre de voix visées"
               />
             </ModernFormGrid>
@@ -601,113 +601,121 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             description="Sélectionnez les candidats et centres de vote pour cette élection"
             icon={<Users className="w-5 h-5" />}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               {/* Sélection des candidats */}
-              <MultiSelect
-                options={candidates.map(candidate => ({
-                  value: candidate.identifiant,
-                  label: candidate.nom,
-                  subtitle: candidate.parti,
-                  metadata: { est_notre_candidat: candidate.est_notre_candidat }
-                }))}
-                selected={formData.selectedCandidates}
-                onSelectionChange={(selected) => setFormData({...formData, selectedCandidates: selected})}
-                placeholder="Rechercher et sélectionner des candidats..."
-                title="Candidats"
-                icon={<Users className="w-5 h-5 text-gov-blue" />}
-                emptyMessage="Aucun candidat sélectionné"
-                renderOption={(option) => (
-                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div className="w-10 h-10 bg-gov-blue/10 rounded-full flex items-center justify-center">
-                      <Users className="w-5 h-5 text-gov-blue" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{option.label}</p>
-                      <p className="text-sm text-gray-600">{option.subtitle}</p>
-                      {option.metadata?.est_notre_candidat && (
-                        <Badge className="bg-gov-blue text-white px-2 py-1 text-xs mt-1">
-                          <Star className="w-3 h-3 mr-1" />
-                          Notre Candidat
-                        </Badge>
-                      )}
-                    </div>
-                    <Checkbox
-                      checked={formData.selectedCandidates.includes(option.value)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          if (!formData.selectedCandidates.includes(option.value)) {
-                            setFormData({
-                              ...formData,
-                              selectedCandidates: [...formData.selectedCandidates, option.value]
-                            });
-                          }
-                        } else {
-                          setFormData({
-                            ...formData,
-                            selectedCandidates: formData.selectedCandidates.filter(id => id !== option.value)
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-              />
-
-              {/* Sélection des centres */}
-              <MultiSelect
-                options={centers.map(center => ({
-                  value: center.identifiant,
-                  label: center.nom,
-                  subtitle: center.adresse,
-                  metadata: { 
-                    total_voters: center.total_voters, 
-                    total_bureaux: center.total_bureaux 
-                  }
-                }))}
-                selected={formData.selectedCenters}
-                onSelectionChange={(selected) => setFormData({...formData, selectedCenters: selected})}
-                placeholder="Rechercher et sélectionner des centres..."
-                title="Centres de Vote"
-                icon={<Building className="w-5 h-5 text-green-600" />}
-                emptyMessage="Aucun centre sélectionné"
-                renderOption={(option) => (
-                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <Building className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{option.label}</p>
-                      <p className="text-sm text-gray-600">{option.subtitle}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          {option.metadata?.total_bureaux || 0} bureaux
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {option.metadata?.total_voters || 0} électeurs
-                        </Badge>
+              <div className="space-y-4">
+                <MultiSelect
+                  options={candidates.map(candidate => ({
+                    value: candidate.identifiant,
+                    label: candidate.nom,
+                    subtitle: candidate.parti,
+                    metadata: { est_notre_candidat: candidate.est_notre_candidat }
+                  }))}
+                  selected={formData.selectedCandidates}
+                  onSelectionChange={(selected) => setFormData({...formData, selectedCandidates: selected})}
+                  placeholder="Rechercher et sélectionner des candidats..."
+                  title="Candidats"
+                  icon={<Users className="w-5 h-5 sm:w-6 sm:h-6 text-gov-blue" />}
+                  emptyMessage="Aucun candidat sélectionné"
+                  renderOption={(option) => (
+                    <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors min-h-[60px]">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gov-blue/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Users className="w-5 h-5 sm:w-6 sm:h-6 text-gov-blue" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{option.label}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 truncate">{option.subtitle}</p>
+                        {option.metadata?.est_notre_candidat && (
+                          <Badge className="bg-gov-blue text-white px-2 py-1 text-xs mt-1">
+                            <Star className="w-3 h-3 mr-1" />
+                            Notre Candidat
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        <Checkbox
+                          checked={formData.selectedCandidates.includes(option.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              if (!formData.selectedCandidates.includes(option.value)) {
+                                setFormData({
+                                  ...formData,
+                                  selectedCandidates: [...formData.selectedCandidates, option.value]
+                                });
+                              }
+                            } else {
+                              setFormData({
+                                ...formData,
+                                selectedCandidates: formData.selectedCandidates.filter(id => id !== option.value)
+                              });
+                            }
+                          }}
+                        />
                       </div>
                     </div>
-                    <Checkbox
-                      checked={formData.selectedCenters.includes(option.value)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          if (!formData.selectedCenters.includes(option.value)) {
-                            setFormData({
-                              ...formData,
-                              selectedCenters: [...formData.selectedCenters, option.value]
-                            });
-                          }
-                        } else {
-                          setFormData({
-                            ...formData,
-                            selectedCenters: formData.selectedCenters.filter(id => id !== option.value)
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-              />
+                  )}
+                />
+              </div>
+
+              {/* Sélection des centres */}
+              <div className="space-y-4">
+                <MultiSelect
+                  options={centers.map(center => ({
+                    value: center.identifiant,
+                    label: center.nom,
+                    subtitle: center.adresse,
+                    metadata: { 
+                      total_voters: center.total_voters, 
+                      total_bureaux: center.total_bureaux 
+                    }
+                  }))}
+                  selected={formData.selectedCenters}
+                  onSelectionChange={(selected) => setFormData({...formData, selectedCenters: selected})}
+                  placeholder="Rechercher et sélectionner des centres..."
+                  title="Centres de Vote"
+                  icon={<Building className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />}
+                  emptyMessage="Aucun centre sélectionné"
+                  renderOption={(option) => (
+                    <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors min-h-[60px]">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Building className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{option.label}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 truncate">{option.subtitle}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <Badge variant="outline" className="text-xs">
+                            {option.metadata?.total_bureaux || 0} bureaux
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {option.metadata?.total_voters || 0} électeurs
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <Checkbox
+                          checked={formData.selectedCenters.includes(option.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              if (!formData.selectedCenters.includes(option.value)) {
+                                setFormData({
+                                  ...formData,
+                                  selectedCenters: [...formData.selectedCenters, option.value]
+                                });
+                              }
+                            } else {
+                              setFormData({
+                                ...formData,
+                                selectedCenters: formData.selectedCenters.filter(id => id !== option.value)
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                />
+              </div>
             </div>
 
             {/* Récapitulatif automatique */}
@@ -724,26 +732,26 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
               const totalElecteurs = selectedCentersData.reduce((sum, center) => sum + (center.total_voters || 0), 0);
 
               return (
-                <div className="mt-8 p-6 bg-gradient-to-r from-gov-blue/5 to-green-50 rounded-xl border border-gov-blue/20">
-                  <h5 className="font-semibold text-gov-blue mb-4 flex items-center gap-2">
-                    <Target className="w-5 h-5" />
+                <div className="mt-6 lg:mt-8 p-4 sm:p-6 lg:p-8 bg-gradient-to-r from-gov-blue/5 to-green-50 rounded-xl border border-gov-blue/20">
+                  <h5 className="font-semibold text-gov-blue mb-4 sm:mb-6 flex items-center gap-2 text-sm sm:text-base lg:text-lg">
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5" />
                     Récapitulatif Automatique
                   </h5>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-                    <div className="text-center p-2 sm:p-3 bg-white rounded-lg">
-                      <div className="text-lg sm:text-2xl font-bold text-gov-blue">{selectedCandidatesData.length}</div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                    <div className="text-center p-3 sm:p-4 bg-white rounded-lg shadow-sm">
+                      <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gov-blue">{selectedCandidatesData.length}</div>
                       <div className="text-xs sm:text-sm text-gov-blue">Candidats</div>
                     </div>
-                    <div className="text-center p-2 sm:p-3 bg-white rounded-lg">
-                      <div className="text-lg sm:text-2xl font-bold text-green-600">{selectedCentersData.length}</div>
+                    <div className="text-center p-3 sm:p-4 bg-white rounded-lg shadow-sm">
+                      <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">{selectedCentersData.length}</div>
                       <div className="text-xs sm:text-sm text-green-600">Centres</div>
                     </div>
-                    <div className="text-center p-2 sm:p-3 bg-white rounded-lg">
-                      <div className="text-lg sm:text-2xl font-bold text-purple-600">{totalBureaux}</div>
+                    <div className="text-center p-3 sm:p-4 bg-white rounded-lg shadow-sm">
+                      <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600">{totalBureaux}</div>
                       <div className="text-xs sm:text-sm text-purple-600">Bureaux</div>
                     </div>
-                    <div className="text-center p-2 sm:p-3 bg-white rounded-lg">
-                      <div className="text-lg sm:text-2xl font-bold text-orange-600">{totalElecteurs.toLocaleString('fr-FR')}</div>
+                    <div className="text-center p-3 sm:p-4 bg-white rounded-lg shadow-sm">
+                      <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-600">{totalElecteurs.toLocaleString('fr-FR')}</div>
                       <div className="text-xs sm:text-sm text-orange-600">Électeurs</div>
                     </div>
                   </div>
@@ -752,27 +760,27 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
             })()}
           </ModernFormSection>
 
-          {/* Actions - Mobile First */}
+          {/* Actions - Responsive */}
           <ModernFormActions>
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 sm:px-6 py-2 sm:py-3 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300 text-sm sm:text-base w-full sm:w-auto"
+              className="px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300 text-sm sm:text-base lg:text-lg w-full sm:w-auto"
             >
-              <X className="h-4 w-4 mr-1 sm:mr-2" />
-              <span className="hidden xs:inline">Annuler</span>
-              <span className="xs:hidden">Annuler</span>
+              <X className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              <span className="hidden sm:inline">Annuler</span>
+              <span className="sm:hidden">Annuler</span>
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 sm:px-8 py-2 sm:py-3 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto"
+              className="px-6 sm:px-8 lg:px-12 py-2 sm:py-3 lg:py-4 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 text-sm sm:text-base lg:text-lg w-full sm:w-auto"
             >
-              <Save className="h-4 w-4 mr-1 sm:mr-2" />
-              <span className="hidden xs:inline">{isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications'}</span>
-              <span className="xs:hidden">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</span>
+              <Save className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              <span className="hidden sm:inline">{isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications'}</span>
+              <span className="sm:hidden">{isSubmitting ? 'Sauvegarde...' : 'Sauvegarder'}</span>
             </Button>
           </ModernFormActions>
         </ModernForm>

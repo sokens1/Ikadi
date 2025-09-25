@@ -39,10 +39,10 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
     budget: '',
     voteGoal: '',
     
-     // Étape 2
-     province: '',
-     commune: '',
-     arrondissement: '',
+    // Étape 2
+    province: '',
+    commune: '',
+    arrondissement: '',
     
     // Étape 3 - Candidats sélectionnés
     selectedCandidates: [] as string[],
@@ -264,9 +264,9 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
         seatsAvailable: Number(formData.seatsAvailable) || 1,
         budget: Number(formData.budget) || 0,
         voteGoal: Number(formData.voteGoal) || 0,
-         province: formData.province,
-         commune: formData.commune,
-         arrondissement: formData.arrondissement,
+        province: formData.province,
+        commune: formData.commune,
+        arrondissement: formData.arrondissement,
         candidates: selectedCandidatesData,
         centers: selectedCentersData,
         totalCenters: selectedCentersData.length,
@@ -471,52 +471,56 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
             description={formData.type === "Locales" ? "Choisissez la liste qui participera à cette élection" : "Choisissez les candidats qui participeront à cette élection"}
             icon={<Users className="w-5 h-5" />}
           >
-            <MultiSelect
-              options={candidatesOptions}
-              selected={formData.selectedCandidates}
-              onSelectionChange={(selected) => setFormData({...formData, selectedCandidates: selected})}
-              placeholder="Rechercher et sélectionner des candidats..."
-              title={formData.type === "Locales" ? "Listes" : "Candidats"}
-              icon={<Users className="w-5 h-5 text-gov-blue" />}
-              emptyMessage="Aucun candidat sélectionné"
-              renderOption={(option) => (
-                <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="w-10 h-10 bg-gov-blue/10 rounded-full flex items-center justify-center">
-                    <div className="w-6 h-6 bg-gov-blue rounded text-white text-xs font-bold flex items-center justify-center">
-                      {option.subtitle?.charAt(0) || 'P'}
-                    </div>
+            <div className="space-y-4">
+              <MultiSelect
+                options={candidatesOptions}
+                selected={formData.selectedCandidates}
+                onSelectionChange={(selected) => setFormData({...formData, selectedCandidates: selected})}
+                placeholder="Rechercher et sélectionner des candidats..."
+                title={formData.type === "Locales" ? "Listes" : "Candidats"}
+                  icon={<Users className="w-4 h-4 text-gov-blue" />}
+                emptyMessage="Aucun candidat sélectionné"
+                renderOption={(option) => (
+                  <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg transition-colors min-h-[50px]">
+                    <div className="w-8 h-8 bg-gov-blue/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 bg-gov-blue rounded text-white text-xs font-bold flex items-center justify-center">
+                        {option.subtitle?.charAt(0) || 'P'}
+                      </div>
             </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{option.label}</p>
-                    <p className="text-sm text-gray-600">{option.subtitle}</p>
-                    {option.metadata?.est_notre_candidat && (
-                      <Badge className="bg-gov-blue text-white px-2 py-1 text-xs mt-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm truncate">{option.label}</p>
+                      <p className="text-xs text-gray-600 truncate">{option.subtitle}</p>
+                      {option.metadata?.est_notre_candidat && (
+                        <Badge className="bg-gov-blue text-white px-2 py-1 text-xs mt-1">
                                 <Star className="w-3 h-3 mr-1" />
-                                {formData.type === "Locales" ? "C'est notre liste" : "Notre Candidat"}
+                          {formData.type === "Locales" ? "C'est notre liste" : "Notre Candidat"}
                               </Badge>
                             )}
-            </div>
-                  <Checkbox
-                    checked={formData.selectedCandidates.includes(option.value)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        if (!formData.selectedCandidates.includes(option.value)) {
-                          setFormData({
-                            ...formData,
-                            selectedCandidates: [...formData.selectedCandidates, option.value]
-                          });
-                        }
-                      } else {
-                        setFormData({
-                          ...formData,
-                          selectedCandidates: formData.selectedCandidates.filter(id => id !== option.value)
-                        });
-                      }
-                    }}
+                          </div>
+                    <div className="flex-shrink-0">
+                      <Checkbox
+                        checked={formData.selectedCandidates.includes(option.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            if (!formData.selectedCandidates.includes(option.value)) {
+                              setFormData({
+                                ...formData,
+                                selectedCandidates: [...formData.selectedCandidates, option.value]
+                              });
+                            }
+                          } else {
+                            setFormData({
+                              ...formData,
+                              selectedCandidates: formData.selectedCandidates.filter(id => id !== option.value)
+                            });
+                          }
+                        }}
+                      />
+                </div>
+              </div>
+            )}
               />
-            </div>
-              )}
-            />
+          </div>
           </ModernFormSection>
         );
       }
@@ -553,80 +557,84 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
               description="Choisissez les centres de vote pour cette élection"
               icon={<Building className="w-5 h-5" />}
             >
-              <MultiSelect
-                options={centersOptions}
-                selected={formData.selectedCenters}
-                onSelectionChange={(selected) => setFormData({...formData, selectedCenters: selected})}
-                placeholder="Rechercher et sélectionner des centres..."
-                title="Centres de Vote"
-                icon={<Building className="w-5 h-5 text-green-600" />}
-                emptyMessage="Aucun centre sélectionné"
-                renderOption={(option) => (
-                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <Building className="w-5 h-5 text-green-600" />
-                </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{option.label}</p>
-                      <p className="text-sm text-gray-600">{option.subtitle}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          {option.metadata?.total_bureaux || 0} bureaux
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {option.metadata?.total_voters || 0} électeurs
-                        </Badge>
-                </div>
-              </div>
-                    <Checkbox
-                      checked={formData.selectedCenters.includes(option.value)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          if (!formData.selectedCenters.includes(option.value)) {
-                            setFormData({
-                              ...formData,
-                              selectedCenters: [...formData.selectedCenters, option.value]
-                            });
-                          }
-                        } else {
-                          setFormData({
-                            ...formData,
-                            selectedCenters: formData.selectedCenters.filter(id => id !== option.value)
-                          });
-                        }
-                      }}
-                    />
-              </div>
-                )}
+          <div className="space-y-4">
+                <MultiSelect
+                  options={centersOptions}
+                  selected={formData.selectedCenters}
+                  onSelectionChange={(selected) => setFormData({...formData, selectedCenters: selected})}
+                  placeholder="Rechercher et sélectionner des centres..."
+                  title="Centres de Vote"
+                  icon={<Building className="w-4 h-4 text-green-600" />}
+                  emptyMessage="Aucun centre sélectionné"
+                  renderOption={(option) => (
+                    <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-lg transition-colors min-h-[50px]">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Building className="w-4 h-4 text-green-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm truncate">{option.label}</p>
+                        <p className="text-xs text-gray-600 truncate">{option.subtitle}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <Badge variant="outline" className="text-xs">
+                            {option.metadata?.total_bureaux || 0} bureaux
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {option.metadata?.total_voters || 0} électeurs
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <Checkbox
+                          checked={formData.selectedCenters.includes(option.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              if (!formData.selectedCenters.includes(option.value)) {
+                                setFormData({
+                                  ...formData,
+                                  selectedCenters: [...formData.selectedCenters, option.value]
+                                });
+                              }
+                            } else {
+                              setFormData({
+                                ...formData,
+                                selectedCenters: formData.selectedCenters.filter(id => id !== option.value)
+                              });
+                            }
+                          }}
               />
+            </div>
+            </div>
+                  )}
+              />
+            </div>
             </ModernFormSection>
 
             {/* Récapitulatif automatique */}
             {selectedCentersData.length > 0 && (
-              <div className="bg-gradient-to-r from-gov-blue/5 to-green-50 rounded-xl border border-gov-blue/20 p-6">
-                <h5 className="font-semibold text-gov-blue mb-4 flex items-center gap-2">
-                  <Target className="w-5 h-5" />
+              <div className="bg-gradient-to-r from-gov-blue/5 to-green-50 rounded-xl border border-gov-blue/20 p-3 sm:p-4">
+                <h5 className="font-semibold text-gov-blue mb-3 flex items-center gap-2 text-sm">
+                  <Target className="w-4 h-4" />
                   Récapitulatif Automatique
                 </h5>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-white rounded-lg">
-                    <div className="text-2xl font-bold text-gov-blue">{selectedCentersData.length}</div>
-                    <div className="text-sm text-gov-blue">Centres</div>
-            </div>
-                  <div className="text-center p-3 bg-white rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{totalBureaux}</div>
-                    <div className="text-sm text-green-600">Bureaux</div>
-                          </div>
-                  <div className="text-center p-3 bg-white rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">{totalElecteurs.toLocaleString('fr-FR')}</div>
-                    <div className="text-sm text-purple-600">Électeurs</div>
-                        </div>
-                  <div className="text-center p-3 bg-white rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+                  <div className="text-center p-2 sm:p-3 bg-white rounded-lg shadow-sm">
+                    <div className="text-lg sm:text-xl font-bold text-gov-blue">{selectedCentersData.length}</div>
+                    <div className="text-xs text-gov-blue">Centres</div>
+                  </div>
+                  <div className="text-center p-2 sm:p-3 bg-white rounded-lg shadow-sm">
+                    <div className="text-lg sm:text-xl font-bold text-green-600">{totalBureaux}</div>
+                    <div className="text-xs text-green-600">Bureaux</div>
+                  </div>
+                  <div className="text-center p-2 sm:p-3 bg-white rounded-lg shadow-sm">
+                    <div className="text-lg sm:text-xl font-bold text-purple-600">{totalElecteurs.toLocaleString('fr-FR')}</div>
+                    <div className="text-xs text-purple-600">Électeurs</div>
+                  </div>
+                  <div className="text-center p-2 sm:p-3 bg-white rounded-lg shadow-sm">
+                    <div className="text-lg sm:text-xl font-bold text-orange-600">
                       {totalBureaux > 0 ? Math.round(totalElecteurs / totalBureaux) : 0}
-                      </div>
-                    <div className="text-sm text-orange-600">Électeurs/bureau</div>
                     </div>
+                    <div className="text-xs text-orange-600">Électeurs/bureau</div>
+                  </div>
                 </div>
               </div>
             )}
@@ -645,7 +653,7 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
                 disabled
               />
             </ModernFormGrid>
-            </div>
+          </div>
         );
       }
         
@@ -807,39 +815,39 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
-        {/* Header moderne - Mobile First */}
-        <div className="relative bg-gradient-to-r from-gov-blue to-gov-blue-light p-4 sm:p-6 text-white">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 lg:p-8">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl xl:max-w-5xl max-h-[90vh] lg:max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
+        {/* Header moderne - Compact */}
+        <div className="relative bg-gradient-to-r from-gov-blue to-gov-blue-light p-3 sm:p-4 lg:p-5 text-white">
           <div className="absolute inset-0 bg-black/10 rounded-t-xl sm:rounded-t-2xl"></div>
           <div className="relative flex items-center justify-between">
           <div className="flex-1 min-w-0">
               <h2 className="text-lg sm:text-xl lg:text-2xl font-bold leading-tight">Configurer une nouvelle élection</h2>
-              <p className="text-gov-blue-light/80 mt-1 text-sm sm:text-base">Étape {currentStep} sur 5 : {steps[currentStep - 1]}</p>
+              <p className="text-gov-blue-light/80 mt-1 text-xs sm:text-sm">Étape {currentStep} sur 5 : {steps[currentStep - 1]}</p>
           </div>
             <Button 
               variant="ghost" 
               onClick={onClose} 
-              className="text-white hover:bg-white/20 rounded-xl p-2 flex-shrink-0 ml-2"
+              className="text-white hover:bg-white/20 rounded-xl p-1.5 sm:p-2 flex-shrink-0 ml-2"
             >
-            <X className="w-5 h-5 sm:w-6 sm:h-6" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
           </div>
         </div>
 
-        {/* Progress moderne - Mobile First */}
-        <div className="px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
+        {/* Progress moderne - Compact */}
+        <div className="px-3 sm:px-4 lg:px-5 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-center space-x-2 sm:space-x-4">
             {steps.map((step, index) => (
               <div key={index} className="flex items-center">
-                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all duration-300 ${
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all duration-300 ${
                   index + 1 <= currentStep 
                     ? 'bg-gov-blue text-white shadow-lg' 
                     : 'bg-gray-200 text-gray-600'
                 }`}>
                   {index + 1}
                 </div>
-                <span className={`ml-2 sm:ml-3 text-xs sm:text-sm font-medium hidden xs:inline transition-colors duration-300 ${
+                <span className={`ml-2 sm:ml-3 text-xs sm:text-sm font-medium hidden sm:inline transition-colors duration-300 ${
                   index + 1 <= currentStep ? 'text-gov-blue' : 'text-gray-500'
                 }`}>
                   {step}
@@ -854,25 +862,25 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
           </div>
         </div>
 
-        {/* Content avec scroll - Mobile First */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6">
+        {/* Content avec scroll - Compact */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-5">
           <ModernForm>
             {renderStep()}
           </ModernForm>
         </div>
 
-        {/* Footer moderne - Mobile First */}
-        <div className="bg-gray-50 border-t border-gray-200 p-3 sm:p-6">
+        {/* Footer moderne - Compact */}
+        <div className="bg-gray-50 border-t border-gray-200 p-3 sm:p-4 lg:p-5">
           <div className="flex items-center justify-between gap-2 sm:gap-4">
           <Button
             variant="outline"
             onClick={handlePrevious}
             disabled={currentStep === 1}
-              className="flex items-center px-3 sm:px-6 py-2 sm:py-3 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300 text-sm sm:text-base"
+              className="flex items-center px-3 sm:px-4 py-2 rounded-xl border-2 hover:bg-gray-100 transition-all duration-300 text-xs sm:text-sm"
           >
-            <ChevronLeft className="w-4 h-4 mr-1 sm:mr-2" />
-            <span className="hidden xs:inline">Précédent</span>
-            <span className="xs:hidden">Préc.</span>
+            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+            <span className="hidden sm:inline">Précédent</span>
+            <span className="sm:hidden">Préc.</span>
           </Button>
           
             <div className="flex space-x-2 sm:space-x-3">
@@ -880,20 +888,20 @@ const ElectionWizard: React.FC<ElectionWizardProps> = ({ onClose, onSubmit, onSu
               <Button
                 onClick={handleNext}
                   disabled={!canProceed()}
-                  className="flex items-center px-4 sm:px-8 py-2 sm:py-3 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  className="flex items-center px-4 sm:px-6 py-2 bg-gov-blue hover:bg-gov-blue-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
               >
-                <span className="hidden xs:inline">Suivant</span>
-                <span className="xs:hidden">Suiv.</span>
-                  <ChevronRight className="w-4 h-4 ml-2" />
+                <span className="hidden sm:inline">Suivant</span>
+                <span className="sm:hidden">Suiv.</span>
+                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
               </Button>
             )}
             
             {currentStep === 5 && (
               <Button
                 onClick={handleSubmit}
-                  className="flex items-center px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="flex items-center px-6 sm:px-8 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm"
               >
-                  <Check className="w-4 h-4 mr-2" />
+                  <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                 <span className="hidden sm:inline">Créer l'élection</span>
                 <span className="sm:hidden">Créer</span>
               </Button>
