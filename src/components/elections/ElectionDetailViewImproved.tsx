@@ -462,3 +462,4 @@ const ElectionDetailViewImproved: React.FC<ElectionDetailViewProps> = ({ electio
 
 export default ElectionDetailViewImproved;
 
+
