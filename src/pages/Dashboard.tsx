@@ -106,22 +106,21 @@ const Dashboard = () => {
 
         // 7. Récupérer les activités récentes
         const activities = [];
-        
-        // Derniers votants ajoutés
-        const { data: recentVoters } = await supabase
-          .from('voters')
-          .select('first_name, last_name, created_at')
+
+        // Derniers utilisateurs créés (remplace l'ancien flux 'voters')
+        const { data: recentUsers } = await supabase
+          .from('users')
+          .select('name, email, created_at')
           .order('created_at', { ascending: false })
           .limit(3);
-        
-        if (recentVoters) {
-          recentVoters.forEach((voter, index) => {
+        if (recentUsers) {
+          recentUsers.forEach((u, index) => {
             activities.push({
-              id: `voter_${index}`,
-              type: 'voter' as const,
-              action: 'Nouveau votant',
-              description: `${voter.first_name} ${voter.last_name}`,
-              timestamp: new Date(voter.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+              id: `user_${index}`,
+              type: 'user' as const,
+              action: 'Nouvel utilisateur',
+              description: `${u.name} (${u.email})`,
+              timestamp: new Date(u.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
               icon: <UserPlus className="w-4 h-4 text-blue-500" />
             });
           });
@@ -218,13 +217,7 @@ const Dashboard = () => {
               type: 'info'
             });
           }
-          if (recentVoters && recentVoters.length > 0) {
-            addNotification({
-              title: 'Nouveaux électeurs enregistrés',
-              message: `${recentVoters.length} inscription(s) récente(s)`,
-              type: 'success'
-            });
-          }
+          // notification sur nouveaux utilisateurs (à la place des votants)
           hasNotifiedRef.current = true;
         }
 
