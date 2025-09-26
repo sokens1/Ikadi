@@ -101,53 +101,58 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col mx-2 sm:mx-0">
         <DialogHeader className="pb-4 sm:pb-6">
           <DialogTitle className="flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+            <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg flex-shrink-0">
               <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-lg sm:text-xl font-bold text-gray-900">Sélection des Candidats</div>
-              <div className="text-xs sm:text-sm text-gray-600">Choisissez les candidats pour cette élection</div>
+              <div className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 leading-tight">Sélection des Candidats</div>
+              <div className="text-xs sm:text-sm text-gray-600 mt-1">Choisissez les candidats pour cette élection</div>
             </div>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
-          <ModernForm onSubmit={handleSubmit} className="h-full flex flex-col">
-            <div className="flex-1 overflow-hidden">
-              <ModernFormSection title="Candidats" className="h-full flex flex-col">
-                <div className="flex-1 overflow-hidden">
-                  <MultiSelect
-                    options={(candidates || []).map(c => ({
-                      value: c.id,
-                      label: c.name,
-                      subtitle: c.party
-                    }))}
-                    selected={selectedCandidates}
-                    onSelectionChange={setSelectedCandidates}
-                    placeholder="Sélectionnez des candidats..."
-                    title="Candidats"
-                    icon={<Users className="w-5 h-5 text-[#1e40af]" />}
-                    searchable={true}
-                    emptyMessage="Aucun candidat sélectionné"
-                    className="w-full"
-                  />
-                </div>
-              </ModernFormSection>
+        <div className="flex-1 overflow-hidden p-4 sm:p-6">
+          <form onSubmit={handleSubmit} className="h-full flex flex-col">
+            <div className="flex-1 overflow-hidden mb-4">
+              <MultiSelect
+                options={(candidates || []).map(c => ({
+                  value: c.id,
+                  label: c.name,
+                  subtitle: c.party
+                }))}
+                selected={selectedCandidates}
+                onSelectionChange={setSelectedCandidates}
+                placeholder="Sélectionnez des candidats..."
+                title="Candidats"
+                icon={<Users className="w-4 h-4 sm:w-5 sm:h-5 text-[#1e40af]" />}
+                searchable={true}
+                emptyMessage="Aucun candidat sélectionné"
+                className="w-full"
+              />
             </div>
 
-            <div className="flex-shrink-0">
-              <ModernFormActions className="!relative !bg-white !border-t !border-gray-200 !-mx-6 !-mb-6 !px-6 !py-4 !rounded-b-2xl">
-                <Button type="button" variant="outline" onClick={onClose} className="text-sm px-4 py-2">Annuler</Button>
-                <Button type="submit" className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm px-4 py-2" disabled={selectedCandidates.length === 0}>
-                  <span className="hidden xs:inline">Ajouter {selectedCandidates.length} candidat{selectedCandidates.length > 1 ? 's' : ''}</span>
-                  <span className="xs:hidden">Ajouter {selectedCandidates.length}</span>
-                </Button>
-              </ModernFormActions>
+            <div className="flex-shrink-0 flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose} 
+                className="text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 flex-1 sm:flex-none min-h-[44px] sm:min-h-[40px]"
+              >
+                Annuler
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 flex-1 sm:flex-none min-h-[44px] sm:min-h-[40px]" 
+                disabled={selectedCandidates.length === 0}
+              >
+                <span className="hidden xs:inline">Ajouter {selectedCandidates.length} candidat{selectedCandidates.length > 1 ? 's' : ''}</span>
+                <span className="xs:hidden">Ajouter {selectedCandidates.length}</span>
+              </Button>
             </div>
-          </ModernForm>
+          </form>
         </div>
       </DialogContent>
     </Dialog>
