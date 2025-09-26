@@ -360,7 +360,7 @@ const ElectionResults: React.FC = () => {
 
   const handleShare = (platform: string) => {
     const url = window.location.href;
-    const title = results?.election?.title || 'Résultats d\'élection';
+    const title = 'Élections Locales et Législatives 1 Arr.MDA';
     
     switch (platform) {
       case 'whatsapp':
@@ -370,7 +370,7 @@ const ElectionResults: React.FC = () => {
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
         break;
       case 'copy':
-        navigator.clipboard.writeText(url);
+        navigator.clipboard.writeText(`${title} - ${url}`);
         toast.success('Lien copié dans le presse-papiers');
         break;
     }

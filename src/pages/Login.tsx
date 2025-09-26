@@ -210,7 +210,7 @@ const Login = () => {
               Choisissez votre élection
             </h2>
             <p className="text-blue-100 text-sm leading-relaxed">
-              Sélectionnez le type d'élection pour accéder aux résultats
+              Sélectionnez le type d'élections pour accéder aux résultats
             </p>
           </div>
 
@@ -226,7 +226,7 @@ const Login = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="text-left flex-1">
-                  <h3 className="font-bold text-base">Élection Législative</h3>
+                  <h3 className="font-bold text-base">Élections Législatives</h3>
                   <p className="text-xs opacity-80">Élection des députés</p>
                 </div>
                 {!electionsLoading && <ArrowRight className="w-4 h-4 text-white/60" />}
@@ -243,7 +243,7 @@ const Login = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="text-left flex-1">
-                  <h3 className="font-bold text-base">Élection Locale</h3>
+                  <h3 className="font-bold text-base">Élections Locales</h3>
                   <p className="text-xs opacity-80">Élection des conseils municipaux</p>
                 </div>
                 {!electionsLoading && <ArrowRight className="w-4 h-4 text-white/60" />}
