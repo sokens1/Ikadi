@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase';
 
 export async function fetchGlobalMetrics() {
-  const [elections, centers, pvs, bureaux, candidates, candidatesParties] = await Promise.all([
-    supabase.from('elections').select('nb_electeurs'),
+  const [latestElection, centers, pvs, bureaux, candidates, candidatesParties] = await Promise.all([
+    supabase.from('elections').select('nb_electeurs').order('created_at', { ascending: false }).limit(1).single(),
     supabase.from('voting_centers').select('id', { count: 'exact' }),
     supabase.from('procès_verbaux').select('id', { count: 'exact' }),
     supabase.from('voting_bureaux').select('id', { count: 'exact' }),
@@ -10,15 +10,14 @@ export async function fetchGlobalMetrics() {
     supabase.from('candidates').select('party')
   ]);
 
-  if (elections.error) throw elections.error;
+  if (latestElection.error) throw latestElection.error;
   if (centers.error) throw centers.error;
   if (pvs.error) throw pvs.error;
   if (bureaux.error) throw bureaux.error;
   if (candidates.error) throw candidates.error;
 
-  // Calculer la somme des électeurs à partir de la colonne nb_electeurs des élections
-  const totalVoters = elections.data?.reduce((sum, election) => 
-    sum + (election.nb_electeurs || 0), 0) || 0;
+  // Utiliser la valeur d'une élection spécifique (la plus récente)
+  const totalVoters = latestElection.data?.nb_electeurs || 0;
 
   const parties = new Set<string>();
   (candidatesParties.data || []).forEach((c: any) => {

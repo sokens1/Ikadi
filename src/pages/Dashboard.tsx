@@ -76,11 +76,14 @@ const Dashboard = () => {
           .limit(1)
           .single();
 
-        // 2. Total inscrits = somme de la colonne nb_electeurs des élections
-        const { data: electionsData } = await supabase
+        // 2. Total inscrits = valeur d'une élection spécifique (la plus récente)
+        const { data: latestElection } = await supabase
           .from('elections')
-          .select('nb_electeurs');
-        const votersCount = (electionsData || []).reduce((s: number, election: any) => s + (Number(election.nb_electeurs) || 0), 0);
+          .select('nb_electeurs')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        const votersCount = latestElection?.nb_electeurs || 0;
 
         // 3. Compter les centres de vote
         const { count: centersCount } = await supabase
