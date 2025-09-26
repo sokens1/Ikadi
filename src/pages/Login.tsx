@@ -118,7 +118,7 @@ const Login = () => {
             </div>
             <div>
               <h1 className="text-white font-bold text-xl lg:text-2xl">iKadi</h1>
-              <p className="text-blue-100 text-xs">Plateforme Électorale</p>
+              <p className="text-blue-100 text-xs">Plateforme de gestion électorale</p>
             </div>
           </div>
         </div>
@@ -131,67 +131,49 @@ const Login = () => {
               Choisissez votre élection
             </h2>
             <p className="text-blue-100 text-base lg:text-lg leading-relaxed">
-              Sélectionnez le type d'élection pour accéder aux résultats de l'élection dédiés
+              Sélectionnez le type d'élections pour accéder aux résultats.
             </p>
           </div>
 
            {/* Boutons de sélection d'élection */}
            <div className="space-y-3 lg:space-y-4 w-full max-w-md">
              {/* Bouton Élection Législative */}
-             <button
+            <button
                onClick={() => handleElectionRedirect('legislative')}
                disabled={electionsLoading}
-               className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+              className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl text-white bg-[#00D4B8] border-[#00D4B8] hover:bg-[#00D4B8] hover:border-[#00D4B8] ${
                  electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
                }`}
              >
-               <div className="flex items-center justify-between">
-                 <div className="flex items-center space-x-3 lg:space-x-4">
-                   <div className="p-2 lg:p-3 rounded-lg bg-white/20 text-white">
-                     {electionsLoading ? (
-                       <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 animate-spin" />
-                     ) : (
-                       <Building className="w-5 h-5 lg:w-6 lg:h-6" />
-                     )}
-                   </div>
-                   <div className="text-left">
-                     <h3 className="font-bold text-base lg:text-lg">Élection Législative</h3>
-                     <p className="text-xs lg:text-sm opacity-80">Élection des députés</p>
-                   </div>
-                 </div>
-                 {!electionsLoading && <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 transition-transform text-white/60" />}
-               </div>
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <h3 className="font-bold text-base lg:text-lg">Élections Législatives</h3>
+                  <p className="text-xs lg:text-sm opacity-80">Élection des députés</p>
+                </div>
+                {!electionsLoading && <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 transition-transform text-white/60" />}
+              </div>
              </button>
 
              {/* Bouton Élection Locale */}
-             <button
+            <button
                onClick={() => handleElectionRedirect('local')}
                disabled={electionsLoading}
-               className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+              className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl text-white bg-[#D4001C] border-[#D4001C] hover:bg-[#D4001C] hover:border-[#D4001C] ${
                  electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
                }`}
              >
-               <div className="flex items-center justify-between">
-                 <div className="flex items-center space-x-3 lg:space-x-4">
-                   <div className="p-2 lg:p-3 rounded-lg bg-white/20 text-white">
-                     {electionsLoading ? (
-                       <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 animate-spin" />
-                     ) : (
-                       <Vote className="w-5 h-5 lg:w-6 lg:h-6" />
-                     )}
-                   </div>
-                   <div className="text-left">
-                     <h3 className="font-bold text-base lg:text-lg">Élection Locale</h3>
-                     <p className="text-xs lg:text-sm opacity-80">Élection des conseils municipaux</p>
-                   </div>
-                 </div>
-                 {!electionsLoading && <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 transition-transform text-white/60" />}
-               </div>
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <h3 className="font-bold text-base lg:text-lg">Élections Locales</h3>
+                  <p className="text-xs lg:text-sm opacity-80">Élection des conseils municipaux</p>
+                </div>
+                {!electionsLoading && <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 transition-transform text-white/60" />}
+              </div>
              </button>
            </div>
 
           {/* Avantages de la plateforme */}
-          <div className="mt-6 lg:mt-8 grid grid-cols-2 gap-3 lg:gap-4 w-full max-w-md">
+          <div className="mt-6 lg:mt-8 flex items-center justify-between gap-3 lg:gap-4 w-full max-w-md">
             <div className="flex items-center space-x-1 lg:space-x-2 text-blue-100">
               <Shield className="w-3 h-3 lg:w-4 lg:h-4 text-green-400" />
               <span className="text-xs">Sécurisé</span>
@@ -204,10 +186,6 @@ const Login = () => {
               <Users className="w-3 h-3 lg:w-4 lg:h-4 text-green-400" />
               <span className="text-xs">Accessible</span>
             </div>
-            <div className="flex items-center space-x-1 lg:space-x-2 text-blue-100">
-              <BarChart3 className="w-3 h-3 lg:w-4 lg:h-4 text-green-400" />
-              <span className="text-xs">Analytique</span>
-            </div>
           </div>
         </div>
 
@@ -217,14 +195,14 @@ const Login = () => {
       <div className="lg:hidden bg-gradient-to-br from-gov-blue via-blue-700 to-gov-blue-dark text-white pt-8 pb-6 px-6">
         <div className="max-w-md mx-auto">
           {/* Logo mobile */}
-          <div className="text-center mb-8">
+        <div className="text-center mb-8">
             <div className="flex items-center justify-center space-x-3 mb-6">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
                 <span className="text-gov-blue font-bold text-lg">iK</span>
               </div>
               <div className="text-left">
                 <h1 className="text-white font-bold text-2xl">iKadi</h1>
-                <p className="text-blue-100 text-xs">Plateforme Électorale</p>
+                <p className="text-blue-100 text-xs">Plateforme de gestion électorale</p>
               </div>
             </div>
             
@@ -242,18 +220,11 @@ const Login = () => {
             <button
               onClick={() => handleElectionRedirect('legislative')}
               disabled={electionsLoading}
-              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#0C8A00] border-[#0C8A00] hover:bg-[#0a7300] hover:border-[#0a7300] ${
                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-lg bg-white/20 text-white">
-                  {electionsLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Building className="w-5 h-5" />
-                  )}
-                </div>
+              <div className="flex items-center justify-between">
                 <div className="text-left flex-1">
                   <h3 className="font-bold text-base">Élection Législative</h3>
                   <p className="text-xs opacity-80">Élection des députés</p>
@@ -266,18 +237,11 @@ const Login = () => {
             <button
               onClick={() => handleElectionRedirect('local')}
               disabled={electionsLoading}
-              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 ${
+              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#F2980C] border-[#F2980C] hover:bg-[#d88409] hover:border-[#d88409] ${
                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-lg bg-white/20 text-white">
-                  {electionsLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Vote className="w-5 h-5" />
-                  )}
-                </div>
+              <div className="flex items-center justify-between">
                 <div className="text-left flex-1">
                   <h3 className="font-bold text-base">Élection Locale</h3>
                   <p className="text-xs opacity-80">Élection des conseils municipaux</p>
@@ -305,9 +269,9 @@ const Login = () => {
               <BarChart3 className="w-3 h-3 text-green-400" />
               <span className="text-xs">Analytique</span>
             </div>
-          </div>
+              </div>
+            </div>
         </div>
-      </div>
 
       {/* Section droite - Formulaire */}
       <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-4 sm:p-6 lg:p-8">
@@ -317,78 +281,78 @@ const Login = () => {
             <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
                <CardTitle className="text-center text-xl sm:text-2xl text-gray-800">
                  Connexion
-               </CardTitle>
+            </CardTitle>
                <p className="text-center text-gray-600 text-xs sm:text-sm">
-                 Accédez à votre tableau de bord sécurisé
-               </p>
-            </CardHeader>
+              Accédez à votre tableau de bord sécurisé
+            </p>
+          </CardHeader>
             <CardContent className="px-4 sm:px-6">
               <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-                <div className="space-y-2">
+              <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="votre.email@gabon.ga"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="votre.email@gabon.ga"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                     className="h-10 sm:h-12 border-gray-200 focus:ring-gov-blue focus:border-gov-blue transition-colors text-sm sm:text-base"
-                  />
-                </div>
-                
-                <div className="space-y-2">
+                />
+              </div>
+              
+              <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm font-medium text-gray-700">Mot de passe</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
                       className="h-10 sm:h-12 border-gray-200 focus:ring-gov-blue focus:border-gov-blue pr-10 sm:pr-12 transition-colors text-sm sm:text-base"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                       className="absolute right-0 top-0 h-full px-2 sm:px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      )}
-                    </Button>
-                  </div>
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
                 </div>
+              </div>
 
-                 <Button
-                   type="submit"
+              <Button
+                type="submit"
                    className="w-full h-10 sm:h-12 bg-gov-blue hover:bg-gov-blue-dark text-white font-medium transition-colors text-sm sm:text-base"
-                   disabled={isLoading}
-                 >
-                   {isLoading ? (
-                     <>
-                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                        <span className="hidden sm:inline">Connexion...</span>
                        <span className="sm:hidden">Connexion...</span>
-                     </>
-                   ) : (
-                     "Se connecter"
-                   )}
-                 </Button>
-              </form>
+                  </>
+                ) : (
+                  "Se connecter"
+                )}
+              </Button>
+            </form>
 
               <div className="mt-4 sm:mt-6 text-center">
                 <p className="text-xs text-gray-500">
                   Plateforme sécurisée de gestion électorale
                 </p>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
         </div>
       </div>
     </div>
