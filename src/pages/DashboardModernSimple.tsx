@@ -156,24 +156,34 @@ const DashboardModernSimple = () => {
     <Layout>
       <div className="space-y-4 sm:space-y-6 animate-fade-in">
         {/* Header moderne avec gradient - Mobile First */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-[#1e40af]/5 to-[#3b82f6]/5 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-          <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#1e40af] to-[#1e3a8a] rounded-lg sm:rounded-xl lg:rounded-2xl p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6 text-white shadow-xl">
+          <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
-              <div className="space-y-1 sm:space-y-2">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
+              <div className="space-y-2 sm:space-y-3">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight">
                   Tableau de Bord
                 </h1>
-                <p className="text-xs sm:text-sm lg:text-base text-gray-600 leading-relaxed">
+                <p className="text-blue-100 text-sm sm:text-base lg:text-lg leading-relaxed">
                   Vue d'ensemble du système électoral iKADI
                 </p>
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-sm text-blue-100">Système opérationnel</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-blue-200" />
+                    <span className="text-sm text-blue-100">Performance optimale</span>
+                  </div>
+                </div>
               </div>
               <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
                 <Button 
                   onClick={() => navigate('/elections')}
-                  className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm"
+                  className="bg-white hover:bg-gray-50 text-[#1e40af] shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base font-semibold px-4 sm:px-6 py-2 sm:py-3"
                 >
-                  <Vote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <Vote className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                   <span className="hidden xs:inline">Gérer les Élections</span>
                   <span className="xs:hidden">Élections</span>
                 </Button>
@@ -247,6 +257,51 @@ const DashboardModernSimple = () => {
             </CardContent>
           </Card>
 
+          <Card className="election-card">
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Building className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                Infrastructure
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-xs sm:text-sm text-gray-600">Provinces</span>
+                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.infrastructure.provinces}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs sm:text-sm text-gray-600">Communes</span>
+                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.infrastructure.communes}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs sm:text-sm text-gray-600">Centres</span>
+                <span className="font-semibold text-green-600 text-sm sm:text-base">{stats.infrastructure.centers}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="election-card">
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="flex items-center gap-2">
+                <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                <span className="text-xs sm:text-sm text-green-600">Système opérationnel</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                <span className="text-xs sm:text-sm text-blue-600">Performance optimale</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
+                <span className="text-xs sm:text-sm text-yellow-600">Satisfaction élevée</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Actions rapides - Mobile First */}

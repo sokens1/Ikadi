@@ -573,9 +573,9 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
             <TabsList className="grid w-full grid-cols-3 bg-gray-50 p-1 rounded-none">
               <TabsTrigger 
                 value="info" 
-                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-blue-50 data-[state=active]:shadow-sm transition-all duration-300 data-[state=active]:border-l-4 data-[state=active]:border-blue-500"
               >
-                <div className="p-1 sm:p-1.5 bg-gov-blue/10 rounded-md data-[state=active]:bg-gov-blue transition-colors duration-300">
+                <div className="p-1 sm:p-1.5 bg-gov-blue/10 rounded-md data-[state=active]:bg-blue-500 transition-colors duration-300">
                   <Building className="w-3 h-3 sm:w-4 sm:h-4 text-gov-blue data-[state=active]:text-white" />
                 </div>
                 <div className="text-left hidden xs:block">
@@ -588,7 +588,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               </TabsTrigger>
               <TabsTrigger 
                 value="centers" 
-                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300 data-[state=active]:border-b-2 data-[state=active]:border-green-500"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-green-50 data-[state=active]:shadow-sm transition-all duration-300 data-[state=active]:border-l-4 data-[state=active]:border-green-500"
               >
                 <div className="p-1 sm:p-1.5 bg-green-100 rounded-md data-[state=active]:bg-green-500 transition-colors duration-300">
                   <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 data-[state=active]:text-white" />
@@ -603,7 +603,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               </TabsTrigger>
               <TabsTrigger 
                 value="candidates" 
-                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300 data-[state=active]:border-b-2 data-[state=active]:border-purple-500"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-purple-50 data-[state=active]:shadow-sm transition-all duration-300 data-[state=active]:border-l-4 data-[state=active]:border-purple-500"
               >
                 <div className="p-1 sm:p-1.5 bg-purple-100 rounded-md data-[state=active]:bg-purple-500 transition-colors duration-300">
                   <Users className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 data-[state=active]:text-white" />
