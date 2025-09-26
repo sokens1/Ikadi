@@ -846,7 +846,7 @@ const ElectionManagementUnified = () => {
         </div>
 
         {/* Filtres et recherche - Mobile First */}
-        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
+        <div className="bg-aqua-50 rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
           <div className="flex flex-col gap-3 sm:gap-4">
             {/* Barre de recherche */}
             <div className="relative">

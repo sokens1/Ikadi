@@ -247,51 +247,6 @@ const DashboardModernSimple = () => {
             </CardContent>
           </Card>
 
-          <Card className="election-card">
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <Building className="h-4 w-4 sm:h-5 sm:w-5 text-[#1e40af]" />
-                Infrastructure
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-gray-600">Provinces</span>
-                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.infrastructure.provinces}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-gray-600">Communes</span>
-                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.infrastructure.communes}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-gray-600">Bureaux</span>
-                <span className="font-semibold text-purple-600 text-sm sm:text-base">{stats.infrastructure.bureaux}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="election-card">
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-[#1e40af]" />
-                Système
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-                <span className="text-xs sm:text-sm text-green-600">Système opérationnel</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
-                <span className="text-xs sm:text-sm text-blue-600">Performance optimale</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
-                <span className="text-xs sm:text-sm text-yellow-600">Satisfaction élevée</span>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Actions rapides - Mobile First */}
