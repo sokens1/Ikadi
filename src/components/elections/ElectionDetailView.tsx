@@ -16,7 +16,9 @@ import {
   Star,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AddCenterModal from './AddCenterModal';
@@ -94,6 +96,8 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
     totalBureaux: 0,
     totalCandidates: 0
   });
+  const [centersViewMode, setCentersViewMode] = useState<'grid' | 'list'>('grid');
+  const [candidatesViewMode, setCandidatesViewMode] = useState<'grid' | 'list'>('grid');
 
   // Fonction pour charger les centres de vote liés à cette élection
   const fetchCenters = useCallback(async () => {
@@ -569,9 +573,9 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
             <TabsList className="grid w-full grid-cols-3 bg-gray-50 p-1 rounded-none">
               <TabsTrigger 
                 value="info" 
-                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-blue-50 data-[state=active]:shadow-sm transition-all duration-300 data-[state=active]:border-l-4 data-[state=active]:border-blue-500"
               >
-                <div className="p-1 sm:p-1.5 bg-gov-blue/10 rounded-md data-[state=active]:bg-gov-blue transition-colors duration-300">
+                <div className="p-1 sm:p-1.5 bg-gov-blue/10 rounded-md data-[state=active]:bg-blue-500 transition-colors duration-300">
                   <Building className="w-3 h-3 sm:w-4 sm:h-4 text-gov-blue data-[state=active]:text-white" />
                 </div>
                 <div className="text-left hidden xs:block">
@@ -584,7 +588,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               </TabsTrigger>
               <TabsTrigger 
                 value="centers" 
-                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-green-50 data-[state=active]:shadow-sm transition-all duration-300 data-[state=active]:border-l-4 data-[state=active]:border-green-500"
               >
                 <div className="p-1 sm:p-1.5 bg-green-100 rounded-md data-[state=active]:bg-green-500 transition-colors duration-300">
                   <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 data-[state=active]:text-white" />
@@ -599,7 +603,7 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
               </TabsTrigger>
               <TabsTrigger 
                 value="candidates" 
-                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg data-[state=active]:bg-purple-50 data-[state=active]:shadow-sm transition-all duration-300 data-[state=active]:border-l-4 data-[state=active]:border-purple-500"
               >
                 <div className="p-1 sm:p-1.5 bg-purple-100 rounded-md data-[state=active]:bg-purple-500 transition-colors duration-300">
                   <Users className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 data-[state=active]:text-white" />
@@ -726,18 +730,48 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                 <h3 className="text-lg sm:text-xl font-bold text-gray-900">Centres de Vote</h3>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">Gérez les centres de vote et leurs bureaux</p>
               </div>
-              <Button 
-                onClick={() => setShowAddCenter(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto text-sm sm:text-base"
-              >
-                <Plus className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden xs:inline">Ajouter un centre</span>
-                <span className="xs:hidden">Ajouter</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Boutons de vue */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCentersViewMode('grid')}
+                    className={`h-8 w-8 p-0 rounded-md transition-all duration-200 ${
+                      centersViewMode === 'grid' 
+                        ? 'bg-white shadow-sm text-green-600' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCentersViewMode('list')}
+                    className={`h-8 w-8 p-0 rounded-md transition-all duration-200 ${
+                      centersViewMode === 'list' 
+                        ? 'bg-white shadow-sm text-green-600' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button 
+                  onClick={() => setShowAddCenter(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto text-sm sm:text-base"
+                >
+                  <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline">Ajouter un centre</span>
+                  <span className="xs:hidden">Ajouter</span>
+                </Button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {centers.map((center) => (
+            {centersViewMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {centers.map((center) => (
                 <Card 
                   key={center.id} 
                   className="election-card group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-md"
@@ -813,7 +847,69 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {centers.map((center) => (
+                  <Card 
+                    key={center.id} 
+                    className="election-card group hover:shadow-lg transition-all duration-300 cursor-pointer border-0 shadow-sm"
+                    onClick={() => setSelectedCenter(center)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
+                            <MapPin className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-lg text-gray-900 group-hover:text-green-600 transition-colors duration-300 line-clamp-1">
+                              {center.name}
+                            </h3>
+                            <p className="text-sm text-gray-600 line-clamp-1">{center.address}</p>
+                            <div className="flex items-center gap-4 mt-2">
+                              <div className="flex items-center gap-1">
+                                <Building className="w-4 h-4 text-orange-500" />
+                                <span className="text-sm font-medium text-gray-700">{center.bureaux} bureaux</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Users className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm font-medium text-gray-700">{center.voters.toLocaleString('fr-FR')} électeurs</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCenter(center);
+                            }}
+                            className="bg-white border-gray-200 text-gray-700 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-300"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Détails
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditCenter(center);
+                            }}
+                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-all duration-300"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Section Candidats modernisée */}
@@ -823,18 +919,48 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                 <h3 className="text-lg sm:text-xl font-bold text-gray-900">Candidats Validés</h3>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">Gérez la liste des candidats à l'élection</p>
               </div>
-              <Button 
-                onClick={() => setShowAddCandidate(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto text-sm sm:text-base"
-              >
-                <Plus className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden xs:inline">Ajouter un candidat</span>
-                <span className="xs:hidden">Ajouter</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Boutons de vue */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCandidatesViewMode('grid')}
+                    className={`h-8 w-8 p-0 rounded-md transition-all duration-200 ${
+                      candidatesViewMode === 'grid' 
+                        ? 'bg-white shadow-sm text-purple-600' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCandidatesViewMode('list')}
+                    className={`h-8 w-8 p-0 rounded-md transition-all duration-200 ${
+                      candidatesViewMode === 'list' 
+                        ? 'bg-white shadow-sm text-purple-600' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button 
+                  onClick={() => setShowAddCandidate(true)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto text-sm sm:text-base"
+                >
+                  <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline">Ajouter un candidat</span>
+                  <span className="xs:hidden">Ajouter</span>
+                </Button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {candidates.map((candidate) => (
+            {candidatesViewMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {candidates.map((candidate) => (
                 <Card 
                   key={candidate.id} 
                   className={`election-card group hover:shadow-xl transition-all duration-300 ${
@@ -922,7 +1048,72 @@ const ElectionDetailView: React.FC<ElectionDetailViewProps> = ({ election, onBac
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {candidates.map((candidate) => (
+                  <Card 
+                    key={candidate.id} 
+                    className={`election-card group hover:shadow-lg transition-all duration-300 ${
+                      candidate.isOurCandidate 
+                        ? 'border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100' 
+                        : 'border-0 shadow-sm'
+                    }`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className="relative flex-shrink-0">
+                            <InitialsAvatar 
+                              name={candidate.name}
+                              size="lg"
+                              className="shadow-lg border-2 border-white"
+                              backgroundColor={candidate.isOurCandidate ? '#7c3aed' : '#1e40af'}
+                            />
+                            {candidate.isOurCandidate && (
+                              <div className="absolute -top-1 -right-1 p-0.5 bg-purple-500 rounded-full">
+                                <Star className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-lg text-gray-900 group-hover:text-purple-600 transition-colors duration-300 line-clamp-1">
+                              {candidate.name}
+                            </h3>
+                            <p className="text-sm text-gray-600 line-clamp-1">{candidate.party}</p>
+                            {candidate.isOurCandidate && (
+                              <Badge className="bg-purple-500 text-white px-2 py-0.5 text-xs mt-1">
+                                <Star className="w-3 h-3 mr-1" />
+                                Notre candidat
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleViewCandidateProfile(candidate)}
+                            className="bg-white border-gray-200 text-gray-700 hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all duration-300"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Profil
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleEditCandidate(candidate)}
+                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-all duration-300"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
           </Tabs>
         </div>
