@@ -970,7 +970,7 @@ const ElectionResults: React.FC = () => {
 
       {/* Modal détail candidat */}
       <Dialog open={!!openCandidateId} onOpenChange={(o) => !o && setOpenCandidateId(null)}>
-         <DialogContent className="max-w-[95vw] sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-4 lg:mx-6">
+         <DialogContent className="max-w-[90vw] sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-4 lg:mx-6 my-4 sm:my-8">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Détails du candidat</DialogTitle>
           </DialogHeader>
