@@ -220,7 +220,7 @@ const Login = () => {
             <button
               onClick={() => handleElectionRedirect('legislative')}
               disabled={electionsLoading}
-              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#0C8A00] border-[#0C8A00] hover:bg-[#0a7300] hover:border-[#0a7300] ${
+              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#00D4B8] border-[#00D4B8] hover:bg-[#00D4B8] hover:border-[#00D4B8] ${
                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -237,7 +237,7 @@ const Login = () => {
             <button
               onClick={() => handleElectionRedirect('local')}
               disabled={electionsLoading}
-              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#F2980C] border-[#F2980C] hover:bg-[#d88409] hover:border-[#d88409] ${
+              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#D4001C] border-[#D4001C] hover:bg-[#D4001C] hover:border-[#D4001C] ${
                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -252,7 +252,7 @@ const Login = () => {
           </div>
 
           {/* Avantages de la plateforme mobile */}
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="mt-4 flex flex-row justify-center gap-4">
             <div className="flex items-center space-x-1 text-blue-100">
               <Shield className="w-3 h-3 text-green-400" />
               <span className="text-xs">Sécurisé</span>
@@ -264,10 +264,6 @@ const Login = () => {
             <div className="flex items-center space-x-1 text-blue-100">
               <Users className="w-3 h-3 text-green-400" />
               <span className="text-xs">Accessible</span>
-            </div>
-            <div className="flex items-center space-x-1 text-blue-100">
-              <BarChart3 className="w-3 h-3 text-green-400" />
-              <span className="text-xs">Analytique</span>
             </div>
               </div>
             </div>
