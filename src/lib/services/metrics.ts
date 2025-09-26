@@ -6,7 +6,7 @@ export async function fetchGlobalMetrics() {
     supabase.from('voting_centers').select('id', { count: 'exact' }),
     supabase.from('procès_verbaux').select('id', { count: 'exact' }),
     supabase.from('voting_bureaux').select('id', { count: 'exact' }),
-    supabase.from('candidates').select('id', { count: 'exact' }),
+    supabase.from('election_candidates').select('candidate_id', { count: 'exact' }),
     supabase.from('candidates').select('party')
   ]);
 
