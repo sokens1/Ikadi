@@ -111,9 +111,6 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ onClose, onSubmit
               <div className="text-lg sm:text-xl font-bold text-gray-900">Sélection des Candidats</div>
               <div className="text-xs sm:text-sm text-gray-600">Choisissez les candidats pour cette élection</div>
             </div>
-            <Button variant="ghost" onClick={onClose} className="flex-shrink-0 p-2" type="button">
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
 
