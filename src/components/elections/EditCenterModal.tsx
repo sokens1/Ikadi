@@ -133,7 +133,7 @@ const EditCenterModal: React.FC<EditCenterModalProps> = ({
             description="Modifiez les paramètres de base du centre"
             icon={<Building className="w-5 h-5" />}
           >
-            <ModernFormGrid cols={2}>
+            <ModernFormGrid cols={1}>
               <FloatingInput
                 label="Nom du Centre"
                 value={formData.name}
@@ -143,7 +143,8 @@ const EditCenterModal: React.FC<EditCenterModalProps> = ({
                 required
               />
               
-              <FloatingInput
+              {/* Champ commenté car le nombre d'électeurs est calculé automatiquement en fonction du nombre d'électeurs dans chaque bureau */}
+              {/* <FloatingInput
                 label="Nombre total d'électeurs"
                 type="number"
                 min="0"
@@ -151,7 +152,7 @@ const EditCenterModal: React.FC<EditCenterModalProps> = ({
                 onChange={(e) => handleInputChange('totalVoters', parseInt(e.target.value) || 0)}
                 placeholder="Ex: 1200"
                 icon={<Users className="w-4 h-4" />}
-              />
+              /> */}
             </ModernFormGrid>
 
             <ModernFormGrid cols={2}>
