@@ -44,7 +44,7 @@ export const ElectionTimelineSchema = z.object({
 export const ElectionSchema = z.object({
   id: z.string().uuid('ID invalide'),
   title: z.string().min(3, 'Le titre doit contenir au moins 3 caractères').max(100, 'Le titre ne peut pas dépasser 100 caractères'),
-  type: z.enum(['Législatives', 'Locales', 'Présidentielle'], {
+  type: z.enum(['Législatives', 'Locales'], {
     errorMap: () => ({ message: 'Type d\'élection invalide' })
   }),
   status: z.enum(['À venir', 'En cours', 'Terminée', 'Annulée'], {
@@ -172,7 +172,7 @@ export const CreateVotingCenterSchema = z.object({
 // Schéma pour les filtres d'élection
 export const ElectionFiltersSchema = z.object({
   status: z.array(z.enum(['À venir', 'En cours', 'Terminée', 'Annulée'])).optional(),
-  type: z.array(z.enum(['Législatives', 'Locales', 'Présidentielle'])).optional(),
+  type: z.array(z.enum(['Législatives', 'Locales'])).optional(),
   dateRange: z.object({
     start: z.date(),
     end: z.date(),
