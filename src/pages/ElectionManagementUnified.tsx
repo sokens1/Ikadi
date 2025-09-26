@@ -212,7 +212,7 @@ const ElectionManagementUnified = () => {
     setSearchQuery(searchQuery);
     setFilters({
       status: statusFilter === 'all' ? undefined : [statusFilter as 'À venir' | 'En cours' | 'Terminée' | 'Annulée'],
-      type: typeFilter === 'all' ? undefined : [typeFilter as 'Législatives' | 'Locales' | 'Présidentielle'],
+      type: typeFilter === 'all' ? undefined : [typeFilter as 'Législatives' | 'Locales'],
     });
   }, [searchQuery, statusFilter, typeFilter, setSearchQuery, setFilters]);
 
@@ -897,7 +897,6 @@ const ElectionManagementUnified = () => {
                     <SelectItem value="all">Tous les types</SelectItem>
                     <SelectItem value="Législatives">Législatives</SelectItem>
                     <SelectItem value="Locales">Locales</SelectItem>
-                    <SelectItem value="Présidentielle">Présidentielle</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -94,7 +94,7 @@ export type Database = {
         Row: {
           id: string
           title: string
-          type: 'Législatives' | 'Locales' | 'Présidentielle'
+          type: 'Législatives' | 'Locales'
           election_date: string
           status: 'À venir' | 'En cours' | 'Terminée'
           description: string | null
@@ -112,7 +112,7 @@ export type Database = {
         Insert: {
           id?: string
           title: string
-          type: 'Législatives' | 'Locales' | 'Présidentielle'
+          type: 'Législatives' | 'Locales'
           election_date: string
           status?: 'À venir' | 'En cours' | 'Terminée'
           description?: string | null
@@ -130,7 +130,7 @@ export type Database = {
         Update: {
           id?: string
           title?: string
-          type?: 'Législatives' | 'Locales' | 'Présidentielle'
+          type?: 'Législatives' | 'Locales'
           election_date?: string
           status?: 'À venir' | 'En cours' | 'Terminée'
           description?: string | null

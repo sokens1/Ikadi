@@ -358,7 +358,7 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
     try {
       const updatedData: Partial<Election> = {
         title: formData.title.trim(),
-        type: formData.type as 'Législatives' | 'Locales' | 'Présidentielle',
+        type: formData.type as 'Législatives' | 'Locales',
         status: formData.status as 'À venir' | 'En cours' | 'Terminée' | 'Annulée',
         date: new Date(formData.date),
         description: formData.description.trim(),
@@ -437,7 +437,6 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
                 options={[
                   { value: "Législatives", label: "Législatives" },
                   { value: "Locales", label: "Locales" },
-                  { value: "Présidentielle", label: "Présidentielle" }
                 ]}
                 icon={<Vote className="w-4 h-4 sm:w-5 sm:h-5" />}
                 required

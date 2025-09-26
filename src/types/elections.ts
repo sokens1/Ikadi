@@ -1,5 +1,5 @@
 // Types unifiés pour la gestion des élections
-export type ElectionType = 'Législatives' | 'Locales' | 'Présidentielle';
+export type ElectionType = 'Législatives' | 'Locales';
 export type ElectionStatus = 'À venir' | 'En cours' | 'Terminée' | 'Annulée';
 export type UserRole = 'super-admin' | 'election-manager' | 'data-entry' | 'observer';
 
