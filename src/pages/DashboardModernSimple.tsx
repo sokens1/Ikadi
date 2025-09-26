@@ -75,13 +75,15 @@ const DashboardModernSimple = () => {
           e.status === 'Terminée'
         ).length || 0;
 
-        // 2. Statistiques des électeurs - Somme de la colonne nb_electeurs des élections
-        const { data: electionsVotersData } = await supabase
+        // 2. Statistiques des électeurs - Valeur d'une élection spécifique (la plus récente)
+        const { data: latestElection } = await supabase
           .from('elections')
-          .select('nb_electeurs');
+          .select('nb_electeurs')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-        const totalVoters = electionsVotersData?.reduce((sum, election) => 
-          sum + (election.nb_electeurs || 0), 0) || 0;
+        const totalVoters = latestElection?.nb_electeurs || 0;
 
         // Garder les données des électeurs pour d'autres usages si nécessaire
         const { data: votersData } = await supabase
