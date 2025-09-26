@@ -41,7 +41,9 @@ const App = () => {
             <NotificationProvider>
               <BrowserRouter>
                 <Routes>
-                  <Route path="/" element={<PublicHomePage />} />
+                  {/* Page d'accueil désactivée temporairement */}
+                  {/* <Route path="/home" element={<PublicHomePage />} /> */}
+                  <Route path="/" element={<Login />} />
                   <Route path="/election/:electionId/results" element={<ElectionResults />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/dashboard" element={<ProtectedRoute><DashboardModernSimple /></ProtectedRoute>} />

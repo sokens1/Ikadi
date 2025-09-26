@@ -13,7 +13,8 @@ import {
   Activity,
   Zap,
   Star,
-  Shield
+  Shield,
+  CheckCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -156,24 +157,34 @@ const DashboardModernSimple = () => {
     <Layout>
       <div className="space-y-4 sm:space-y-6 animate-fade-in">
         {/* Header moderne avec gradient - Mobile First */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-[#1e40af]/5 to-[#3b82f6]/5 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-          <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#1e40af] to-[#1e3a8a] rounded-lg sm:rounded-xl lg:rounded-2xl p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6 text-white shadow-xl">
+          <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
-              <div className="space-y-1 sm:space-y-2">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
+              <div className="space-y-2 sm:space-y-3">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight">
                   Tableau de Bord
                 </h1>
-                <p className="text-xs sm:text-sm lg:text-base text-gray-600 leading-relaxed">
+                <p className="text-blue-100 text-sm sm:text-base lg:text-lg leading-relaxed">
                   Vue d'ensemble du système électoral iKADI
                 </p>
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-sm text-blue-100">Système opérationnel</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-blue-200" />
+                    <span className="text-sm text-blue-100">Performance optimale</span>
+                  </div>
+                </div>
               </div>
               <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
                 <Button 
                   onClick={() => navigate('/elections')}
-                  className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm"
+                  className="bg-white hover:bg-gray-50 text-[#1e40af] shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base font-semibold px-4 sm:px-6 py-2 sm:py-3"
                 >
-                  <Vote className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <Vote className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                   <span className="hidden xs:inline">Gérer les Élections</span>
                   <span className="xs:hidden">Élections</span>
                 </Button>
@@ -217,81 +228,57 @@ const DashboardModernSimple = () => {
             subtitle="Inscriptions totales"
             icon={Target}
             color="#f59e0b"
-            trend={{ value: stats.voters.trend, isPositive: true, label: "croissance" }}
+            // trend={{ value: stats.voters.trend, isPositive: true, label: "croissance" }}
             className="col-span-2 lg:col-span-1"
           />
         </div>
 
-        {/* Statistiques détaillées - Mobile First */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className="election-card">
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-[#1e40af]" />
-                Élections
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-gray-600">À venir</span>
-                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.elections.upcoming}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-gray-600">Terminées</span>
-                <span className="font-semibold text-green-600 text-sm sm:text-base">{stats.elections.completed}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-gray-600">En cours</span>
-                <span className="font-semibold text-orange-600 text-sm sm:text-base">{stats.elections.byStatus['En cours'] || 0}</span>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Section Élections - Mobile First */}
+        <div className="space-y-4 sm:space-y-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Statut des Élections</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <Card className="election-card">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">À venir</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.elections.upcoming}</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <Calendar className="h-6 w-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card className="election-card">
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <Building className="h-4 w-4 sm:h-5 sm:w-5 text-[#1e40af]" />
-                Infrastructure
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-gray-600">Provinces</span>
-                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.infrastructure.provinces}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-gray-600">Communes</span>
-                <span className="font-semibold text-gray-900 text-sm sm:text-base">{stats.infrastructure.communes}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-gray-600">Bureaux</span>
-                <span className="font-semibold text-purple-600 text-sm sm:text-base">{stats.infrastructure.bureaux}</span>
-              </div>
-            </CardContent>
-          </Card>
+            <Card className="election-card">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">En cours</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-orange-600">{stats.elections.byStatus['En cours'] || 0}</p>
+                  </div>
+                  <div className="p-3 bg-orange-100 rounded-full">
+                    <Activity className="h-6 w-6 text-orange-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card className="election-card">
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-[#1e40af]" />
-                Système
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-                <span className="text-xs sm:text-sm text-green-600">Système opérationnel</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
-                <span className="text-xs sm:text-sm text-blue-600">Performance optimale</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
-                <span className="text-xs sm:text-sm text-yellow-600">Satisfaction élevée</span>
-              </div>
-            </CardContent>
-          </Card>
+            <Card className="election-card">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Terminées</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-green-600">{stats.elections.completed}</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Actions rapides - Mobile First */}

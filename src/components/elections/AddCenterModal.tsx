@@ -116,9 +116,6 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
               <div className="text-lg sm:text-xl font-bold text-gray-900">Sélection des Centres de Vote</div>
               <div className="text-xs sm:text-sm text-gray-600">Choisissez les centres de vote pour cette élection</div>
             </div>
-            <Button variant="ghost" onClick={onClose} className="flex-shrink-0 p-2" type="button">
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
 
@@ -136,7 +133,7 @@ const AddCenterModal: React.FC<AddCenterModalProps> = ({ onClose, onSubmit }) =>
                     selected={selectedCenters}
                     onSelectionChange={setSelectedCenters}
                     placeholder="Sélectionnez des centres..."
-                    title="Centres de Vote"
+                    title="Centres"
                     icon={<Building className="w-5 h-5 text-[#1e40af]" />}
                     searchable={true}
                     emptyMessage="Aucun centre sélectionné"
