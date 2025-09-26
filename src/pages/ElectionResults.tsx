@@ -808,10 +808,10 @@ const ElectionResults: React.FC = () => {
                 const altTitle = (alt.title || '').toLowerCase();
                 const isAltLegislative = ['législative','législatives','legislative'].some(k => altTitle.includes(k));
                 const currentType = isAltLegislative ? 'Législative' : 'Locale';
-                const currentColor = isAltLegislative ? '#00D4B8' : '#D4001C';
-                const currentBgColor = isAltLegislative ? 'bg-[#00D4B8]/10' : 'bg-[#D4001C]/10';
-                const currentBorderColor = isAltLegislative ? 'border-[#00D4B8]/30' : 'border-[#D4001C]/30';
-                const currentTextColor = isAltLegislative ? 'text-[#00D4B8]' : 'text-[#D4001C]';
+                const currentColor = isAltLegislative ? '#A51C30' : '#116917';
+                const currentBgColor = isAltLegislative ? 'bg-[#A51C30]/10' : 'bg-[#116917]/10';
+                const currentBorderColor = isAltLegislative ? 'border-[#A51C30]/30' : 'border-[#116917]/30';
+                const currentTextColor = isAltLegislative ? 'text-[#A51C30]' : 'text-[#116917]';
                 
                 return (
                   <div className={`max-w-md w-full ${currentBgColor} ${currentBorderColor} border-2 rounded-xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300`}>
@@ -838,19 +838,19 @@ const ElectionResults: React.FC = () => {
                           <div className="flex items-center justify-center">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                             <span>Chargement...</span>
-                          </div>
-                        ) : (
+            </div>
+          ) : (
                           <div className="flex items-center justify-center">
                             <span>Voir Élection {currentType}</span>
                             <ArrowRightLeft className="w-4 h-4 ml-2" />
-                          </div>
+                        </div>
                         )}
                       </Button>
-                    </div>
-                  </div>
+                        </div>
+                      </div>
                 );
               })()}
-            </div>
+                        </div>
           )}
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
@@ -878,8 +878,8 @@ const ElectionResults: React.FC = () => {
               subtitle="Pourcentage de participation"
               animated={true}
             />
-            </div>
                         </div>
+                      </div>
       </section>
 
       {/* Résultats des candidats modernisés */}
@@ -891,11 +891,11 @@ const ElectionResults: React.FC = () => {
               <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800">
                 Résultats par candidat
               </h2>
-                        </div>
+                    </div>
             <p className="text-gray-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto px-2 sm:px-4">
               Découvrez les performances de chaque candidat avec des statistiques détaillées
             </p>
-                      </div>
+                        </div>
           {/* Sélecteur de vue */}
           <div className="flex items-center justify-center sm:justify-end mb-3 sm:mb-4 lg:mb-6">
             <div className="inline-flex rounded-lg border bg-white overflow-hidden">
@@ -915,8 +915,8 @@ const ElectionResults: React.FC = () => {
                 <span className="hidden sm:inline">Tableau</span>
                 <span className="sm:hidden">Table</span>
               </button>
-                        </div>
-                        </div>
+                      </div>
+            </div>
           {/* Aide d'interaction */}
           <div className="mb-3 sm:mb-4 text-xs sm:text-sm text-gray-600 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2">
             <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
