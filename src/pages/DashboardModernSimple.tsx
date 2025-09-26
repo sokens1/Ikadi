@@ -104,9 +104,10 @@ const DashboardModernSimple = () => {
           .from('communes')
           .select('*', { count: 'exact', head: true });
 
+        // Compter uniquement les candidats qui sont dans la table election_candidates
         const { count: candidatesCount } = await supabase
-          .from('candidates')
-          .select('*', { count: 'exact', head: true });
+          .from('election_candidates')
+          .select('candidate_id', { count: 'exact', head: true });
 
         setStats({
           elections: {

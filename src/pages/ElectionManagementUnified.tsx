@@ -63,6 +63,56 @@ const ElectionManagementUnified = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  // Fonction pour recalculer automatiquement le nombre d'électeurs d'une élection
+  const recalculateElectionVoters = useCallback(async (electionId: string) => {
+    try {
+      // Récupérer les centres liés à cette élection
+      const { data: centersData } = await supabase
+        .from('election_centers')
+        .select(`
+          voting_centers (
+            id,
+            voting_bureaux (
+              registered_voters
+            )
+          )
+        `)
+        .eq('election_id', electionId);
+
+      let totalElecteurs = 0;
+      
+      if (centersData) {
+        centersData.forEach(center => {
+          if (center.voting_centers) {
+            const votersCount = center.voting_centers.voting_bureaux?.reduce((sum: number, bureau: any) => 
+              sum + (bureau.registered_voters || 0), 0) || 0;
+            totalElecteurs += votersCount;
+          }
+        });
+      }
+
+      // Mettre à jour la colonne nb_electeurs
+      const { error: updateError } = await supabase
+        .from('elections')
+        .update({ 
+          nb_electeurs: totalElecteurs,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', electionId);
+
+      if (updateError) {
+        console.error('Erreur lors de la mise à jour nb_electeurs:', updateError);
+        throw updateError;
+      }
+
+      console.log(`Recalcul automatique nb_electeurs pour élection ${electionId}: ${totalElecteurs}`);
+      return totalElecteurs;
+    } catch (error) {
+      console.error('Erreur lors du recalcul des électeurs:', error);
+      throw error;
+    }
+  }, []);
+
   // Fonction utilitaire pour rafraîchir les données des élections
   const refreshElectionsData = useCallback(async () => {
     try {
@@ -128,6 +178,23 @@ const ElectionManagementUnified = () => {
             }))
           });
 
+          // Mettre à jour automatiquement la colonne nb_electeurs dans la table elections
+          if (totalElecteurs !== election.nb_electeurs) {
+            try {
+              await supabase
+                .from('elections')
+                .update({ 
+                  nb_electeurs: totalElecteurs,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', election.id);
+              
+              console.log(`Mise à jour automatique nb_electeurs pour ${election.title}: ${totalElecteurs}`);
+            } catch (updateError) {
+              console.error(`Erreur lors de la mise à jour nb_electeurs pour ${election.title}:`, updateError);
+            }
+          }
+
           return {
             ...election,
             candidates_count: candidatesData?.length || 0,
@@ -137,6 +204,23 @@ const ElectionManagementUnified = () => {
           };
         })
       );
+
+      // Recalculer automatiquement le nombre d'électeurs pour toutes les élections
+      // pour s'assurer que la colonne nb_electeurs est synchronisée
+      try {
+        await Promise.all(
+          electionsWithCounts.map(async (election) => {
+            try {
+              await recalculateElectionVoters(election.id);
+            } catch (error) {
+              console.warn(`Erreur lors du recalcul pour l'élection ${election.title}:`, error);
+            }
+          })
+        );
+        console.log('Recalcul automatique effectué pour toutes les élections');
+      } catch (error) {
+        console.warn('Erreur lors du recalcul global des électeurs:', error);
+      }
 
       // Transformer les données Supabase en format Election unifié
       const transformedElections: Election[] = electionsWithCounts.map(election => {
@@ -364,6 +448,15 @@ const ElectionManagementUnified = () => {
             return;
           }
         }
+      }
+
+      // Recalculer automatiquement le nombre d'électeurs après modification
+      try {
+        await recalculateElectionVoters(editingElection.id);
+        console.log('Recalcul automatique des électeurs effectué');
+      } catch (recalcError) {
+        console.warn('Erreur lors du recalcul automatique des électeurs:', recalcError);
+        // Ne pas bloquer la modification si le recalcul échoue
       }
 
       // Recharger les données depuis la base de données
@@ -666,6 +759,15 @@ const ElectionManagementUnified = () => {
         updatedAt: new Date(),
         createdBy: 'current-user', // À remplacer par l'ID de l'utilisateur connecté
       };
+
+      // Recalculer automatiquement le nombre d'électeurs après création
+      try {
+        await recalculateElectionVoters(electionId);
+        console.log('Recalcul automatique des électeurs effectué après création');
+      } catch (recalcError) {
+        console.warn('Erreur lors du recalcul automatique des électeurs après création:', recalcError);
+        // Ne pas bloquer la création si le recalcul échoue
+      }
 
       // Recharger les données depuis la base de données
       await refreshElectionsData();
