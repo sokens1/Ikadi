@@ -142,7 +142,7 @@ const EditCandidateModal: React.FC<EditCandidateModalProps> = ({
               />
             </ModernFormGrid>
 
-            <ModernFormGrid cols={1}>
+            {/* <ModernFormGrid cols={1}>
               <FloatingInput
                 label="URL de la photo"
                 value={formData.photo}
@@ -150,7 +150,7 @@ const EditCandidateModal: React.FC<EditCandidateModalProps> = ({
                 placeholder="Ex: https://example.com/photo.jpg"
                 icon={<Users className="w-4 h-4" />}
               />
-            </ModernFormGrid>
+            </ModernFormGrid> */}
 
             {/* Checkbox pour notre candidat */}
             <div className="flex items-center space-x-2 p-4 bg-purple-50 rounded-lg border border-purple-200">
