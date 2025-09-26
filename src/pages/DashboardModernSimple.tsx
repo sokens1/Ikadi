@@ -75,17 +75,18 @@ const DashboardModernSimple = () => {
           e.status === 'Terminée'
         ).length || 0;
 
-        // 2. Statistiques des électeurs
+        // 2. Statistiques des électeurs - Somme de la colonne nb_electeurs des élections
+        const { data: electionsVotersData } = await supabase
+          .from('elections')
+          .select('nb_electeurs');
+
+        const totalVoters = electionsVotersData?.reduce((sum, election) => 
+          sum + (election.nb_electeurs || 0), 0) || 0;
+
+        // Garder les données des électeurs pour d'autres usages si nécessaire
         const { data: votersData } = await supabase
           .from('voters')
           .select('id, created_at');
-
-        const { data: centersData } = await supabase
-          .from('voting_centers')
-          .select('id, total_voters');
-
-        const totalVoters = centersData?.reduce((sum, center) => 
-          sum + (center.total_voters || 0), 0) || 0;
 
         // 3. Infrastructure
         const { count: centersCount } = await supabase

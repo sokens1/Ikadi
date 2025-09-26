@@ -76,12 +76,11 @@ const Dashboard = () => {
           .limit(1)
           .single();
 
-        // 2. Total inscrits = somme des inscrits des bureaux
-        const { data: totalInscritsRow } = await supabase
-          .from('procès_verbaux')
-          .select('total_registered')
-          .not('total_registered', 'is', null);
-        const votersCount = (totalInscritsRow || []).reduce((s: number, r: any) => s + (Number(r.total_registered) || 0), 0);
+        // 2. Total inscrits = somme de la colonne nb_electeurs des élections
+        const { data: electionsData } = await supabase
+          .from('elections')
+          .select('nb_electeurs');
+        const votersCount = (electionsData || []).reduce((s: number, election: any) => s + (Number(election.nb_electeurs) || 0), 0);
 
         // 3. Compter les centres de vote
         const { count: centersCount } = await supabase
