@@ -141,7 +141,7 @@ const Login = () => {
             <button
                onClick={() => handleElectionRedirect('legislative')}
                disabled={electionsLoading}
-              className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl text-white bg-[#00D4B8] border-[#00D4B8] hover:bg-[#00D4B8] hover:border-[#00D4B8] ${
+              className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl text-white bg-[#A51C30] border-[#A51C30] hover:bg-[#A51C30] hover:border-[#A51C30] ${
                  electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
                }`}
              >
@@ -158,7 +158,7 @@ const Login = () => {
             <button
                onClick={() => handleElectionRedirect('local')}
                disabled={electionsLoading}
-              className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl text-white bg-[#D4001C] border-[#D4001C] hover:bg-[#D4001C] hover:border-[#D4001C] ${
+              className={`w-full p-4 lg:p-6 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-xl text-white bg-[#116917] border-[#116917] hover:bg-[#116917] hover:border-[#116917] ${
                  electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
                }`}
              >
@@ -220,7 +220,7 @@ const Login = () => {
             <button
               onClick={() => handleElectionRedirect('legislative')}
               disabled={electionsLoading}
-              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#00D4B8] border-[#00D4B8] hover:bg-[#00D4B8] hover:border-[#00D4B8] ${
+              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#A51C30] border-[#A51C30] hover:bg-[#A51C30] hover:border-[#A51C30] ${
                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -237,7 +237,7 @@ const Login = () => {
             <button
               onClick={() => handleElectionRedirect('local')}
               disabled={electionsLoading}
-              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#D4001C] border-[#D4001C] hover:bg-[#D4001C] hover:border-[#D4001C] ${
+              className={`w-full p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 text-white bg-[#116917] border-[#116917] hover:bg-[#116917] hover:border-[#116917] ${
                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
