@@ -1391,12 +1391,16 @@ const ElectionResults: React.FC = () => {
                   </TabsContent>
                   <TabsContent value="bureau">
                     {hasCandidateBureauData() ? (
-                      <div className="overflow-x-auto mt-3 -mx-4 sm:-mx-6 lg:-mx-8">
-                      <table className="min-w-full bg-white border">
+                      <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-3 -mx-4 sm:-mx-6 lg:-mx-8">
+                        {/* Indicateur de scroll sur mobile */}
+                        <div className="sm:hidden absolute top-2 right-2 z-10 bg-blue-600 text-white text-xs px-2 py-1 rounded-full opacity-75">
+                          ← Faites défiler →
+                        </div>
+                        <table className="min-w-full min-w-[500px] bg-white border">
                         <thead className="bg-slate-100 text-gov-dark">
                           <tr>
-                              <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm">Centre</th>
-                              <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm">Bureau</th>
+                              <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm whitespace-nowrap">Centre</th>
+                              <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm whitespace-nowrap">Bureau</th>
                               <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Voix</th>
                               <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Score</th>
                               <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Participation</th>
@@ -1405,8 +1409,8 @@ const ElectionResults: React.FC = () => {
                           <tbody className="text-xs sm:text-sm">
                             {getSortedCandidateBureaux().map((b, idx) => (
                             <tr key={idx} className="odd:bg-white even:bg-slate-50">
-                                <td className="px-2 sm:px-3 py-2 border">{b.center_name || centerNameById[b.center_id] || b.center_id}</td>
-                                <td className="px-2 sm:px-3 py-2 border">{b.bureau_name}</td>
+                                <td className="px-2 sm:px-3 py-2 border whitespace-nowrap">{b.center_name || centerNameById[b.center_id] || b.center_id}</td>
+                                <td className="px-2 sm:px-3 py-2 border whitespace-nowrap">{b.bureau_name}</td>
                                 <td className="px-2 sm:px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
                                 <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage,0),100).toFixed(2)}%` : '-'}</td>
                                 <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct,0),100).toFixed(2)}%` : '-'}</td>
@@ -1564,8 +1568,12 @@ const ElectionResults: React.FC = () => {
                     </div>
                   </summary>
                   <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gray-50">
-                    <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8">
-                      <table className="min-w-full">
+                    <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 -mx-4 sm:-mx-6 lg:-mx-8">
+                      {/* Indicateur de scroll sur mobile */}
+                      <div className="sm:hidden absolute top-2 right-2 z-10 bg-blue-600 text-white text-xs px-2 py-1 rounded-full opacity-75">
+                        ← Faites défiler →
+                      </div>
+                      <table className="min-w-full min-w-[500px]">
                         <thead>
                           <tr className="border-b border-gray-200">
                             <th className="text-left px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
@@ -1674,8 +1682,12 @@ const ElectionResults: React.FC = () => {
                   Tous les bureaux de vote avec leurs statistiques complètes
                 </p>
               </div>
-            <div className="overflow-x-auto">
-                <table className="w-full">
+            <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                {/* Indicateur de scroll sur mobile */}
+                <div className="sm:hidden absolute top-2 right-2 z-10 bg-blue-600 text-white text-xs px-2 py-1 rounded-full opacity-75">
+                  ← Faites défiler →
+                </div>
+                <table className="w-full min-w-[600px]">
                   <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                     <tr>
                       <th className="text-left px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
