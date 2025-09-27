@@ -806,7 +806,7 @@ const ElectionResults: React.FC = () => {
       </section>
 
       {/* Statistiques principales modernisées */}
-      <section className="bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8 lg:py-12 xl:py-16 -mt-2 sm:-mt-4 lg:-mt-6 xl:-mt-8 relative z-10">
+      <section id="statistiques" className="bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8 lg:py-12 xl:py-16 -mt-2 sm:-mt-4 lg:-mt-6 xl:-mt-8 relative z-10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
@@ -868,8 +868,8 @@ const ElectionResults: React.FC = () => {
                 className={`px-2.5 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border-l flex items-center gap-1.5 sm:gap-2 ${candidateViewMode === 'table' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
               >
                 <TableIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Tableau</span>
-                <span className="sm:hidden">Table</span>
+                <span className="hidden sm:inline">Liste</span>
+                <span className="sm:hidden">List</span>
               </button>
                       </div>
             </div>
@@ -1115,8 +1115,8 @@ const ElectionResults: React.FC = () => {
       </Dialog>
 
       {/* Vue détaillée par centre / par bureau modernisée */}
-      {hasAnyDetailedData() ? (
-        <section className="py-6 sm:py-8 lg:py-12 xl:py-16 bg-gradient-to-br from-gray-50 to-gray-100">
+      <section id="analyse" className="py-6 sm:py-8 lg:py-12 xl:py-16 bg-gradient-to-br from-gray-50 to-gray-100">
+        {hasAnyDetailedData() ? (
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 lg:mb-12">
               <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3 lg:mb-4">
@@ -1489,10 +1489,8 @@ const ElectionResults: React.FC = () => {
             </div>
           )}
         </div>
-      </section>
-      ) : (
-        /* Message d'état vide - section cachée quand pas de données */
-        <section className="py-6 sm:py-8 lg:py-12 xl:py-16 bg-gradient-to-br from-gray-50 to-gray-100">
+        ) : (
+          /* Message d'état vide quand pas de données */
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3 lg:mb-4">
@@ -1550,8 +1548,8 @@ const ElectionResults: React.FC = () => {
               </div>
             </div>
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Section de navigation vers autre élection */}
       {getAlternativeElection() && (
@@ -1639,23 +1637,8 @@ const ElectionResults: React.FC = () => {
               </h4>
               <ul className="space-y-0.5 sm:space-y-1 lg:space-y-2">
                 <li><a href="#candidats" className="hover:opacity-80 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs"><User className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Candidats</a></li>
-                <li><a href="#circonscriptions" className="hover:opacity-80 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs"><Building className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Circonscriptions / Bureaux</a></li>
-                <li>
-                  <div className="relative" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
-                    <button className="hover:opacity-80 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs">
-                      <BarChart3 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                      <span className="truncate">{results?.election?.status?.toLowerCase() === 'terminée' ? results.election.title : 'Résultats'}</span>
-                    </button>
-                    {resultsMenuOpen && (
-                      <div className="absolute right-0 left-auto mt-2 bg-white text-gov-dark rounded shadow-lg border min-w-[200px] sm:min-w-[240px] lg:min-w-[260px] z-50 py-2 max-h-[80px] sm:max-h-[96px] overflow-y-auto">
-                        <button className="w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-slate-100 text-[10px] sm:text-xs lg:text-sm flex items-center gap-1.5 sm:gap-2" onClick={() => navigate(`/election/${results.election.id}/results`)}>
-                          <BarChart3 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                          <span className="truncate">{results.election.title}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </li>
+                <li><a href="#analyse" className="hover:opacity-80 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs"><Building className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Circonscriptions / Bureaux</a></li>
+                <li><a href="#statistiques" className="hover:opacity-80 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs"><BarChart3 className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Résultats globaux</a></li>
               </ul>
             </div>
 
