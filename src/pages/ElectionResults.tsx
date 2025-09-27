@@ -1392,10 +1392,6 @@ const ElectionResults: React.FC = () => {
                   <TabsContent value="bureau">
                     {hasCandidateBureauData() ? (
                       <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-3 -mx-4 sm:-mx-6 lg:-mx-8">
-                        {/* Indicateur de scroll sur mobile */}
-                        <div className="sm:hidden absolute top-2 right-2 z-10 bg-blue-600 text-white text-xs px-2 py-1 rounded-full opacity-75">
-                          ← Faites défiler →
-                        </div>
                         <table className="min-w-full min-w-[500px] bg-white border">
                         <thead className="bg-slate-100 text-gov-dark">
                           <tr>
@@ -1569,10 +1565,6 @@ const ElectionResults: React.FC = () => {
                   </summary>
                   <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gray-50">
                     <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 -mx-4 sm:-mx-6 lg:-mx-8">
-                      {/* Indicateur de scroll sur mobile */}
-                      <div className="sm:hidden absolute top-2 right-2 z-10 bg-blue-600 text-white text-xs px-2 py-1 rounded-full opacity-75">
-                        ← Faites défiler →
-                      </div>
                       <table className="min-w-full min-w-[500px]">
                         <thead>
                           <tr className="border-b border-gray-200">
@@ -1683,10 +1675,6 @@ const ElectionResults: React.FC = () => {
                 </p>
               </div>
             <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                {/* Indicateur de scroll sur mobile */}
-                <div className="sm:hidden absolute top-2 right-2 z-10 bg-blue-600 text-white text-xs px-2 py-1 rounded-full opacity-75">
-                  ← Faites défiler →
-                </div>
                 <table className="w-full min-w-[600px]">
                   <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                     <tr>
