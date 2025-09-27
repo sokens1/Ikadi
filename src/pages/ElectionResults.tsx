@@ -245,6 +245,7 @@ const ElectionResults: React.FC = () => {
   // États pour le taux de couverture des bureaux
   const [totalBureaux, setTotalBureaux] = useState<number>(0);
   const [bureauxAvecResultats, setBureauxAvecResultats] = useState<number>(0);
+  const [mobileRetryCount, setMobileRetryCount] = useState<number>(0);
 
   // Fonctions pour vérifier la présence de données
   const hasCenterData = () => {
@@ -261,13 +262,16 @@ const ElectionResults: React.FC = () => {
 
   // Fonction pour calculer le taux de couverture des bureaux
   const calculateBureauCoverage = async () => {
+    const isMobile = window.innerWidth < 640;
+    console.log('🔍 Mobile calculateBureauCoverage - isMobile:', isMobile, 'electionId:', electionId);
+    
     if (!electionId) {
-      console.log('🔍 calculateBureauCoverage - Pas d\'electionId');
+      console.log('🔍 Mobile calculateBureauCoverage - Pas d\'electionId');
       return;
     }
     
     try {
-      console.log('🔍 calculateBureauCoverage - electionId:', electionId);
+      console.log('🔍 Mobile calculateBureauCoverage - electionId:', electionId);
       
       // Récupérer le nombre total de bureaux pour cette élection depuis la base de données
       // Les bureaux sont liés aux élections via les centres (election_centers -> voting_centers -> voting_bureaux)
@@ -275,6 +279,10 @@ const ElectionResults: React.FC = () => {
       console.log('🔍 electionId type:', typeof electionId, 'value:', electionId);
       
       // 1. Récupérer les centres liés à l'élection
+      // Ajouter un timestamp pour éviter le cache sur mobile
+      const cacheBuster = Date.now();
+      console.log('🔍 Mobile Cache buster:', cacheBuster);
+      
       const { data: electionCenters, error: ecError } = await supabase
         .from('election_centers')
         .select('center_id')
@@ -326,9 +334,34 @@ const ElectionResults: React.FC = () => {
       setTotalBureaux(totalBureauxCount);
       setBureauxAvecResultats(avecResultats);
       
-      console.log('🔍 État final - totalBureaux:', totalBureauxCount, 'bureauxAvecResultats:', avecResultats);
+      console.log('🔍 État final - electionId:', electionId, 'totalBureaux:', totalBureauxCount, 'bureauxAvecResultats:', avecResultats);
+      console.log('🔍 setTotalBureaux appelé avec:', totalBureauxCount, 'pour electionId:', electionId);
+      console.log('🔍 setBureauxAvecResultats appelé avec:', avecResultats, 'pour electionId:', electionId);
+      
+      // Vérification mobile : forcer la mise à jour si on est sur mobile
+      const isMobile = window.innerWidth < 640;
+      if (isMobile && totalBureauxCount > 0) {
+        console.log('🔍 Mobile Force update - totalBureauxCount:', totalBureauxCount);
+        // Forcer un re-render en utilisant une fonction de mise à jour
+        setTotalBureaux(prev => {
+          console.log('🔍 Mobile setTotalBureaux prev:', prev, 'new:', totalBureauxCount);
+          return totalBureauxCount;
+        });
+        setBureauxAvecResultats(prev => {
+          console.log('🔍 Mobile setBureauxAvecResultats prev:', prev, 'new:', avecResultats);
+          return avecResultats;
+        });
+        
+        // Forcer un re-render immédiat sur mobile
+        setTimeout(() => {
+          console.log('🔍 Mobile Force re-render après 100ms');
+          setTotalBureaux(totalBureauxCount);
+          setBureauxAvecResultats(avecResultats);
+        }, 100);
+      }
     } catch (error) {
       console.error('Erreur calcul couverture bureaux:', error);
+      console.log('🔍 Erreur - reset des valeurs à 0');
       setTotalBureaux(0);
       setBureauxAvecResultats(0);
     }
@@ -379,15 +412,46 @@ const ElectionResults: React.FC = () => {
 
   // Calculer le taux de couverture quand l'élection change
   useEffect(() => {
+    const isMobile = window.innerWidth < 640;
+    console.log('🔍 Mobile useEffect electionId - isMobile:', isMobile, 'electionId:', electionId, 'type:', typeof electionId);
     if (electionId) {
+      console.log('🔍 Mobile Appel calculateBureauCoverage depuis useEffect electionId');
       calculateBureauCoverage();
+      
+      // Fallback pour mobile : retry après 1 seconde puis 3 secondes si totalBureaux reste à 0
+      if (isMobile) {
+        setTimeout(() => {
+          console.log('🔍 Mobile Fallback 1s - totalBureaux:', totalBureaux, 'retryCount:', mobileRetryCount);
+          if (totalBureaux === 0 && mobileRetryCount < 3) {
+            console.log('🔍 Mobile Fallback 1s - Retry calculateBureauCoverage');
+            setMobileRetryCount(prev => prev + 1);
+            calculateBureauCoverage();
+          }
+        }, 1000);
+        
+        setTimeout(() => {
+          console.log('🔍 Mobile Fallback 3s - totalBureaux:', totalBureaux, 'retryCount:', mobileRetryCount);
+          if (totalBureaux === 0 && mobileRetryCount < 3) {
+            console.log('🔍 Mobile Fallback 3s - Retry calculateBureauCoverage');
+            setMobileRetryCount(prev => prev + 1);
+            calculateBureauCoverage();
+          }
+        }, 3000);
+      }
+    } else {
+      console.log('🔍 Mobile Pas d\'electionId, reset des valeurs');
+      setTotalBureaux(0);
+      setBureauxAvecResultats(0);
+      setMobileRetryCount(0);
     }
   }, [electionId]);
 
   // Recalculer le taux de couverture quand les données des bureaux changent
   useEffect(() => {
-    console.log('🔍 useEffect calculateBureauCoverage - centerRows.length:', centerRows.length, 'bureauRows.length:', bureauRows.length, 'electionId:', electionId);
+    const isMobile = window.innerWidth < 640;
+    console.log('🔍 Mobile useEffect centerRows/bureauRows - isMobile:', isMobile, 'centerRows.length:', centerRows.length, 'bureauRows.length:', bureauRows.length, 'electionId:', electionId);
     if (electionId && (centerRows.length >= 0 && bureauRows.length >= 0)) { // Permettre le calcul même avec 0 bureaux
+      console.log('🔍 Mobile Appel calculateBureauCoverage depuis useEffect centerRows/bureauRows');
       calculateBureauCoverage();
     }
   }, [centerRows, bureauRows]);
@@ -473,6 +537,11 @@ const ElectionResults: React.FC = () => {
   // Fonction pour switcher vers une autre élection
   const handleElectionSwitch = (targetElectionId: string) => {
     if (targetElectionId !== electionId) {
+      console.log('🔍 Switch élection - de:', electionId, 'vers:', targetElectionId);
+      // Reset des valeurs avant le changement
+      setTotalBureaux(0);
+      setBureauxAvecResultats(0);
+      setMobileRetryCount(0);
       navigate(`/election/${targetElectionId}/results`);
     }
   };
@@ -994,6 +1063,12 @@ const ElectionResults: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
             {(() => {
+                // Logs spécifiques pour le mobile
+                const isMobile = window.innerWidth < 640; // sm breakpoint
+                console.log('🔍 Mobile Debug - isMobile:', isMobile, 'window.innerWidth:', window.innerWidth);
+                console.log('🔍 Mobile Debug - electionId:', electionId, 'totalBureaux:', totalBureaux, 'bureauxAvecResultats:', bureauxAvecResultats);
+                console.log('🔍 Mobile Debug - loading:', loading);
+                
                 const coveragePercentage = totalBureaux > 0 ? Math.round((bureauxAvecResultats / totalBureaux) * 100) : 0;
                 const isComplete = coveragePercentage >= 100;
                 const bgColor = isComplete 
@@ -1027,12 +1102,22 @@ const ElectionResults: React.FC = () => {
                         </div>
                       </div>
                       <div className={`text-[9px] sm:text-xs ${textColor} leading-tight`}>
-                        {totalBureaux === 0 
-                          ? "Aucun bureau configuré pour cette élection"
-                          : isComplete 
-                            ? "Tous les bureaux ont été traités" 
-                            : "Après depouillement"
-                        }
+                        {(() => {
+                          const isMobile = window.innerWidth < 640;
+                          console.log('🔍 Mobile Rendu conditionnel - electionId:', electionId, 'isMobile:', isMobile, 'totalBureaux:', totalBureaux, 'isComplete:', isComplete);
+                          
+                          // Logique unifiée pour mobile et desktop
+                          if (totalBureaux === 0) {
+                            console.log('🔍 Affichage: Aucun bureau configuré - electionId:', electionId, 'totalBureaux:', totalBureaux);
+                            return "Aucun bureau configuré pour cette élection";
+                          } else if (isComplete) {
+                            console.log('🔍 Affichage: Tous les bureaux traités - electionId:', electionId);
+                            return "Tous les bureaux ont été traités";
+                          } else {
+                            console.log('🔍 Affichage: Après dépouillement - electionId:', electionId);
+                            return "Après depouillement";
+                          }
+                        })()}
                       </div>
                     </div>
                   </div>
