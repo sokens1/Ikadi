@@ -264,11 +264,15 @@ const ElectionResults: React.FC = () => {
     if (!electionId) return;
     
     try {
+      console.log('🔍 calculateBureauCoverage - electionId:', electionId);
+      
       // Récupérer le nombre total de bureaux de l'élection
       const { data: electionCenters, error: ecError } = await supabase
         .from('election_centers')
         .select('center_id')
         .eq('election_id', electionId);
+      
+      console.log('🔍 electionCenters:', electionCenters, 'error:', ecError);
       
       if (ecError) {
         console.error('Erreur récupération election_centers:', ecError);
@@ -279,11 +283,14 @@ const ElectionResults: React.FC = () => {
       
       if (electionCenters && electionCenters.length > 0) {
         const centerIds = electionCenters.map(ec => ec.center_id);
+        console.log('🔍 centerIds:', centerIds);
         
         const { data: totalBureauxData, error: bureauxError } = await supabase
           .from('voting_bureaux')
           .select('id', { count: 'exact' })
           .in('center_id', centerIds);
+        
+        console.log('🔍 totalBureauxData:', totalBureauxData, 'error:', bureauxError);
         
         if (bureauxError) {
           console.error('Erreur récupération bureaux:', bureauxError);
@@ -293,15 +300,21 @@ const ElectionResults: React.FC = () => {
         }
         
         const totalBureauxCount = totalBureauxData?.length || 0;
+        console.log('🔍 totalBureauxCount:', totalBureauxCount);
         
         // Compter les bureaux avec des résultats depuis bureauRows
         const avecResultats = bureauRows.filter(bureau => 
           bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
         ).length;
         
+        console.log('🔍 bureauRows:', bureauRows.length, 'avecResultats:', avecResultats);
+        
         setTotalBureaux(totalBureauxCount);
         setBureauxAvecResultats(avecResultats);
+        
+        console.log('🔍 État final - totalBureaux:', totalBureauxCount, 'bureauxAvecResultats:', avecResultats);
       } else {
+        console.log('🔍 Aucun centre trouvé pour cette élection');
         setTotalBureaux(0);
         setBureauxAvecResultats(0);
       }
@@ -357,6 +370,7 @@ const ElectionResults: React.FC = () => {
 
   // Calculer le taux de couverture quand les données des bureaux changent
   useEffect(() => {
+    console.log('🔍 useEffect calculateBureauCoverage - bureauRows.length:', bureauRows.length, 'electionId:', electionId);
     if (bureauRows.length >= 0) { // Permettre le calcul même avec 0 bureaux
       calculateBureauCoverage();
     }
@@ -720,7 +734,7 @@ const ElectionResults: React.FC = () => {
       return {
         title: 'Résultats d\'élection | o\'Hitu',
         description: 'Consultez les résultats électoraux en temps réel sur o\'Hitu - République Gabonaise',
-        image: 'https://ohitu.gabon.ga/og-election-results.svg'
+        image: 'https://ohitu.gabon.ga/favicon.svg'
       };
     }
 
@@ -730,7 +744,7 @@ const ElectionResults: React.FC = () => {
     
     const title = `${election.title} - Résultats | o'Hitu`;
     const description = winner 
-      ? `${winner.candidate_name} en tête avec ${winner.total_votes.toLocaleString()} voix (${winner.percentage.toFixed(1)}%). Participation: ${participation}. Suivez les résultats en temps réel.`
+      ? `${winner.candidate_name} en tête avec ${winner.total_votes.toLocaleString()} voix (${winner.percentage.toFixed(1)}%). Participation: ${participation}. Suivez les résultats en temps réel sur o'Hitu.`
       : `Résultats de ${election.title} - Participation: ${participation}. Suivez les résultats en temps réel sur o'Hitu.`;
     
     return {
@@ -963,6 +977,10 @@ const ElectionResults: React.FC = () => {
       <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
+            {(() => {
+              console.log('🔍 Rendu carte couverture - totalBureaux:', totalBureaux, 'bureauxAvecResultats:', bureauxAvecResultats);
+              return null;
+            })()}
             {totalBureaux > 0 ? (
               (() => {
                 const coveragePercentage = totalBureaux > 0 ? Math.round((bureauxAvecResultats / totalBureaux) * 100) : 0;
