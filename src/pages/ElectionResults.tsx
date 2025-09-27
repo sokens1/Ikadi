@@ -260,59 +260,34 @@ const ElectionResults: React.FC = () => {
 
   // Fonction pour calculer le taux de couverture des bureaux
   const calculateBureauCoverage = async () => {
-    if (!electionId) {
-      console.log('calculateBureauCoverage: Pas d\'electionId');
-      return;
-    }
+    if (!electionId) return;
     
     try {
-      console.log('calculateBureauCoverage: Début du calcul pour electionId:', electionId);
-      
       // Récupérer le nombre total de bureaux de l'élection
-      const { data: electionCenters, error: ecError } = await supabase
+      const { data: electionCenters } = await supabase
         .from('election_centers')
         .select('center_id')
         .eq('election_id', electionId);
       
-      if (ecError) {
-        console.error('Erreur récupération election_centers:', ecError);
-        setTotalBureaux(0);
-        setBureauxAvecResultats(0);
-        return;
-      }
-      
-      console.log('Centres de l\'élection trouvés:', electionCenters?.length || 0);
-      
       if (electionCenters && electionCenters.length > 0) {
         const centerIds = electionCenters.map(ec => ec.center_id);
-        console.log('IDs des centres:', centerIds);
         
-        const { data: totalBureauxData, error: bureauxError } = await supabase
+        const { data: totalBureauxData } = await supabase
           .from('voting_bureaux')
           .select('id', { count: 'exact' })
           .in('center_id', centerIds);
         
-        if (bureauxError) {
-          console.error('Erreur récupération bureaux:', bureauxError);
-          setTotalBureaux(0);
-          setBureauxAvecResultats(0);
-          return;
-        }
-        
         const totalBureauxCount = totalBureauxData?.length || 0;
-        console.log('Total bureaux dans la base:', totalBureauxCount);
         
-        // Compter les bureaux avec des résultats depuis bureauRows
+        // Compter les bureaux avec des résultats
         const avecResultats = bureauRows.filter(bureau => 
-          bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
+          bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.votes_expressed > 0
         ).length;
         
-        console.log('Bureaux avec résultats (depuis bureauRows):', avecResultats, 'bureauRows.length:', bureauRows.length);
-        
+        console.log('Total bureaux élection:', totalBureauxCount, 'Avec résultats:', avecResultats);
         setTotalBureaux(totalBureauxCount);
         setBureauxAvecResultats(avecResultats);
       } else {
-        console.log('Aucun centre trouvé pour cette élection');
         setTotalBureaux(0);
         setBureauxAvecResultats(0);
       }
@@ -368,7 +343,6 @@ const ElectionResults: React.FC = () => {
 
   // Calculer le taux de couverture quand les données des bureaux changent
   useEffect(() => {
-    console.log('useEffect calculateBureauCoverage déclenché - bureauRows.length:', bureauRows.length, 'electionId:', electionId);
     if (bureauRows.length >= 0) { // Permettre le calcul même avec 0 bureaux
       calculateBureauCoverage();
     }
@@ -917,13 +891,8 @@ const ElectionResults: React.FC = () => {
       <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
-            {(() => {
-              console.log('Condition de rendu - totalBureaux:', totalBureaux, 'type:', typeof totalBureaux);
-              // Forcer l'affichage de la vraie carte pour le débogage
-              return true;
-            })() ? (
+            {totalBureaux > 0 ? (
               (() => {
-                console.log('Rendu carte couverture - totalBureaux:', totalBureaux, 'bureauxAvecResultats:', bureauxAvecResultats);
                 const coveragePercentage = Math.round((bureauxAvecResultats / totalBureaux) * 100);
                 const isComplete = coveragePercentage >= 100;
                 const bgColor = isComplete 
@@ -950,7 +919,7 @@ const ElectionResults: React.FC = () => {
                       </p>
                       <div className={`${isComplete ? 'bg-white/10' : 'bg-orange-100/50'} rounded-lg p-3 sm:p-4 mb-3 sm:mb-4`}>
                         <div className={`text-2xl sm:text-3xl font-bold ${isComplete ? 'text-white' : 'text-gray-800'} mb-1`}>
-                          {totalBureaux > 0 ? coveragePercentage : 0}%
+                          {coveragePercentage}%
                         </div>
                         <div className={`text-xs sm:text-sm ${textColor}`}>
                           {bureauxAvecResultats} sur {totalBureaux} bureaux
