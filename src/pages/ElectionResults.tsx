@@ -434,8 +434,8 @@ const ElectionResults: React.FC = () => {
           console.log('🔍 Mobile Fallback 500ms - totalBureaux:', totalBureaux);
           if (totalBureaux === 0) {
             console.log('🔍 Mobile Fallback 500ms - Retry calculateBureauCoverage');
-            calculateBureauCoverage();
-          }
+      calculateBureauCoverage();
+    }
         }, 500);
         
         // Retry après 1.5s
@@ -1114,32 +1114,32 @@ const ElectionResults: React.FC = () => {
               console.log('🔍 Mobile Coverage Debug - totalBureaux:', totalBureaux, 'bureauRows.length:', bureauRows.length, 'totalBureauxCount:', totalBureauxCount, 'bureauxAvecResultats:', bureauxAvecResultats);
               
               const coveragePercentage = totalBureauxCount > 0 ? Math.round((bureauxAvecResultats / totalBureauxCount) * 100) : 0;
-              const isComplete = coveragePercentage >= 100;
+                const isComplete = coveragePercentage >= 100;
               
-              const bgColor = isComplete 
+                const bgColor = isComplete 
                 ? "bg-green-100" 
                 : "bg-orange-100";
               const textColor = isComplete 
                 ? "text-green-800" 
                 : "text-orange-800";
-              
-              return (
+                
+                return (
                 <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200 max-w-sm w-full">
-                  <div className="text-center">
+                    <div className="text-center">
                     <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">
-                      Couverture des bureaux
-                    </h3>
+                          Couverture des bureaux
+                        </h3>
                     <p className="text-xs sm:text-sm text-gray-600 mb-4">
-                      Taux de couverture des bureaux de vote
-                    </p>
+                        Taux de couverture des bureaux de vote
+                      </p>
                     <div className={`${bgColor} rounded-lg p-3 sm:p-4 mb-3`}>
                       <div className={`text-xl sm:text-2xl font-bold ${textColor} mb-1`}>
                         {coveragePercentage}%
-                      </div>
+                        </div>
                       <div className="text-xs sm:text-sm text-gray-600">
                         {bureauxAvecResultats} sur {totalBureauxCount} bureaux
+                        </div>
                       </div>
-                    </div>
                     <div className="text-xs sm:text-sm text-gray-600">
                       {totalBureauxCount === 0 
                         ? "Chargement des données..."
@@ -1148,11 +1148,11 @@ const ElectionResults: React.FC = () => {
                           : isComplete 
                             ? "Tous les bureaux ont été traités" 
                             : "Après dépouillement"
-                      }
+                        }
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
+                );
             })()}
           </div>
         </div>
@@ -1676,46 +1676,40 @@ const ElectionResults: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                     <tr>
-                      <th className="text-left px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
-                        <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
-                          <Building className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
-                          <span className="hidden sm:inline">Centre</span>
-                          <span className="sm:hidden">C.</span>
+                      <th className="text-left px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <Building className="w-2 h-2" />
+                          <span>Centres</span>
                         </div>
                       </th>
-                      <th className="text-left px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
-                        <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
-                          <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
-                          <span className="hidden sm:inline">Bureau</span>
-                          <span className="sm:hidden">Bur.</span>
+                      <th className="text-left px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <Target className="w-2 h-2" />
+                          <span>Bureau</span>
                         </div>
                       </th>
-                      <th className="text-right px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
-                          <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
-                          <span className="hidden sm:inline">Inscrits</span>
-                          <span className="sm:hidden">Insc.</span>
+                      <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <Users className="w-2 h-2" />
+                          <span>Inscrits</span>
                         </div>
                       </th>
-                      <th className="text-right px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
-                          <Vote className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
-                          <span className="hidden sm:inline">Votants</span>
-                          <span className="sm:hidden">Vot.</span>
+                      <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <Vote className="w-2 h-2" />
+                          <span>Votants</span>
                         </div>
                       </th>
-                      <th className="text-right px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
-                          <BarChart3 className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
-                          <span className="hidden sm:inline">Votes</span>
-                          <span className="sm:hidden">Votes</span>
+                      <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <BarChart3 className="w-2 h-2" />
+                          <span>Votes</span>
                         </div>
                       </th>
-                      <th className="text-right px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
-                          <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
-                          <span className="hidden sm:inline">Participation</span>
-                          <span className="sm:hidden">Part.</span>
+                      <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <TrendingUp className="w-2 h-2" />
+                          <span>Participation</span>
                         </div>
                       </th>
                        {/* <th className="text-right px-3 sm:px-6 py-3 sm:py-4 font-semibold text-xs sm:text-sm">
@@ -1728,55 +1722,36 @@ const ElectionResults: React.FC = () => {
                 </thead>
                   <tbody className="divide-y divide-gray-200">
                     {(getSortedAndGroupedData() as BureauData[]).map((b, idx) => (
-                      <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="hover:bg-blue-50 transition-colors duration-200 group">
-                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-medium text-gray-800">
-                          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
-                            <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
-                              <span className="text-blue-700 font-bold text-[10px] sm:text-xs lg:text-sm">
-                                {(b.center_name || centerNameById[b.center_id] || b.center_id)?.charAt(0) || 'C'}
-                              </span>
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-800 text-[10px] sm:text-xs lg:text-sm">{b.center_name || centerNameById[b.center_id] || b.center_id}</div>
-                              <div className="text-[8px] sm:text-xs text-gray-500 hidden sm:block">Centre de vote</div>
-                            </div>
+                      <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="hover:bg-blue-50 transition-colors duration-200">
+                        <td className="px-2 py-2 font-medium text-gray-800 text-[8px] sm:text-xs">
+                          <div className="flex items-center gap-1">
+                            <Building className="w-2 h-2 text-blue-600" />
+                            <span className="truncate">{b.center_name || centerNameById[b.center_id] || b.center_id}</span>
                           </div>
                         </td>
-                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4">
-                          <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
-                            <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-blue-600" />
-                            <span className="font-medium text-gray-800 text-[10px] sm:text-xs lg:text-sm">{b.bureau_name}</span>
+                        <td className="px-2 py-2 text-[8px] sm:text-xs">
+                          <div className="flex items-center gap-1">
+                            <Target className="w-2 h-2 text-blue-600" />
+                            <span className="truncate">{b.bureau_name}</span>
                           </div>
                         </td>
-                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="font-bold text-gray-800 text-[10px] sm:text-sm lg:text-lg">{b.total_registered?.toLocaleString() ?? '-'}</span>
-                            <span className="text-[8px] sm:text-xs text-gray-500 hidden sm:block">inscrits</span>
-                          </div>
+                        <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
+                          <span className="font-bold text-gray-800">{b.total_registered?.toLocaleString() ?? '-'}</span>
                         </td>
-                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="font-bold text-gray-800 text-[10px] sm:text-sm lg:text-lg">{b.total_voters?.toLocaleString() ?? '-'}</span>
-                            <span className="text-[8px] sm:text-xs text-gray-500 hidden sm:block">votants</span>
-                          </div>
+                        <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
+                          <span className="font-bold text-gray-800">{b.total_voters?.toLocaleString() ?? '-'}</span>
                         </td>
-                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="font-bold text-blue-600 text-[10px] sm:text-sm lg:text-lg">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</span>
-                            <span className="text-[8px] sm:text-xs text-gray-500 hidden sm:block">exprimés</span>
-                          </div>
+                        <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
+                          <span className="font-bold text-blue-600">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</span>
                         </td>
-                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className={`px-1 sm:px-2 lg:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold ${
-                              typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
-                              typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : (b.participation_pct || '-')}
-                            </span>
-                            <span className="text-[8px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 hidden sm:block">participation</span>
-                          </div>
+                        <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
+                          <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${
+                            typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
+                            typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : (b.participation_pct || '-')}
+                          </span>
                         </td>
                          {/* <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
                            <div className="flex flex-col items-end">
