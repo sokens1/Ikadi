@@ -928,7 +928,7 @@ const ElectionResults: React.FC = () => {
                         </h3>
                       </div>
                       <p className={`${textColor} text-xs sm:text-sm mb-3 sm:mb-4`}>
-                        Taux de couverture des bureaux de vote
+                        Taux de couverture des bureaux après dépouillement
                       </p>
                       <div className={`${isComplete ? 'bg-white/10' : 'bg-orange-100/50'} rounded-lg p-3 sm:p-4 mb-3 sm:mb-4`}>
                           <div className={`text-2xl sm:text-3xl font-bold ${isComplete ? 'text-white' : 'text-gray-800'} mb-1`}>
