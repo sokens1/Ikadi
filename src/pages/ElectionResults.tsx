@@ -425,8 +425,8 @@ const ElectionResults: React.FC = () => {
           if (totalBureaux === 0 && mobileRetryCount < 3) {
             console.log('🔍 Mobile Fallback 1s - Retry calculateBureauCoverage');
             setMobileRetryCount(prev => prev + 1);
-            calculateBureauCoverage();
-          }
+      calculateBureauCoverage();
+    }
         }, 1000);
         
         setTimeout(() => {
@@ -517,18 +517,20 @@ const ElectionResults: React.FC = () => {
   };
 
   const handleShare = (platform: string) => {
-    const url = window.location.href;
-    const title = 'Élections Locales et Législatives 1 Arr.MDA';
+    // Utiliser l'URL de production au lieu de localhost
+    const url = `https://ohitu.gabon.ga/election/${electionId}/results`;
+    const title = 'Résultats des Élections Locales et Législatives Moanda, 1 Arr.';
+    const shareText = `${title} - www.ohitu.com`;
     
     switch (platform) {
       case 'whatsapp':
-        window.open(`https://wa.me/?text=${encodeURIComponent(`${title} - ${url}`)}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
         break;
       case 'facebook':
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
         break;
       case 'copy':
-        navigator.clipboard.writeText(`${title} - ${url}`);
+        navigator.clipboard.writeText(shareText);
         toast.success('Lien copié dans le presse-papiers');
         break;
     }
@@ -819,7 +821,7 @@ const ElectionResults: React.FC = () => {
       return {
         title: 'Résultats d\'élection | o\'Hitu',
         description: 'Consultez les résultats électoraux en temps réel sur o\'Hitu - République Gabonaise',
-        image: 'https://ohitu.gabon.ga/favicon.svg'
+        image: 'https://ohitu.gabon.ga/images/resultat_election.jpg'
       };
     }
 
@@ -827,15 +829,25 @@ const ElectionResults: React.FC = () => {
     const winner = results.candidates.find(c => c.rank === 1);
     const participation = results.participation_rate ? `${results.participation_rate.toFixed(1)}%` : 'En cours';
     
-    const title = `${election.title} - Résultats | o'Hitu`;
-    const description = winner 
-      ? `${winner.candidate_name} en tête avec ${winner.total_votes.toLocaleString()} voix (${winner.percentage.toFixed(1)}%). Participation: ${participation}. Suivez les résultats en temps réel sur o'Hitu.`
-      : `Résultats de ${election.title} - Participation: ${participation}. Suivez les résultats en temps réel sur o'Hitu.`;
+    // Titre optimisé pour WhatsApp
+    const title = `Résultats des Élections Locales et Législatives Moanda, 1 Arr.`;
+    
+    // Description optimisée pour le partage
+    let description = `🗳️ Résultats des Élections Locales et Législatives Moanda, 1 Arr.\n\n`;
+    
+    if (winner) {
+      description += `🏆 ${winner.candidate_name} en tête\n`;
+      description += `📊 ${winner.total_votes.toLocaleString()} voix (${winner.percentage.toFixed(1)}%)\n`;
+    }
+    
+    description += `📈 Participation: ${participation}\n`;
+    description += `📱 Suivez les résultats en temps réel sur o'Hitu\n`;
+    description += `🌍 République Gabonaise`;
     
     return {
       title,
       description,
-      image: 'https://ohitu.gabon.ga/og-election-results.svg',
+      image: 'https://ohitu.gabon.ga/images/resultat_election.jpg',
       url: `https://ohitu.gabon.ga/election/${electionId}/results`
     };
   };
@@ -1063,26 +1075,26 @@ const ElectionResults: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
             <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200 max-w-sm w-full">
-              <div className="text-center">
+                    <div className="text-center">
                 <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">
-                  Couverture des bureaux
-                </h3>
+                          Couverture des bureaux
+                        </h3>
                 <p className="text-xs sm:text-sm text-gray-600 mb-4">
-                  Taux de couverture des bureaux de vote
-                </p>
+                        Taux de couverture des bureaux de vote
+                      </p>
                 <div className="bg-orange-100 rounded-lg p-3 sm:p-4 mb-3">
                   <div className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">
                     0%
-                  </div>
+                        </div>
                   <div className="text-xs sm:text-sm text-gray-600">
                     0 sur 35 bureaux
-                  </div>
-                </div>
+                        </div>
+                      </div>
                 <div className="text-xs sm:text-sm text-gray-600">
                   Après dépouillement
-                </div>
-              </div>
-            </div>
+                      </div>
+                    </div>
+                  </div>
           </div>
         </div>
       </section>

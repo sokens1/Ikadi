@@ -42,6 +42,11 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <meta property="og:image:alt" content={title} />
       <meta property="og:site_name" content="o'Hitu" />
       <meta property="og:locale" content="fr_GA" />
+      <meta property="og:updated_time" content={new Date().toISOString()} />
+      
+      {/* WhatsApp specific */}
+      <meta property="og:image:type" content="image/jpeg" />
+      <meta property="og:image:secure_url" content={image} />
       
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
