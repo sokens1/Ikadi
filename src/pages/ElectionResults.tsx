@@ -1058,71 +1058,31 @@ const ElectionResults: React.FC = () => {
                       </div>
       </section>
 
-      {/* Section taux de couverture des bureaux */}
+      {/* Section Couverture des bureaux - Version simplifiée */}
       <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
-            {(() => {
-                // Logs spécifiques pour le mobile
-                const isMobile = window.innerWidth < 640; // sm breakpoint
-                console.log('🔍 Mobile Debug - isMobile:', isMobile, 'window.innerWidth:', window.innerWidth);
-                console.log('🔍 Mobile Debug - electionId:', electionId, 'totalBureaux:', totalBureaux, 'bureauxAvecResultats:', bureauxAvecResultats);
-                console.log('🔍 Mobile Debug - loading:', loading);
-                
-                const coveragePercentage = totalBureaux > 0 ? Math.round((bureauxAvecResultats / totalBureaux) * 100) : 0;
-                const isComplete = coveragePercentage >= 100;
-                const bgColor = isComplete 
-                  ? "bg-gradient-to-br from-green-500 to-green-600 border-2 border-green-400" 
-                  : "bg-gradient-to-br from-orange-200 to-orange-300 border-2 border-orange-300";
-                const textColor = isComplete ? "text-green-100" : "text-gray-800";
-                
-                return (
-                  <div className={`max-w-sm sm:max-w-md w-full ${bgColor} rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg hover:shadow-xl transition-all duration-300 mx-2 sm:mx-4`}>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center mb-2 sm:mb-3">
-                        <div className="animate-spin mr-2 sm:mr-3">
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        </div>
-                        <h3 className={`text-xs sm:text-sm lg:text-base font-semibold ${isComplete ? 'text-white' : 'text-gray-800'}`}>
-                          Couverture des bureaux
-                        </h3>
-                      </div>
-                      <p className={`${textColor} text-[10px] sm:text-xs lg:text-sm mb-2 sm:mb-3 lg:mb-4`}>
-                        Taux de couverture des bureaux de vote
-                      </p>
-                      <div className={`${isComplete ? 'bg-white/10' : 'bg-orange-100/50'} rounded-lg p-2 sm:p-3 lg:p-4 mb-2 sm:mb-3 lg:mb-4`}>
-                        <div className={`text-xl sm:text-2xl lg:text-3xl font-bold ${isComplete ? 'text-white' : 'text-gray-800'} mb-1`}>
-                          {totalBureaux > 0 ? coveragePercentage : 0}%
-                        </div>
-                        <div className={`text-[10px] sm:text-xs lg:text-sm ${textColor}`}>
-                          {bureauxAvecResultats} sur {totalBureaux} bureaux
-                        </div>
-                      </div>
-                      <div className={`text-[9px] sm:text-xs ${textColor} leading-tight`}>
-                        {(() => {
-                          const isMobile = window.innerWidth < 640;
-                          console.log('🔍 Mobile Rendu conditionnel - electionId:', electionId, 'isMobile:', isMobile, 'totalBureaux:', totalBureaux, 'isComplete:', isComplete);
-                          
-                          // Logique unifiée pour mobile et desktop
-                          if (totalBureaux === 0) {
-                            console.log('🔍 Affichage: Aucun bureau configuré - electionId:', electionId, 'totalBureaux:', totalBureaux);
-                            return "Aucun bureau configuré pour cette élection";
-                          } else if (isComplete) {
-                            console.log('🔍 Affichage: Tous les bureaux traités - electionId:', electionId);
-                            return "Tous les bureaux ont été traités";
-                          } else {
-                            console.log('🔍 Affichage: Après dépouillement - electionId:', electionId);
-                            return "Après depouillement";
-                          }
-                        })()}
-                      </div>
-                    </div>
+            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200 max-w-sm w-full">
+              <div className="text-center">
+                <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">
+                  Couverture des bureaux
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                  Taux de couverture des bureaux de vote
+                </p>
+                <div className="bg-orange-100 rounded-lg p-3 sm:p-4 mb-3">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">
+                    0%
                   </div>
-                );
-            })()}
+                  <div className="text-xs sm:text-sm text-gray-600">
+                    0 sur 35 bureaux
+                  </div>
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  Après dépouillement
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
