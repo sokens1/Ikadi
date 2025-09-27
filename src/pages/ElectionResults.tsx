@@ -767,8 +767,7 @@ const ElectionResults: React.FC = () => {
               {results.election?.title}
             </h1>
               <p className="text-gray-600 text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl mb-4 sm:mb-6">
-                Consultez l'évolution des résultats, le taux de participation et la performance
-                des candidats. Données mises à jour pour {results.election?.localisation || 'cette élection'}.
+                Consultez les résultats, mis à jour pour {results.election?.localisation || 'cette élection'}.
               </p>
 
               <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-3">
@@ -815,7 +814,7 @@ const ElectionResults: React.FC = () => {
               value={results.total_voters}
               icon={<Users className="w-8 h-8" />}
               color="bg-gradient-to-br from-blue-500 to-blue-600"
-              subtitle="Citoyens éligibles"
+              subtitle="Citoyens éligibles au vote"
               animated={true}
             />
             <MetricCard
@@ -849,7 +848,7 @@ const ElectionResults: React.FC = () => {
               </h2>
                     </div>
             <p className="text-gray-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto px-2 sm:px-4">
-              Découvrez les performances de chaque candidat avec des statistiques détaillées
+              Découvrez les performances de chaque candidat suite au vote
             </p>
                         </div>
           {/* Sélecteur de vue */}
@@ -1122,7 +1121,7 @@ const ElectionResults: React.FC = () => {
               <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3 lg:mb-4">
                 <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-blue-500" />
                 <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800">
-                  Analyse détaillée
+                  Vue détaillée
                 </h2>
               </div>
               <p className="text-gray-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto mb-4 sm:mb-6 lg:mb-8 px-2 sm:px-4">
@@ -1496,11 +1495,11 @@ const ElectionResults: React.FC = () => {
               <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3 lg:mb-4">
                 <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-blue-500" />
                 <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800">
-                  Analyse détaillée
+                  Vue détaillée
                 </h2>
               </div>
               <p className="text-gray-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto mb-4 sm:mb-6 lg:mb-8 px-2 sm:px-4">
-                Explorez les résultats par centre de vote ou par bureau pour une analyse approfondie
+                Explorez les résultats par centre de vote ou par bureau de vote
               </p>
               
               {/* Boutons de navigation - toujours visibles */}
