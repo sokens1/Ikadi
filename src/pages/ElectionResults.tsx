@@ -659,11 +659,10 @@ const ElectionResults: React.FC = () => {
             <div className="flex items-center space-x-2 sm:space-x-3">
               <button onClick={() => navigate('/')} className="flex items-center space-x-2 sm:space-x-3 group" aria-label="Aller à l'accueil">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                <span className="text-gov-blue font-bold text-sm sm:text-lg">iK</span>
+                <span className="text-gov-blue font-bold text-sm sm:text-lg">o'H</span>
               </div>
                 <div className="text-left">
-                <h1 className="text-white font-bold text-lg sm:text-xl lg:text-2xl">iKADI</h1>
-                <p className="text-white/80 text-xs sm:text-sm">Plateforme de gestion électorale</p>
+                <h1 className="text-white font-bold text-lg sm:text-xl lg:text-2xl">o'Hitu</h1>
             </div>
               </button>
             </div>
@@ -821,11 +820,11 @@ const ElectionResults: React.FC = () => {
                           <ArrowRightLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
                         <h3 className={`text-sm sm:text-base font-semibold ${currentTextColor}`}>
-                          Autre élection disponible
+                          Autres élections disponibles
                         </h3>
                       </div>
                       <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
-                        Consultez les résultats de l'élection {currentType.toLowerCase()}
+                        Consultez les résultats des élections {currentType.toLowerCase()}s
                       </p>
                       <Button
                         onClick={() => handleElectionSwitch(alt.id)}
@@ -841,7 +840,7 @@ const ElectionResults: React.FC = () => {
             </div>
           ) : (
                           <div className="flex items-center justify-center">
-                            <span>Voir Élection {currentType}</span>
+                            <span>Voir Élections {currentType}s</span>
                             <ArrowRightLeft className="w-4 h-4 ml-2" />
                         </div>
                         )}
@@ -1609,13 +1608,13 @@ const ElectionResults: React.FC = () => {
             <div className="order-1 max-w-xs sm:max-w-sm">
               <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
               <Link to="/" className="w-6 h-6 sm:w-8 sm:h-8 lg:w-9 lg:h-9 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-gov-blue font-semibold text-xs sm:text-sm lg:text-base">iK</span>
+                  <span className="text-gov-blue font-semibold text-xs sm:text-sm lg:text-base">o'H</span>
                 </Link>
                 <div>
-                  <h3 className="text-white font-bold text-sm sm:text-base lg:text-lg">iKADI</h3>
+                  <h3 className="text-white font-bold text-sm sm:text-base lg:text-lg">o'Hitu</h3>
                 </div>
               </div>
-              <p className="text-white/80 text-[10px] sm:text-xs lg:text-sm leading-relaxed">Système de gestion des processus électoraux alliant transparence, sécurité et efficacité.</p>
+              <p className="text-white/80 text-[10px] sm:text-xs lg:text-sm leading-relaxed">Plateforme de gestion du processus électoral alliant accessibilité, sécurité et transparence.</p>
             </div>
 
             {/* Ressources */}
@@ -1667,7 +1666,7 @@ const ElectionResults: React.FC = () => {
           </div>
 
           {/* Copyright */}
-          <div className="mt-6 sm:mt-8 lg:mt-12 text-center font-semibold text-[10px] sm:text-xs lg:text-sm">© {new Date(results.last_updated).getFullYear()} iKADI. Tous droits réservés.</div>
+          <div className="mt-6 sm:mt-8 lg:mt-12 text-center font-semibold text-[10px] sm:text-xs lg:text-sm">© {new Date(results.last_updated).getFullYear()} o'Hitu. Tous droits réservés.</div>
         </div>
       </footer>
     </div>

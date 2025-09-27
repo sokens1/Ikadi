@@ -45,7 +45,7 @@ La page de Login a été complètement transformée en page d'atterrissage moder
 
 ### Section gauche (Desktop)
 - **Gradient de fond** : `from-gov-blue via-blue-700 to-gov-blue-dark`
-- **Logo iKadi** en position absolue (top-left)
+- **Logo o'Hitu** en position absolue (top-left)
 - **Titre principal** avec effet de gradient text
 - **Boutons d'élection** avec :
   - Animation hover (scale 105%)

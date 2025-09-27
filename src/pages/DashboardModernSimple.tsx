@@ -170,7 +170,7 @@ const DashboardModernSimple = () => {
                   Tableau de Bord
                 </h1>
                 <p className="text-blue-100 text-sm sm:text-base lg:text-lg leading-relaxed">
-                  Vue d'ensemble du système électoral iKADI
+                  Vue d'ensemble du système électoral o'Hitu
                 </p>
                 <div className="flex items-center gap-4 mt-3">
                   <div className="flex items-center gap-2">

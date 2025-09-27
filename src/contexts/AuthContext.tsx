@@ -53,10 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isActive: userData.is_active
             };
             setUser(u);
-            localStorage.setItem('ikadi-user', JSON.stringify(u));
+            localStorage.setItem('ohitu-user', JSON.stringify(u));
           }
         } else {
-          const savedUser = localStorage.getItem('ikadi-user');
+          const savedUser = localStorage.getItem('ohitu-user');
           if (savedUser) setUser(JSON.parse(savedUser));
         }
       } finally {
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isActive: true
           };
           setUser(defaultUser);
-          localStorage.setItem('ikadi-user', JSON.stringify(defaultUser));
+          localStorage.setItem('ohitu-user', JSON.stringify(defaultUser));
           return true;
         }
 
@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         setUser(user);
-        localStorage.setItem('ikadi-user', JSON.stringify(user));
+        localStorage.setItem('ohitu-user', JSON.stringify(user));
         return true;
       }
 
@@ -125,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('ikadi-user');
+    localStorage.removeItem('ohitu-user');
   };
 
   return (

@@ -95,12 +95,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex-shrink-0 p-3 sm:p-4 border-b border-gov-blue-light">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-gov-blue font-bold text-sm">iK</span>
+              <span className="text-gov-blue font-bold text-sm">o'H</span>
             </div>
             {(sidebarOpen || isMobile) && (
               <div className="min-w-0">
-                <h1 className="font-bold text-lg truncate">iKadi</h1>
-                <p className="text-xs text-blue-200 truncate">Gestion Électorale</p>
+                <h1 className="font-bold text-lg truncate">o'Hitu</h1>
+                <p className="text-xs text-blue-200 truncate">o'Hitu</p>
               </div>
             )}
           </div>

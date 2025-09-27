@@ -1,4 +1,4 @@
-## Ikadi — Documentation du projet
+## o'Hitu — Documentation du projet
 
 ### Aperçu
 - **Stack**: Vite, React 18, TypeScript, Tailwind CSS, shadcn-ui (Radix), TanStack Query, React Router, Supabase
@@ -38,29 +38,29 @@
 - **Données**: Accès à Supabase via `src/lib/supabase.ts` (client Supabase configuré à partir de variables d’environnement Vite).
 - **UI**: Composants shadcn-ui (Radix UI) sous `src/components/ui/*`. Icônes `lucide-react`. Styles Tailwind (`tailwind.config.ts`, `src/index.css`, `src/styles/design-system.css`).
 
-### Palette iKADI et utilitaires Tailwind
+### Palette o'Hitu et utilitaires Tailwind
 Pour respecter les couleurs demandées:
-- **Vert (header/nav)**: `#006400` → classe utilitaire: `.bg-ik-green`, `.text-ik-green`
-- **Bleu (boutons primaires)**: `#1E90FF` → `.bg-ik-blue`, `.text-ik-blue`, ou bouton: `.btn-ik-primary`
-- **Jaune (hover boutons)**: `#FDB913` → `.bg-ik-yellow`, `.text-ik-yellow` (déjà utilisé au hover de `.btn-ik-primary`)
-- **Arrière-plan général**: `#F5F7FA` → `.bg-ik-bg`
-- **Cartes chiffres clés**: `.ik-card-green` (fond vert, texte blanc) et `.ik-card-yellow` (fond jaune, texte gris foncé)
+- **Vert (header/nav)**: `#006400` → classe utilitaire: `.bg-oh-green`, `.text-oh-green`
+- **Bleu (boutons primaires)**: `#1E90FF` → `.bg-oh-blue`, `.text-oh-blue`, ou bouton: `.btn-oh-primary`
+- **Jaune (hover boutons)**: `#FDB913` → `.bg-oh-yellow`, `.text-oh-yellow` (déjà utilisé au hover de `.btn-oh-primary`)
+- **Arrière-plan général**: `#F5F7FA` → `.bg-oh-bg`
+- **Cartes chiffres clés**: `.oh-card-green` (fond vert, texte blanc) et `.oh-card-yellow` (fond jaune, texte gris foncé)
 
-Ces utilitaires sont définis dans `src/index.css` (section "Utilitaires iKADI"). Exemple d’usage:
+Ces utilitaires sont définis dans `src/index.css` (section "Utilitaires o'Hitu"). Exemple d'usage:
 
 ```tsx
 // Bouton primaire
-<Button className="btn-ik-primary">Connexion</Button>
+<Button className="btn-oh-primary">Connexion</Button>
 
 // Header vert
-<header className="bg-ik-green">…</header>
+<header className="bg-oh-green">…</header>
 
 // Carte chiffres clés
-<div className="ik-card-green rounded-lg p-5">…</div>
+<div className="oh-card-green rounded-lg p-5">…</div>
 ```
 
 Animation de la section héro (zoom doux infini):
-- Classe: `.ik-hero-zoom` (définie dans `src/index.css`)
+- Classe: `.oh-hero-zoom` (définie dans `src/index.css`)
 - Appliquée sur une couche overlay pour l’effet de zoom subtil.
 
 ### Routage: pages principales

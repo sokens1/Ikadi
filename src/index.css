@@ -108,11 +108,11 @@
 
     --radius: 0.5rem;
 
-    /* Palette iKADI (cahier des charges) */
-    --ik-green: 120 100% 20%; /* #006400 */
-    --ik-blue: 210 100% 56%;  /* #1E90FF */
-    --ik-yellow: 45 97% 54%;  /* #FDB913 */
-    --ik-bg: 220 27% 96%;     /* #F5F7FA */
+    /* Palette o'Hitu (cahier des charges) */
+    --oh-green: 120 100% 20%; /* #006400 */
+    --oh-blue: 210 100% 56%;  /* #1E90FF */
+    --oh-yellow: 45 97% 54%;  /* #FDB913 */
+    --oh-bg: 220 27% 96%;     /* #F5F7FA */
 
     /* Palette précédente (toujours disponible) */
     --gov-blue: 221 72% 34%;
@@ -169,28 +169,28 @@
   .gov-bg-light { background-color: hsl(var(--gov-gray-light)); }
 }
 
-/* Utilitaires iKADI (couleurs et boutons) */
+/* Utilitaires o'Hitu (couleurs et boutons) */
 @layer utilities {
-  .bg-ik-green { background-color: hsl(var(--ik-green)) !important; }
-  .text-ik-green { color: hsl(var(--ik-green)) !important; }
-  .bg-ik-blue { background-color: hsl(var(--ik-blue)) !important; }
-  .text-ik-blue { color: hsl(var(--ik-blue)) !important; }
-  .bg-ik-yellow { background-color: hsl(var(--ik-yellow)) !important; }
-  .text-ik-yellow { color: hsl(var(--ik-yellow)) !important; }
-  .bg-ik-bg { background-color: hsl(var(--ik-bg)) !important; }
+  .bg-oh-green { background-color: hsl(var(--oh-green)) !important; }
+  .text-oh-green { color: hsl(var(--oh-green)) !important; }
+  .bg-oh-blue { background-color: hsl(var(--oh-blue)) !important; }
+  .text-oh-blue { color: hsl(var(--oh-blue)) !important; }
+  .bg-oh-yellow { background-color: hsl(var(--oh-yellow)) !important; }
+  .text-oh-yellow { color: hsl(var(--oh-yellow)) !important; }
+  .bg-oh-bg { background-color: hsl(var(--oh-bg)) !important; }
 
-  .btn-ik-primary {
-    background-color: hsl(var(--ik-blue));
+  .btn-oh-primary {
+    background-color: hsl(var(--oh-blue));
     color: white;
   }
-  .btn-ik-primary:hover { background-color: hsl(var(--ik-yellow)); color: #1f2937; }
+  .btn-oh-primary:hover { background-color: hsl(var(--oh-yellow)); color: #1f2937; }
 
-  .ik-card-green {
-    background-color: hsl(var(--ik-green));
+  .oh-card-green {
+    background-color: hsl(var(--oh-green));
     color: white;
   }
-  .ik-card-yellow {
-    background-color: hsl(var(--ik-yellow));
+  .oh-card-yellow {
+    background-color: hsl(var(--oh-yellow));
     color: #1f2937; /* gris foncé */
   }
 }
@@ -202,7 +202,7 @@
   100% { transform: scale(1); }
 }
 
-.ik-hero-zoom {
+.oh-hero-zoom {
   animation: hero-zoom 12s ease-in-out infinite;
   will-change: transform;
 }

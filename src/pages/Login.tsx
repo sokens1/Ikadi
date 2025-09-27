@@ -85,7 +85,7 @@ const Login = () => {
       if (success) {
         toast({
           title: "Connexion réussie",
-          description: "Bienvenue dans iKadi",
+          description: "Bienvenue dans o'Hitu",
         });
         navigate('/dashboard');
       } else {
@@ -114,11 +114,10 @@ const Login = () => {
         <div className="absolute top-6 lg:top-8 left-6 lg:left-8">
           <div className="flex items-center space-x-2 lg:space-x-3">
             <div className="w-8 h-8 lg:w-10 lg:h-10 bg-white rounded-full flex items-center justify-center">
-              <span className="text-gov-blue font-bold text-sm lg:text-lg">iK</span>
+              <span className="text-gov-blue font-bold text-sm lg:text-lg">o'H</span>
             </div>
             <div>
-              <h1 className="text-white font-bold text-xl lg:text-2xl">iKadi</h1>
-              <p className="text-blue-100 text-xs">Plateforme de gestion électorale</p>
+              <h1 className="text-white font-bold text-xl lg:text-2xl">o'Hitu</h1>
             </div>
           </div>
         </div>
@@ -198,11 +197,10 @@ const Login = () => {
         <div className="text-center mb-8">
             <div className="flex items-center justify-center space-x-3 mb-6">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <span className="text-gov-blue font-bold text-lg">iK</span>
+                <span className="text-gov-blue font-bold text-lg">o'H</span>
               </div>
               <div className="text-left">
-                <h1 className="text-white font-bold text-2xl">iKadi</h1>
-                <p className="text-blue-100 text-xs">Plateforme de gestion électorale</p>
+                <h1 className="text-white font-bold text-2xl">o'Hitu</h1>
               </div>
             </div>
             
@@ -344,7 +342,7 @@ const Login = () => {
 
               <div className="mt-4 sm:mt-6 text-center">
                 <p className="text-xs text-gray-500">
-                  Plateforme sécurisée de gestion électorale
+                  o'Hitu
                 </p>
             </div>
           </CardContent>
