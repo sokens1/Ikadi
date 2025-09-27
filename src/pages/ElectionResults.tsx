@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { fetchElectionById, fetchAllElections } from '../api/elections';
 import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCenterSummaryByCandidate, fetchBureauSummaryByCandidate } from '../api/results';
 import { toast } from 'sonner';
+import SEOHead from '@/components/SEOHead';
 
 // Icone WhatsApp (SVG minimal)
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -713,10 +714,68 @@ const ElectionResults: React.FC = () => {
   };
 
 
+  // Générer les meta tags dynamiques pour le partage
+  const generateSEOData = () => {
+    if (!results?.election) {
+      return {
+        title: 'Résultats d\'élection | o\'Hitu',
+        description: 'Consultez les résultats électoraux en temps réel sur o\'Hitu - République Gabonaise',
+        image: 'https://ohitu.gabon.ga/og-election-results.svg'
+      };
+    }
+
+    const election = results.election;
+    const winner = results.candidates.find(c => c.rank === 1);
+    const participation = results.participation_rate ? `${results.participation_rate.toFixed(1)}%` : 'En cours';
+    
+    const title = `${election.title} - Résultats | o'Hitu`;
+    const description = winner 
+      ? `${winner.candidate_name} en tête avec ${winner.total_votes.toLocaleString()} voix (${winner.percentage.toFixed(1)}%). Participation: ${participation}. Suivez les résultats en temps réel.`
+      : `Résultats de ${election.title} - Participation: ${participation}. Suivez les résultats en temps réel sur o'Hitu.`;
+    
+    return {
+      title,
+      description,
+      image: 'https://ohitu.gabon.ga/og-election-results.svg',
+      url: `https://ohitu.gabon.ga/election/${electionId}/results`
+    };
+  };
+
+  const seoData = generateSEOData();
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header identique à la Home */}
-      <header className="border-b bg-gov-blue text-white">
+    <>
+      <SEOHead
+        title={seoData.title}
+        description={seoData.description}
+        image={seoData.image}
+        url={seoData.url}
+        type="article"
+        keywords={`${results?.election?.title || 'élection'}, résultats électoraux, Gabon, ${results?.election?.election_date ? new Date(results.election.election_date).getFullYear() : '2024'}, démocratie, transparence, o'Hitu`}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Election",
+          "name": results?.election?.title || "Élection",
+          "description": seoData.description,
+          "datePublished": results?.election?.election_date,
+          "url": seoData.url,
+          "image": seoData.image,
+          "publisher": {
+            "@type": "GovernmentOrganization",
+            "name": "o'Hitu",
+            "url": "https://ohitu.gabon.ga"
+          },
+          "mainEntity": {
+            "@type": "Election",
+            "name": results?.election?.title,
+            "datePublished": results?.election?.election_date,
+            "description": results?.election?.description
+          }
+        }}
+      />
+      <div className="min-h-screen bg-white">
+        {/* Header identique à la Home */}
+        <header className="border-b bg-gov-blue text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-3">
@@ -1808,7 +1867,8 @@ const ElectionResults: React.FC = () => {
           <div className="mt-6 sm:mt-8 lg:mt-12 text-center font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">© {new Date(results.last_updated).getFullYear()} o'Hitu. Tous droits réservés.</div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 };
 
