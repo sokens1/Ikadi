@@ -337,8 +337,9 @@ const ElectionResults: React.FC = () => {
         bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
       ).length;
       
-      console.log('🔍 avecResultats:', avecResultats);
+      console.log('🔍 avecResultats depuis bureauRows:', avecResultats);
       console.log('🔍 bureauRows.length:', bureauRows.length);
+      console.log('🔍 totalBureauxCount depuis DB:', totalBureauxCount);
       
       setTotalBureaux(totalBureauxCount);
       setBureauxAvecResultats(avecResultats);
@@ -1106,13 +1107,33 @@ const ElectionResults: React.FC = () => {
               // Utiliser totalBureaux si disponible, sinon utiliser un fallback intelligent
               let totalBureauxCount = totalBureaux;
               
-              // Si totalBureaux n'est pas encore chargé, utiliser une estimation basée sur les données disponibles
-              if (totalBureauxCount === 0 && bureauRows.length > 0) {
-                // Estimation intelligente basée sur les données disponibles
-                // Compter les bureaux uniques dans bureauRows pour avoir une meilleure estimation
-                const uniqueBureaux = new Set(bureauRows.map(bureau => bureau.bureau_number || bureau.id)).size;
-                totalBureauxCount = Math.max(uniqueBureaux, bureauRows.length);
-                console.log('🔍 Fallback estimation intelligente - uniqueBureaux:', uniqueBureaux, 'bureauRows.length:', bureauRows.length, 'totalBureauxCount:', totalBureauxCount);
+              // Ne pas utiliser d'estimation - attendre les vraies données de la base
+              if (totalBureauxCount === 0) {
+                console.log('🔍 Attente des vraies données de la base - totalBureaux:', totalBureaux, 'bureauRows.length:', bureauRows.length);
+                // Ne pas utiliser d'estimation, attendre les vraies données
+                return (
+                  <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200 max-w-sm w-full">
+                    <div className="text-center">
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">
+                        Couverture des bureaux
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                        Taux de couverture des bureaux de vote
+                      </p>
+                      <div className="bg-gray-100 rounded-lg p-3 sm:p-4 mb-3">
+                        <div className="text-xl sm:text-2xl font-bold text-gray-600 mb-1">
+                          Chargement...
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-500">
+                          Récupération des données
+                        </div>
+                      </div>
+                      <div className="text-xs sm:text-sm text-gray-600">
+                        Chargement des données...
+                      </div>
+                    </div>
+                  </div>
+                );
               }
               
               const bureauxAvecResultats = bureauRows.filter(bureau => 
@@ -1121,12 +1142,6 @@ const ElectionResults: React.FC = () => {
               
               // Logs pour debug mobile
               console.log('🔍 Mobile Coverage Debug - totalBureaux:', totalBureaux, 'bureauRows.length:', bureauRows.length, 'totalBureauxCount:', totalBureauxCount, 'bureauxAvecResultats:', bureauxAvecResultats);
-              
-              // Si on a des données mais que totalBureaux est encore 0, déclencher un recalcul
-              if (totalBureaux === 0 && bureauRows.length > 0 && electionId) {
-                console.log('🔍 Mobile - Déclenchement recalcul automatique calculateBureauCoverage');
-                calculateBureauCoverage();
-              }
               
               const coveragePercentage = totalBureauxCount > 0 ? Math.round((bureauxAvecResultats / totalBureauxCount) * 100) : 0;
                 const isComplete = coveragePercentage >= 100;
@@ -1156,15 +1171,11 @@ const ElectionResults: React.FC = () => {
                         </div>
                       </div>
                     <div className="text-xs sm:text-sm text-gray-600">
-                      {totalBureauxCount === 0 
-                        ? "Chargement des données..."
-                        : totalBureaux === 0 && totalBureauxCount > 0
-                          ? "Données estimées"
-                          : isComplete 
-                            ? "Tous les bureaux ont été traités" 
-                            : "Après dépouillement"
-                        }
-                      </div>
+                      {isComplete 
+                        ? "Tous les bureaux ont été traités" 
+                        : "Après dépouillement"
+                      }
+                    </div>
                     </div>
                   </div>
                 );
