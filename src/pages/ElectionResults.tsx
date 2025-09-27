@@ -351,22 +351,16 @@ const ElectionResults: React.FC = () => {
       const isMobile = window.innerWidth < 640;
       if (isMobile && totalBureauxCount > 0) {
         console.log('🔍 Mobile Force update - totalBureauxCount:', totalBureauxCount);
-        // Forcer un re-render en utilisant une fonction de mise à jour
-        setTotalBureaux(prev => {
-          console.log('🔍 Mobile setTotalBureaux prev:', prev, 'new:', totalBureauxCount);
-          return totalBureauxCount;
-        });
-        setBureauxAvecResultats(prev => {
-          console.log('🔍 Mobile setBureauxAvecResultats prev:', prev, 'new:', avecResultats);
-          return avecResultats;
-        });
-        
         // Forcer un re-render immédiat sur mobile
+        setTotalBureaux(totalBureauxCount);
+        setBureauxAvecResultats(avecResultats);
+        
+        // Forcer un re-render supplémentaire après un court délai sur mobile
         setTimeout(() => {
-          console.log('🔍 Mobile Force re-render après 100ms');
+          console.log('🔍 Mobile Force re-render après 50ms');
           setTotalBureaux(totalBureauxCount);
           setBureauxAvecResultats(avecResultats);
-        }, 100);
+        }, 50);
       }
     } catch (error) {
       console.error('Erreur calcul couverture bureaux:', error);
@@ -473,6 +467,20 @@ const ElectionResults: React.FC = () => {
       calculateBureauCoverage();
     }
   }, [centerRows, bureauRows]);
+
+  // Recalculer le taux de couverture quand totalBureaux est mis à jour
+  useEffect(() => {
+    const isMobile = window.innerWidth < 640;
+    console.log('🔍 Mobile useEffect totalBureaux - isMobile:', isMobile, 'totalBureaux:', totalBureaux, 'bureauRows.length:', bureauRows.length);
+    if (totalBureaux > 0 && bureauRows.length > 0) {
+      console.log('🔍 Mobile totalBureaux mis à jour, recalcul de la couverture');
+      // Recalculer les bureaux avec résultats
+      const avecResultats = bureauRows.filter(bureau => 
+        bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
+      ).length;
+      setBureauxAvecResultats(avecResultats);
+    }
+  }, [totalBureaux, bureauRows]);
 
   const fetchElectionResults = async (id: string) => {
     try {
@@ -1100,10 +1108,11 @@ const ElectionResults: React.FC = () => {
               
               // Si totalBureaux n'est pas encore chargé, utiliser une estimation basée sur les données disponibles
               if (totalBureauxCount === 0 && bureauRows.length > 0) {
-                // Estimation: si on a des bureaux avec des données, on peut estimer le total
-                // Utiliser le nombre de bureaux chargés comme minimum, ou une estimation
-                totalBureauxCount = Math.max(bureauRows.length, 35); // 35 est une estimation basée sur votre exemple
-                console.log('🔍 Fallback estimation - totalBureauxCount:', totalBureauxCount);
+                // Estimation intelligente basée sur les données disponibles
+                // Compter les bureaux uniques dans bureauRows pour avoir une meilleure estimation
+                const uniqueBureaux = new Set(bureauRows.map(bureau => bureau.bureau_number || bureau.id)).size;
+                totalBureauxCount = Math.max(uniqueBureaux, bureauRows.length);
+                console.log('🔍 Fallback estimation intelligente - uniqueBureaux:', uniqueBureaux, 'bureauRows.length:', bureauRows.length, 'totalBureauxCount:', totalBureauxCount);
               }
               
               const bureauxAvecResultats = bureauRows.filter(bureau => 
@@ -1112,6 +1121,12 @@ const ElectionResults: React.FC = () => {
               
               // Logs pour debug mobile
               console.log('🔍 Mobile Coverage Debug - totalBureaux:', totalBureaux, 'bureauRows.length:', bureauRows.length, 'totalBureauxCount:', totalBureauxCount, 'bureauxAvecResultats:', bureauxAvecResultats);
+              
+              // Si on a des données mais que totalBureaux est encore 0, déclencher un recalcul
+              if (totalBureaux === 0 && bureauRows.length > 0 && electionId) {
+                console.log('🔍 Mobile - Déclenchement recalcul automatique calculateBureauCoverage');
+                calculateBureauCoverage();
+              }
               
               const coveragePercentage = totalBureauxCount > 0 ? Math.round((bureauxAvecResultats / totalBureauxCount) * 100) : 0;
                 const isComplete = coveragePercentage >= 100;
