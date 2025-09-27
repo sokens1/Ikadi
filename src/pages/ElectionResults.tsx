@@ -240,6 +240,10 @@ const ElectionResults: React.FC = () => {
   // États pour le switch entre élections
   const [availableElections, setAvailableElections] = useState<any[]>([]);
   const [electionsLoading, setElectionsLoading] = useState(false);
+  
+  // États pour le taux de couverture des bureaux
+  const [totalBureaux, setTotalBureaux] = useState<number>(0);
+  const [bureauxAvecResultats, setBureauxAvecResultats] = useState<number>(0);
 
   // Fonctions pour vérifier la présence de données
   const hasCenterData = () => {
@@ -252,6 +256,46 @@ const ElectionResults: React.FC = () => {
 
   const hasAnyDetailedData = () => {
     return hasCenterData() || hasBureauData();
+  };
+
+  // Fonction pour calculer le taux de couverture des bureaux
+  const calculateBureauCoverage = async () => {
+    if (!electionId) return;
+    
+    try {
+      // Récupérer le nombre total de bureaux de l'élection
+      const { data: electionCenters } = await supabase
+        .from('election_centers')
+        .select('center_id')
+        .eq('election_id', electionId);
+      
+      if (electionCenters && electionCenters.length > 0) {
+        const centerIds = electionCenters.map(ec => ec.center_id);
+        
+        const { data: totalBureauxData } = await supabase
+          .from('voting_bureaux')
+          .select('id', { count: 'exact' })
+          .in('center_id', centerIds);
+        
+        const totalBureauxCount = totalBureauxData?.length || 0;
+        
+        // Compter les bureaux avec des résultats
+        const avecResultats = bureauRows.filter(bureau => 
+          bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.votes_expressed > 0
+        ).length;
+        
+        console.log('Total bureaux élection:', totalBureauxCount, 'Avec résultats:', avecResultats);
+        setTotalBureaux(totalBureauxCount);
+        setBureauxAvecResultats(avecResultats);
+      } else {
+        setTotalBureaux(0);
+        setBureauxAvecResultats(0);
+      }
+    } catch (error) {
+      console.error('Erreur calcul couverture bureaux:', error);
+      setTotalBureaux(0);
+      setBureauxAvecResultats(0);
+    }
   };
 
   // Fonctions pour vérifier les données des candidats dans la modale
@@ -297,6 +341,13 @@ const ElectionResults: React.FC = () => {
     fetchAvailableElections();
   }, []);
 
+  // Calculer le taux de couverture quand les données des bureaux changent
+  useEffect(() => {
+    if (bureauRows.length >= 0) { // Permettre le calcul même avec 0 bureaux
+      calculateBureauCoverage();
+    }
+  }, [bureauRows, electionId]);
+
   const fetchElectionResults = async (id: string) => {
     try {
       setLoading(true);
@@ -316,13 +367,12 @@ const ElectionResults: React.FC = () => {
       ]);
 
       // Calculer les totaux globaux à partir des tableaux de bureaux (plus fiable)
-      const registeredSum = (bureaux || []).reduce((sum: number, b: any) => sum + (Number(b.total_registered) || 0), 0);
       const votersSum = (bureaux || []).reduce((sum: number, b: any) => sum + (Number(b.total_voters) || 0), 0);
       const expressedSum = (bureaux || []).reduce((sum: number, b: any) => sum + (Number(b.total_expressed_votes) || 0), 0);
 
       // Totaux affichés en tête
       const totalVotesCast = expressedSum; // bulletins exprimés
-      const totalRegistered = registeredSum || (election.nb_electeurs || 0);
+      const totalRegistered = election.nb_electeurs || 0; // Utiliser le nombre d'inscrits de l'élection par défaut
       const participationRate = totalRegistered > 0 ? Math.min(Math.max((votersSum / totalRegistered) * 100, 0), 100) : 0;
 
       setCenterRows(centers || []);
@@ -837,12 +887,92 @@ const ElectionResults: React.FC = () => {
                       </div>
       </section>
 
+      {/* Section taux de couverture des bureaux */}
+      <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-center">
+            {totalBureaux > 0 ? (
+              (() => {
+                const coveragePercentage = Math.round((bureauxAvecResultats / totalBureaux) * 100);
+                const isComplete = coveragePercentage >= 100;
+                const bgColor = isComplete 
+                  ? "bg-gradient-to-br from-green-500 to-green-600 border-2 border-green-400" 
+                  : "bg-gradient-to-br from-orange-200 to-orange-300 border-2 border-orange-300";
+                const textColor = isComplete ? "text-green-100" : "text-gray-800";
+                
+                return (
+                  <div className={`max-w-md w-full ${bgColor} rounded-xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300`}>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-2 sm:mb-3">
+                        <div className="animate-spin mr-2 sm:mr-3">
+                          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                        <h3 className={`text-sm sm:text-base font-semibold ${isComplete ? 'text-white' : 'text-gray-800'}`}>
+                          Couverture des bureaux
+                        </h3>
+                      </div>
+                      <p className={`${textColor} text-xs sm:text-sm mb-3 sm:mb-4`}>
+                        Taux de couverture des bureaux de vote
+                      </p>
+                      <div className={`${isComplete ? 'bg-white/10' : 'bg-orange-100/50'} rounded-lg p-3 sm:p-4 mb-3 sm:mb-4`}>
+                        <div className={`text-2xl sm:text-3xl font-bold ${isComplete ? 'text-white' : 'text-gray-800'} mb-1`}>
+                          {coveragePercentage}%
+                        </div>
+                        <div className={`text-xs sm:text-sm ${textColor}`}>
+                          {bureauxAvecResultats} sur {totalBureaux} bureaux
+                        </div>
+                      </div>
+                      <div className={`text-xs ${textColor}`}>
+                        {isComplete 
+                          ? "Tous les bureaux ont été traités" 
+                          : "Mise à jour lors de chaque publication de résultats"
+                        }
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="max-w-md w-full bg-gradient-to-br from-orange-200 to-orange-300 border-2 border-orange-300 rounded-xl p-4 sm:p-6 shadow-lg">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-2 sm:mb-3">
+                      <div className="animate-spin mr-2 sm:mr-3">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-800">
+                        Couverture des bureaux
+                      </h3>
+                    </div>
+                  <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
+                    Chargement des données...
+                  </p>
+                  <div className="bg-orange-100/50 rounded-lg p-3 sm:p-4">
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">
+                      -
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600">
+                      Résultats en cours de chargement
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Résultats des candidats modernisés */}
       <section id="candidats" className="py-6 sm:py-8 lg:py-12 xl:py-16 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-6 sm:mb-8 lg:mb-12">
             <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3 lg:mb-4">
-              <Trophy className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-yellow-500" />
+              <Trophy className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-black" />
               <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800">
                 Résultats par candidat
               </h2>
@@ -1132,7 +1262,7 @@ const ElectionResults: React.FC = () => {
               <div className="flex items-center justify-center gap-1.5 sm:gap-2 lg:gap-4 bg-white rounded-full p-0.5 sm:p-1 lg:p-2 shadow-lg border border-gray-200 max-w-xs sm:max-w-sm lg:max-w-md mx-auto">
                 <button 
                   onClick={() => setViewMode('center')} 
-                  className={`px-2 sm:px-3 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-full font-medium transition-all duration-300 flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm ${
+                  className={`px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-full font-medium transition-all duration-300 flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm ${
                     viewMode === 'center' 
                       ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-105' 
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
@@ -1144,7 +1274,7 @@ const ElectionResults: React.FC = () => {
                 </button>
                 <button 
                   onClick={() => setViewMode('bureau')} 
-                  className={`px-2 sm:px-3 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-full font-medium transition-all duration-300 flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm ${
+                  className={`px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-full font-medium transition-all duration-300 flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm ${
                     viewMode === 'bureau' 
                       ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-105' 
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
@@ -1211,7 +1341,7 @@ const ElectionResults: React.FC = () => {
                 const c = group.center;
                 return (
                 <details key={`${c.center_id}-${idx}`} className="group bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
-                  <summary className="cursor-pointer px-2 sm:px-3 lg:px-6 py-3 sm:py-4 lg:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 lg:gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300">
+                  <summary className="cursor-pointer px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 lg:gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300">
                     <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm lg:text-lg">
                         {c.center_name?.charAt(0) || 'C'}
@@ -1222,11 +1352,11 @@ const ElectionResults: React.FC = () => {
                       </div>
                     </div>
                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:gap-4 text-xs sm:text-sm">
-                      <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
+                      <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
                         <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Inscrits</div>
                         <div className="font-bold text-gray-800 text-xs sm:text-sm lg:text-lg">{c.total_registered?.toLocaleString?.() || c.total_registered}</div>
                       </div>
-                      <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
+                      <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
                         <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Exprimés</div>
                         <div className="font-bold text-gray-800 text-xs sm:text-sm lg:text-lg">{c.total_expressed_votes?.toLocaleString?.() || c.total_expressed_votes}</div>
                       </div>
@@ -1234,46 +1364,46 @@ const ElectionResults: React.FC = () => {
                          <div className="text-[9px] sm:text-[11px] uppercase text-gray-500 font-medium mb-1">Score</div>
                          <div className="font-bold text-blue-600 text-sm sm:text-lg">{typeof c.score_pct === 'number' ? `${Math.min(Math.max(c.score_pct,0),100).toFixed(1)}%` : '-'}</div>
                        </div> */}
-                      <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
+                      <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
                         <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Participation</div>
                          <div className="font-bold text-green-600 text-xs sm:text-sm lg:text-lg">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct,0),100).toFixed(2)}%` : '-'}</div>
                       </div>
                     </div>
                   </summary>
-                  <div className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gray-50">
+                  <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gray-50">
                     <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8">
                       <table className="min-w-full">
                         <thead>
                           <tr className="border-b border-gray-200">
-                            <th className="text-left px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
+                            <th className="text-left px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
                               <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
                                 <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                                 <span className="hidden sm:inline">Bureau</span>
                                 <span className="sm:hidden">Bur.</span>
                               </div>
                             </th>
-                            <th className="text-right px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
+                            <th className="text-right px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
                               <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                                 <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                                 <span className="hidden sm:inline">Inscrits</span>
                                 <span className="sm:hidden">Insc.</span>
                               </div>
                             </th>
-                            <th className="text-right px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
+                            <th className="text-right px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
                               <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                                 <Vote className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                                 <span className="hidden sm:inline">Votants</span>
                                 <span className="sm:hidden">Vot.</span>
                               </div>
                             </th>
-                            <th className="text-right px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
+                            <th className="text-right px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
                               <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                                 <BarChart3 className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                                 <span className="hidden sm:inline">Exprimés</span>
                                 <span className="sm:hidden">Expr.</span>
                               </div>
                             </th>
-                            <th className="text-right px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
+                            <th className="text-right px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
                               <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                                 <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                                 <span className="hidden sm:inline">Participation</span>
@@ -1296,11 +1426,11 @@ const ElectionResults: React.FC = () => {
                             return numA - numB;
                           }).map((b, i2) => (
                             <tr key={i2} className="hover:bg-blue-50 transition-colors duration-200">
-                              <td className="px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 font-medium text-gray-800 text-[10px] sm:text-xs lg:text-sm">{b.bureau_name}</td>
-                              <td className="px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_registered?.toLocaleString() ?? '-'}</td>
-                              <td className="px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_voters?.toLocaleString() ?? '-'}</td>
-                              <td className="px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_expressed_votes?.toLocaleString() ?? '-'}</td>
-                              <td className="px-1.5 sm:px-2 lg:px-4 py-1.5 sm:py-2 lg:py-3 text-right">
+                              <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-medium text-gray-800 text-[10px] sm:text-xs lg:text-sm">{b.bureau_name}</td>
+                              <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_registered?.toLocaleString() ?? '-'}</td>
+                              <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_voters?.toLocaleString() ?? '-'}</td>
+                              <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_expressed_votes?.toLocaleString() ?? '-'}</td>
+                              <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right">
                                 <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${
                                   typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
                                   typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
@@ -1342,7 +1472,7 @@ const ElectionResults: React.FC = () => {
             </div>
           ) : (
             <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-              <div className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
+              <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
                 <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 flex items-center gap-1.5 sm:gap-2">
                   <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-blue-600" />
                   Vue détaillée par bureau
@@ -1351,46 +1481,46 @@ const ElectionResults: React.FC = () => {
                   Tous les bureaux de vote avec leurs statistiques complètes
                 </p>
               </div>
-            <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8">
-                <table className="min-w-full">
+            <div className="overflow-x-auto">
+                <table className="w-full">
                   <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                     <tr>
-                      <th className="text-left px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm">
+                      <th className="text-left px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
                         <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
                           <Building className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                           <span className="hidden sm:inline">Centre</span>
                           <span className="sm:hidden">C.</span>
                         </div>
                       </th>
-                      <th className="text-left px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm">
+                      <th className="text-left px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
                         <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
                           <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                           <span className="hidden sm:inline">Bureau</span>
                           <span className="sm:hidden">Bur.</span>
                         </div>
                       </th>
-                      <th className="text-right px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm">
+                      <th className="text-right px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                           <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                           <span className="hidden sm:inline">Inscrits</span>
                           <span className="sm:hidden">Insc.</span>
                         </div>
                       </th>
-                      <th className="text-right px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm">
+                      <th className="text-right px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                           <Vote className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                           <span className="hidden sm:inline">Votants</span>
                           <span className="sm:hidden">Vot.</span>
                         </div>
                       </th>
-                      <th className="text-right px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm">
+                      <th className="text-right px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                           <BarChart3 className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                           <span className="hidden sm:inline">Votes</span>
                           <span className="sm:hidden">Votes</span>
                         </div>
                       </th>
-                      <th className="text-right px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm">
+                      <th className="text-right px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                           <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                           <span className="hidden sm:inline">Participation</span>
@@ -1408,7 +1538,7 @@ const ElectionResults: React.FC = () => {
                   <tbody className="divide-y divide-gray-200">
                     {(getSortedAndGroupedData() as BureauData[]).map((b, idx) => (
                       <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="hover:bg-blue-50 transition-colors duration-200 group">
-                        <td className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 font-medium text-gray-800">
+                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 font-medium text-gray-800">
                           <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
                             <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                               <span className="text-blue-700 font-bold text-[10px] sm:text-xs lg:text-sm">
@@ -1421,31 +1551,31 @@ const ElectionResults: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4">
+                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4">
                           <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
                             <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-blue-600" />
                             <span className="font-medium text-gray-800 text-[10px] sm:text-xs lg:text-sm">{b.bureau_name}</span>
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
+                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
                           <div className="flex flex-col items-end">
                             <span className="font-bold text-gray-800 text-[10px] sm:text-sm lg:text-lg">{b.total_registered?.toLocaleString() ?? '-'}</span>
                             <span className="text-[8px] sm:text-xs text-gray-500 hidden sm:block">inscrits</span>
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
+                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
                           <div className="flex flex-col items-end">
                             <span className="font-bold text-gray-800 text-[10px] sm:text-sm lg:text-lg">{b.total_voters?.toLocaleString() ?? '-'}</span>
                             <span className="text-[8px] sm:text-xs text-gray-500 hidden sm:block">votants</span>
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
+                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
                           <div className="flex flex-col items-end">
                             <span className="font-bold text-blue-600 text-[10px] sm:text-sm lg:text-lg">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</span>
                             <span className="text-[8px] sm:text-xs text-gray-500 hidden sm:block">exprimés</span>
                           </div>
                         </td>
-                        <td className="px-2 sm:px-3 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
+                        <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 text-right">
                           <div className="flex flex-col items-end">
                             <span className={`px-1 sm:px-2 lg:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold ${
                               typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
@@ -1506,7 +1636,7 @@ const ElectionResults: React.FC = () => {
               <div className="flex items-center justify-center gap-1.5 sm:gap-2 lg:gap-4 bg-white rounded-full p-0.5 sm:p-1 lg:p-2 shadow-lg border border-gray-200 max-w-xs sm:max-w-sm lg:max-w-md mx-auto mb-6 sm:mb-8">
                 <button 
                   onClick={() => setViewMode('center')} 
-                  className={`px-2 sm:px-3 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-full font-medium transition-all duration-300 flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm ${
+                  className={`px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-full font-medium transition-all duration-300 flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm ${
                     viewMode === 'center' 
                       ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-105' 
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
@@ -1518,7 +1648,7 @@ const ElectionResults: React.FC = () => {
                 </button>
                 <button 
                   onClick={() => setViewMode('bureau')} 
-                  className={`px-2 sm:px-3 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-full font-medium transition-all duration-300 flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm ${
+                  className={`px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-full font-medium transition-all duration-300 flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm ${
                     viewMode === 'bureau' 
                       ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-105' 
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
@@ -1636,7 +1766,7 @@ const ElectionResults: React.FC = () => {
               </h4>
               <ul className="space-y-0.5 sm:space-y-1 lg:space-y-2">
                 <li><a href="#candidats" className="hover:opacity-80 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs"><User className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Candidats</a></li>
-                <li><a href="#analyse" className="hover:opacity-80 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs"><Building className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Circonscriptions / Bureaux</a></li>
+                <li><a href="#analyse" className="hover:opacity-80 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs"><Building className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Centres / Bureaux</a></li>
                 <li><a href="#statistiques" className="hover:opacity-80 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs"><BarChart3 className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Résultats globaux</a></li>
               </ul>
             </div>
@@ -1662,7 +1792,7 @@ const ElectionResults: React.FC = () => {
           </div>
 
           {/* Copyright */}
-          <div className="mt-6 sm:mt-8 lg:mt-12 text-center font-semibold text-[10px] sm:text-xs lg:text-sm">© {new Date(results.last_updated).getFullYear()} o'Hitu. Tous droits réservés.</div>
+          <div className="mt-6 sm:mt-8 lg:mt-12 text-center font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">© {new Date(results.last_updated).getFullYear()} o'Hitu. Tous droits réservés.</div>
         </div>
       </footer>
     </div>

@@ -127,7 +127,7 @@ const Login = () => {
           {/* Titre principal */}
           <div className="mb-6 lg:mb-8">
             <h2 className="text-3xl lg:text-4xl font-bold mb-3 lg:mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-              Choisissez votre élection
+              MOANDA, 1er Arr.
             </h2>
             <p className="text-blue-100 text-base lg:text-lg leading-relaxed">
               Sélectionnez le type d'élections pour accéder aux résultats.
