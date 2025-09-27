@@ -1,7 +1,7 @@
-# Optimisation SEO - iKADI
+# Optimisation SEO - o'Hitu
 
 ## 🎯 Objectif
-Optimiser la visibilité et le référencement de la plateforme iKADI dans les moteurs de recherche pour améliorer l'accessibilité et la transparence des informations électorales.
+Optimiser la visibilité et le référencement de la plateforme o'Hitu dans les moteurs de recherche pour améliorer l'accessibilité et la transparence des informations électorales.
 
 ## ✅ Optimisations Implementées
 
@@ -83,7 +83,7 @@ generateSitemap(entries: SitemapEntry[])
 ### Principaux
 - `élections Gabon`
 - `résultats électoraux`
-- `iKADI`
+- `o'Hitu`
 - `gestion électorale`
 - `transparence électorale`
 

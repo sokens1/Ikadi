@@ -1,7 +1,7 @@
-## Audit complet du projet Ikadi-ResElec (fusion)
+## Audit complet du projet o'Hitu-ResElec (fusion)
 
 ### 1) Contexte et objectifs
-- **Nom**: Ikadi-ResElec / EWANA ELECTIONS CENTRAL
+- **Nom**: o'Hitu-ResElec / EWANA ELECTIONS CENTRAL
 - **Domaine**: Gestion centralisée des élections (Gabon)
 - **Objectifs**:
   - Centraliser les données électorales et assurer leur intégrité

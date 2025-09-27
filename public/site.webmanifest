@@ -1,7 +1,7 @@
 {
-  "name": "iKADI - Plateforme de Gestion Électorale",
-  "short_name": "iKADI",
-  "description": "Plateforme officielle de gestion électorale de la République Gabonaise",
+  "name": "o'Hitu",
+  "short_name": "o'Hitu",
+  "description": "o'Hitu - République Gabonaise",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -12,16 +12,16 @@ interface SEOHeadProps {
 }
 
 const SEOHead: React.FC<SEOHeadProps> = ({
-  title = 'iKADI - Plateforme de Gestion Électorale Sécurisée | République Gabonaise',
-  description = 'iKADI est la plateforme officielle de gestion électorale de la République Gabonaise. Suivez les résultats en temps réel, découvrez les candidats et participez au processus démocratique en toute transparence.',
-  keywords = 'élections, Gabon, vote, résultats électoraux, démocratie, transparence, République Gabonaise, iKADI, gestion électorale, candidats, bureaux de vote',
-  image = 'https://ikadi.gabon.ga/og-image.jpg',
-  url = 'https://ikadi.gabon.ga/',
+  title = 'o'Hitu | République Gabonaise',
+  description = 'o'Hitu - Suivez les résultats en temps réel, découvrez les candidats et participez au processus démocratique en toute transparence.',
+  keywords = 'élections, Gabon, vote, résultats électoraux, démocratie, transparence, République Gabonaise, o'Hitu, candidats, bureaux de vote',
+  image = 'https://ohitu.gabon.ga/og-image.jpg',
+  url = 'https://ohitu.gabon.ga/',
   type = 'website',
   structuredData
 }) => {
-  const fullTitle = title.includes('iKADI') ? title : `${title} | iKADI`;
-  const fullUrl = url.startsWith('http') ? url : `https://ikadi.gabon.ga${url}`;
+  const fullTitle = title.includes('o'Hitu') ? title : `${title} | o'Hitu`;
+  const fullUrl = url.startsWith('http') ? url : `https://ohitu.gabon.ga${url}`;
 
   return (
     <Helmet>
@@ -38,7 +38,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <meta property="og:url" content={fullUrl} />
       <meta property="og:image" content={image} />
       <meta property="og:image:alt" content={title} />
-      <meta property="og:site_name" content="iKADI" />
+      <meta property="og:site_name" content="o'Hitu" />
       <meta property="og:locale" content="fr_GA" />
       
       {/* Twitter */}

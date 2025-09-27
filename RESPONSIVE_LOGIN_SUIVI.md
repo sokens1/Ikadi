@@ -73,13 +73,13 @@ Rendre la page Login entièrement responsive pour qu'elle s'affiche correctement
 ```typescript
 // Desktop
 <div className="w-8 h-8 lg:w-10 lg:h-10">
-<span className="text-sm lg:text-lg">iK</span>
-<h1 className="text-xl lg:text-2xl">iKadi</h1>
+<span className="text-sm lg:text-lg">o'H</span>
+<h1 className="text-xl lg:text-2xl">o'Hitu</h1>
 
 // Mobile
 <div className="w-10 h-10">
-<span className="text-lg">iK</span>
-<h1 className="text-2xl">iKadi</h1>
+<span className="text-lg">o'H</span>
+<h1 className="text-2xl">o'Hitu</h1>
 ```
 
 ### Boutons d'élection
