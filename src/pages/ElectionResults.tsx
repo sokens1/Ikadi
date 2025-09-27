@@ -264,27 +264,40 @@ const ElectionResults: React.FC = () => {
     
     try {
       // Récupérer le nombre total de bureaux de l'élection
-      const { data: electionCenters } = await supabase
+      const { data: electionCenters, error: ecError } = await supabase
         .from('election_centers')
         .select('center_id')
         .eq('election_id', electionId);
       
+      if (ecError) {
+        console.error('Erreur récupération election_centers:', ecError);
+        setTotalBureaux(0);
+        setBureauxAvecResultats(0);
+        return;
+      }
+      
       if (electionCenters && electionCenters.length > 0) {
         const centerIds = electionCenters.map(ec => ec.center_id);
         
-        const { data: totalBureauxData } = await supabase
+        const { data: totalBureauxData, error: bureauxError } = await supabase
           .from('voting_bureaux')
           .select('id', { count: 'exact' })
           .in('center_id', centerIds);
         
+        if (bureauxError) {
+          console.error('Erreur récupération bureaux:', bureauxError);
+          setTotalBureaux(0);
+          setBureauxAvecResultats(0);
+          return;
+        }
+        
         const totalBureauxCount = totalBureauxData?.length || 0;
         
-        // Compter les bureaux avec des résultats
+        // Compter les bureaux avec des résultats depuis bureauRows
         const avecResultats = bureauRows.filter(bureau => 
-          bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.votes_expressed > 0
+          bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
         ).length;
         
-        console.log('Total bureaux élection:', totalBureauxCount, 'Avec résultats:', avecResultats);
         setTotalBureaux(totalBureauxCount);
         setBureauxAvecResultats(avecResultats);
       } else {
@@ -893,7 +906,7 @@ const ElectionResults: React.FC = () => {
           <div className="flex justify-center">
             {totalBureaux > 0 ? (
               (() => {
-                const coveragePercentage = Math.round((bureauxAvecResultats / totalBureaux) * 100);
+                const coveragePercentage = totalBureaux > 0 ? Math.round((bureauxAvecResultats / totalBureaux) * 100) : 0;
                 const isComplete = coveragePercentage >= 100;
                 const bgColor = isComplete 
                   ? "bg-gradient-to-br from-green-500 to-green-600 border-2 border-green-400" 
@@ -918,9 +931,9 @@ const ElectionResults: React.FC = () => {
                         Taux de couverture des bureaux de vote
                       </p>
                       <div className={`${isComplete ? 'bg-white/10' : 'bg-orange-100/50'} rounded-lg p-3 sm:p-4 mb-3 sm:mb-4`}>
-                        <div className={`text-2xl sm:text-3xl font-bold ${isComplete ? 'text-white' : 'text-gray-800'} mb-1`}>
-                          {coveragePercentage}%
-                        </div>
+                          <div className={`text-2xl sm:text-3xl font-bold ${isComplete ? 'text-white' : 'text-gray-800'} mb-1`}>
+                            {totalBureaux > 0 ? coveragePercentage : 0}%
+                          </div>
                         <div className={`text-xs sm:text-sm ${textColor}`}>
                           {bureauxAvecResultats} sur {totalBureaux} bureaux
                         </div>
