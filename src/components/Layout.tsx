@@ -100,7 +100,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {(sidebarOpen || isMobile) && (
               <div className="min-w-0">
                 <h1 className="font-bold text-lg truncate">o'Hitu</h1>
-                <p className="text-xs text-blue-200 truncate">o'Hitu</p>
               </div>
             )}
           </div>
