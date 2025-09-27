@@ -55,7 +55,8 @@ const MetricCard: React.FC<{
   color: string;
   subtitle?: string;
   animated?: boolean;
-}> = ({ title, value, icon, color, subtitle, animated = true }) => {
+  showDecimals?: boolean;
+}> = ({ title, value, icon, color, subtitle, animated = true, showDecimals = false }) => {
   const [displayValue, setDisplayValue] = useState(0);
   const countRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +70,8 @@ const MetricCard: React.FC<{
             const animate = () => {
               const elapsed = Date.now() - start;
               const progress = Math.min(elapsed / duration, 1);
-              setDisplayValue(Math.floor(progress * value));
+              const currentValue = progress * value;
+              setDisplayValue(showDecimals ? currentValue : Math.floor(currentValue));
               if (progress < 1) {
                 requestAnimationFrame(animate);
               }
@@ -88,7 +90,14 @@ const MetricCard: React.FC<{
     } else {
       setDisplayValue(value);
     }
-  }, [value, animated]);
+  }, [value, animated, showDecimals]);
+
+  const formatValue = (val: number) => {
+    if (showDecimals) {
+      return val.toFixed(2);
+    }
+    return val.toLocaleString();
+  };
 
   return (
     <Card className="group hover:shadow-xl transition-all duration-500 hover:-translate-y-1 sm:hover:-translate-y-2 border-0 bg-gradient-to-br from-white to-gray-50">
@@ -99,7 +108,7 @@ const MetricCard: React.FC<{
             <div className="scale-75 sm:scale-100">{icon}</div>
           </div>
           <div ref={countRef} className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-2">
-            {displayValue.toLocaleString()}
+            {formatValue(displayValue)}
           </div>
           <div className="text-xs sm:text-sm font-medium text-gray-600 mb-1">{title}</div>
           {subtitle && (
@@ -1060,41 +1069,68 @@ const ElectionResults: React.FC = () => {
             />
             <MetricCard
               title="Taux de participation"
-              value={results.participation_rate > 0 ? parseFloat(results.participation_rate.toFixed(2)) : Math.round(results.participation_rate)}
+              value={results.participation_rate ? results.participation_rate : 0}
               icon={<div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><span className="text-blue-600 font-bold text-lg">%</span></div>}
               color="bg-gradient-to-br from-purple-500 to-purple-600"
               subtitle="Pourcentage de participation"
               animated={true}
+              showDecimals={true}
             />
                         </div>
                       </div>
       </section>
 
-      {/* Section Couverture des bureaux - Version simplifiée */}
+      {/* Section Couverture des bureaux - Version dynamique */}
       <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
-            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200 max-w-sm w-full">
-                    <div className="text-center">
-                <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">
-                          Couverture des bureaux
-                        </h3>
-                <p className="text-xs sm:text-sm text-gray-600 mb-4">
-                        Taux de couverture des bureaux de vote
-                      </p>
-                <div className="bg-orange-100 rounded-lg p-3 sm:p-4 mb-3">
-                  <div className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">
-                    0%
-                        </div>
-                  <div className="text-xs sm:text-sm text-gray-600">
-                    0 sur 35 bureaux
-                        </div>
+            {(() => {
+              // Calculer le taux de couverture basé sur les données réelles
+              // Utiliser totalBureaux (nombre total de bureaux de l'élection) au lieu de bureauRows.length
+              const totalBureauxCount = totalBureaux; // Nombre total de bureaux de l'élection
+              const bureauxAvecResultats = bureauRows.filter(bureau => 
+                bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
+              ).length;
+              
+              const coveragePercentage = totalBureauxCount > 0 ? Math.round((bureauxAvecResultats / totalBureauxCount) * 100) : 0;
+              const isComplete = coveragePercentage >= 100;
+              
+              const bgColor = isComplete 
+                ? "bg-green-100" 
+                : "bg-orange-100";
+              const textColor = isComplete 
+                ? "text-green-800" 
+                : "text-orange-800";
+              
+              return (
+                <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200 max-w-sm w-full">
+                  <div className="text-center">
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">
+                      Couverture des bureaux
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                      Taux de couverture des bureaux de vote
+                    </p>
+                    <div className={`${bgColor} rounded-lg p-3 sm:p-4 mb-3`}>
+                      <div className={`text-xl sm:text-2xl font-bold ${textColor} mb-1`}>
+                        {coveragePercentage}%
                       </div>
-                <div className="text-xs sm:text-sm text-gray-600">
-                  Après dépouillement
+                      <div className="text-xs sm:text-sm text-gray-600">
+                        {bureauxAvecResultats} sur {totalBureauxCount} bureaux
                       </div>
                     </div>
+                    <div className="text-xs sm:text-sm text-gray-600">
+                      {totalBureauxCount === 0 
+                        ? "Aucun bureau configuré pour cette élection"
+                        : isComplete 
+                          ? "Tous les bureaux ont été traités" 
+                          : "Après dépouillement"
+                      }
+                    </div>
                   </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </section>
