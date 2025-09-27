@@ -739,20 +739,29 @@ const ElectionResults: React.FC = () => {
             {/* Colonne gauche: contenu */}
             <div className="order-2 lg:order-1">
               {/* Badge dynamique statut + type */}
-              <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-green-100 text-green-800 rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 mb-3 sm:mb-4 border border-green-200">
-                <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                  results.election?.status === 'Terminée' ? 'bg-green-500' : 
-                  results.election?.status === 'En cours' ? 'bg-yellow-500 animate-pulse' : 
-                  'bg-blue-500'
-                }`} />
-                <span className="text-xs sm:text-sm font-medium">
-                  {results.election?.status} • {(() => {
-                    const t = (results.election?.title || '').toLowerCase();
-                    const isLocal = ['locale','locales','local','municipale','municipales'].some(k=>t.includes(k));
-                    return isLocal ? 'Élections Locales' : 'Élections Législatives';
-                  })()}
-                </span>
-              </div>
+              {(() => {
+                const t = (results.election?.title || '').toLowerCase();
+                const isLocal = ['locale','locales','local','municipale','municipales'].some(k=>t.includes(k));
+                const electionColor = isLocal ? '#116917' : '#A51C30';
+                const bgColor = isLocal ? 'bg-[#116917]/10' : 'bg-[#A51C30]/10';
+                const textColor = isLocal ? 'text-[#116917]' : 'text-[#A51C30]';
+                const borderColor = isLocal ? 'border-[#116917]/30' : 'border-[#A51C30]/30';
+                
+                return (
+                  <div className={`inline-flex items-center gap-1.5 sm:gap-2 ${bgColor} ${textColor} rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 mb-3 sm:mb-4 border ${borderColor}`}>
+                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
+                      results.election?.status === 'Terminée' ? 'bg-green-500' : 
+                      results.election?.status === 'En cours' ? 'bg-yellow-500 animate-pulse' : 
+                      'bg-blue-500'
+                    }`} style={{backgroundColor: results.election?.status === 'Terminée' ? electionColor : undefined}} />
+                    <span className="text-xs sm:text-sm font-medium">
+                      {results.election?.status} • {(() => {
+                        return isLocal ? 'Élections Locales' : 'Élections Législatives';
+                      })()}
+                    </span>
+                  </div>
+                );
+              })()}
 
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight text-gray-900 mb-3 sm:mb-4 leading-tight">
               {results.election?.title}
@@ -799,58 +808,6 @@ const ElectionResults: React.FC = () => {
       {/* Statistiques principales modernisées */}
       <section className="bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8 lg:py-12 xl:py-16 -mt-2 sm:-mt-4 lg:-mt-6 xl:-mt-8 relative z-10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section de navigation vers autre élection */}
-          {getAlternativeElection() && (
-            <div className="flex justify-center mb-4 sm:mb-6 lg:mb-8">
-              {(() => {
-                const alt = getAlternativeElection()!;
-                const altTitle = (alt.title || '').toLowerCase();
-                const isAltLegislative = ['législative','législatives','legislative'].some(k => altTitle.includes(k));
-                const currentType = isAltLegislative ? 'Législative' : 'Locale';
-                const currentColor = isAltLegislative ? '#A51C30' : '#116917';
-                const currentBgColor = isAltLegislative ? 'bg-[#A51C30]/10' : 'bg-[#116917]/10';
-                const currentBorderColor = isAltLegislative ? 'border-[#A51C30]/30' : 'border-[#116917]/30';
-                const currentTextColor = isAltLegislative ? 'text-[#A51C30]' : 'text-[#116917]';
-                
-                return (
-                  <div className={`max-w-md w-full ${currentBgColor} ${currentBorderColor} border-2 rounded-xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300`}>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center mb-2 sm:mb-3">
-                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mr-2 sm:mr-3`} style={{backgroundColor: currentColor}}>
-                          <ArrowRightLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                        </div>
-                        <h3 className={`text-sm sm:text-base font-semibold ${currentTextColor}`}>
-                          Autres élections disponibles
-                        </h3>
-                      </div>
-                      <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
-                        Consultez les résultats des élections {currentType.toLowerCase()}s
-                      </p>
-                      <Button
-                        onClick={() => handleElectionSwitch(alt.id)}
-                        disabled={electionsLoading}
-                        className={`w-full text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg`}
-                        style={{backgroundColor: currentColor}}
-                        size="lg"
-                      >
-                        {electionsLoading ? (
-                          <div className="flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            <span>Chargement...</span>
-            </div>
-          ) : (
-                          <div className="flex items-center justify-center">
-                            <span>Voir Élections {currentType}s</span>
-                            <ArrowRightLeft className="w-4 h-4 ml-2" />
-                        </div>
-                        )}
-                      </Button>
-                        </div>
-                      </div>
-                );
-              })()}
-                        </div>
-          )}
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             <MetricCard
@@ -1591,6 +1548,63 @@ const ElectionResults: React.FC = () => {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Section de navigation vers autre élection */}
+      {getAlternativeElection() && (
+        <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-center">
+              {(() => {
+                const alt = getAlternativeElection()!;
+                const altTitle = (alt.title || '').toLowerCase();
+                const isAltLegislative = ['législative','législatives','legislative'].some(k => altTitle.includes(k));
+                const currentType = isAltLegislative ? 'Législative' : 'Locale';
+                const currentColor = isAltLegislative ? '#A51C30' : '#116917';
+                const currentBgColor = isAltLegislative ? 'bg-[#A51C30]/10' : 'bg-[#116917]/10';
+                const currentBorderColor = isAltLegislative ? 'border-[#A51C30]/30' : 'border-[#116917]/30';
+                const currentTextColor = isAltLegislative ? 'text-[#A51C30]' : 'text-[#116917]';
+                
+                return (
+                  <div className={`max-w-md w-full ${currentBgColor} ${currentBorderColor} border-2 rounded-xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300`}>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-2 sm:mb-3">
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mr-2 sm:mr-3`} style={{backgroundColor: currentColor}}>
+                          <ArrowRightLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                        </div>
+                        <h3 className={`text-sm sm:text-base font-semibold ${currentTextColor}`}>
+                          Autres élections disponibles
+                        </h3>
+                      </div>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
+                        Consultez les résultats des élections {currentType.toLowerCase()}s
+                      </p>
+                      <Button
+                        onClick={() => handleElectionSwitch(alt.id)}
+                        disabled={electionsLoading}
+                        className={`w-full text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg`}
+                        style={{backgroundColor: currentColor}}
+                        size="lg"
+                      >
+                        {electionsLoading ? (
+                          <div className="flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            <span>Chargement...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <span>Voir Élections {currentType}s</span>
+                            <ArrowRightLeft className="w-4 h-4 ml-2" />
+                          </div>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </section>
