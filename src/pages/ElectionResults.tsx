@@ -283,63 +283,74 @@ const ElectionResults: React.FC = () => {
       console.log('🔍 Mobile calculateBureauCoverage - electionId:', electionId);
       
       // Récupérer le nombre total de bureaux pour cette élection depuis la base de données
-      // Les bureaux sont liés aux élections via les centres (election_centers -> voting_centers -> voting_bureaux)
-      console.log('🔍 Requête Supabase pour voting_bureaux via election_centers...');
+      console.log('🔍 Requête Supabase pour voting_bureaux avec election_id...');
       console.log('🔍 electionId type:', typeof electionId, 'value:', electionId);
       
-      // 1. Récupérer les centres liés à l'élection
-      // Ajouter un timestamp pour éviter le cache sur mobile
-      const cacheBuster = Date.now();
-      console.log('🔍 Mobile Cache buster:', cacheBuster);
-      
-      const { data: electionCenters, error: ecError } = await supabase
-        .from('election_centers')
-        .select('center_id')
-        .eq('election_id', electionId);
-
-      if (ecError) {
-        console.error('Erreur lors du chargement des election_centers:', ecError);
-        setTotalBureaux(0);
-        setBureauxAvecResultats(0);
-        return;
-      }
-
-      const centerIds = (electionCenters || []).map((ec: any) => ec.center_id).filter(Boolean);
-      console.log('🔍 centerIds trouvés:', centerIds);
-
-      if (centerIds.length === 0) {
-        console.log('🔍 Aucun centre trouvé pour cette élection');
-        setTotalBureaux(0);
-        setBureauxAvecResultats(0);
-        return;
-      }
-
-      // 2. Récupérer les bureaux de ces centres
+      // Méthode directe : récupérer les bureaux directement avec election_id
       const { data: bureauxData, error: bureauxError } = await supabase
         .from('voting_bureaux')
         .select('id')
-        .in('center_id', centerIds);
+        .eq('election_id', electionId);
 
-      console.log('🔍 Réponse Supabase - data:', bureauxData, 'error:', bureauxError);
+      console.log('🔍 Réponse Supabase directe - data:', bureauxData, 'error:', bureauxError);
+
+      let totalBureauxCount = 0;
 
       if (bureauxError) {
         console.error('Erreur lors du chargement des bureaux:', bureauxError);
-        setTotalBureaux(0);
-        setBureauxAvecResultats(0);
-        return;
-      }
+        
+        // Fallback : méthode via election_centers si la méthode directe échoue
+        console.log('🔍 Fallback via election_centers...');
+        
+        const { data: electionCenters, error: ecError } = await supabase
+          .from('election_centers')
+          .select('center_id')
+          .eq('election_id', electionId);
 
-      const totalBureauxCount = bureauxData?.length || 0;
-      console.log('🔍 totalBureauxCount depuis DB:', totalBureauxCount);
+        if (ecError) {
+          console.error('Erreur lors du chargement des election_centers:', ecError);
+          setTotalBureaux(0);
+          setBureauxAvecResultats(0);
+          return;
+        }
+
+        const centerIds = (electionCenters || []).map((ec: any) => ec.center_id).filter(Boolean);
+        console.log('🔍 centerIds trouvés:', centerIds);
+
+        if (centerIds.length === 0) {
+          console.log('🔍 Aucun centre trouvé pour cette élection');
+          setTotalBureaux(0);
+          setBureauxAvecResultats(0);
+          return;
+        }
+
+        // Récupérer les bureaux de ces centres
+        const { data: bureauxDataFallback, error: bureauxErrorFallback } = await supabase
+          .from('voting_bureaux')
+          .select('id')
+          .in('center_id', centerIds);
+
+        if (bureauxErrorFallback) {
+          console.error('Erreur lors du chargement des bureaux (fallback):', bureauxErrorFallback);
+          setTotalBureaux(0);
+          setBureauxAvecResultats(0);
+          return;
+        }
+
+        totalBureauxCount = bureauxDataFallback?.length || 0;
+        console.log('🔍 totalBureauxCount depuis DB (fallback):', totalBureauxCount);
+      } else {
+        totalBureauxCount = bureauxData?.length || 0;
+        console.log('🔍 totalBureauxCount depuis DB (direct):', totalBureauxCount);
+      }
       
       // Compter les bureaux avec des résultats depuis bureauRows
       const avecResultats = bureauRows.filter(bureau => 
         bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
       ).length;
       
-      console.log('🔍 avecResultats depuis bureauRows:', avecResultats);
+      console.log('🔍 avecResultats:', avecResultats);
       console.log('🔍 bureauRows.length:', bureauRows.length);
-      console.log('🔍 totalBureauxCount depuis DB:', totalBureauxCount);
       
       setTotalBureaux(totalBureauxCount);
       setBureauxAvecResultats(avecResultats);
@@ -1143,6 +1154,8 @@ const ElectionResults: React.FC = () => {
               // Logs pour debug mobile
               console.log('🔍 Mobile Coverage Debug - totalBureaux:', totalBureaux, 'bureauRows.length:', bureauRows.length, 'totalBureauxCount:', totalBureauxCount, 'bureauxAvecResultats:', bureauxAvecResultats);
               
+              // Les données sont maintenant gérées par les useEffect
+              
               const coveragePercentage = totalBureauxCount > 0 ? Math.round((bureauxAvecResultats / totalBureauxCount) * 100) : 0;
                 const isComplete = coveragePercentage >= 100;
               
@@ -1170,12 +1183,12 @@ const ElectionResults: React.FC = () => {
                         {bureauxAvecResultats} sur {totalBureauxCount} bureaux
                         </div>
                       </div>
-                    <div className="text-xs sm:text-sm text-gray-600">
-                      {isComplete 
-                        ? "Tous les bureaux ont été traités" 
-                        : "Après dépouillement"
-                      }
-                    </div>
+                      <div className="text-xs sm:text-sm text-gray-600">
+                        {isComplete 
+                          ? "Tous les bureaux ont été traités" 
+                          : "Après dépouillement"
+                        }
+                      </div>
                     </div>
                   </div>
                 );
