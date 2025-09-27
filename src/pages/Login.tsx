@@ -205,10 +205,10 @@ const Login = () => {
             </div>
             
             <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-              Choisissez votre élection
+              MOANDA, 1er Arr.
             </h2>
             <p className="text-blue-100 text-sm leading-relaxed">
-              Sélectionnez le type d'élections pour accéder aux résultats
+            Sélectionnez le type d'élections pour accéder aux résultats.
             </p>
           </div>
 
