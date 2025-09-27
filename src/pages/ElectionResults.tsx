@@ -255,6 +255,7 @@ const ElectionResults: React.FC = () => {
   const [totalBureaux, setTotalBureaux] = useState<number>(0);
   const [bureauxAvecResultats, setBureauxAvecResultats] = useState<number>(0);
   const [mobileRetryCount, setMobileRetryCount] = useState<number>(0);
+  const [isDataEstimated, setIsDataEstimated] = useState<boolean>(false);
 
   // Fonctions pour vérifier la présence de données
   const hasCenterData = () => {
@@ -286,62 +287,91 @@ const ElectionResults: React.FC = () => {
       console.log('🔍 Requête Supabase pour voting_bureaux avec election_id...');
       console.log('🔍 electionId type:', typeof electionId, 'value:', electionId);
       
-      // Méthode directe : récupérer les bureaux directement avec election_id
-      const { data: bureauxData, error: bureauxError } = await supabase
-        .from('voting_bureaux')
-        .select('id')
-        .eq('election_id', electionId);
-
-      console.log('🔍 Réponse Supabase directe - data:', bureauxData, 'error:', bureauxError);
-
+      // Méthode 1: Essayer de récupérer depuis la table elections
       let totalBureauxCount = 0;
-
-      if (bureauxError) {
-        console.error('Erreur lors du chargement des bureaux:', bureauxError);
+      let isEstimated = false;
+      
+      try {
+        console.log('🔍 Méthode 1: Récupération depuis elections.nb_bureaux...');
+        const { data: electionData, error: electionError } = await supabase
+          .from('elections')
+          .select('id, nb_bureaux')
+          .eq('id', electionId)
+          .single();
         
-        // Fallback : méthode via election_centers si la méthode directe échoue
-        console.log('🔍 Fallback via election_centers...');
-        
-        const { data: electionCenters, error: ecError } = await supabase
-          .from('election_centers')
-          .select('center_id')
-          .eq('election_id', electionId);
-
-        if (ecError) {
-          console.error('Erreur lors du chargement des election_centers:', ecError);
-          setTotalBureaux(0);
-          setBureauxAvecResultats(0);
-          return;
+        if (!electionError && electionData?.nb_bureaux) {
+          totalBureauxCount = electionData.nb_bureaux;
+          isEstimated = false;
+          console.log('🔍 ✅ Nombre total récupéré depuis elections.nb_bureaux:', totalBureauxCount);
+        } else {
+          console.log('🔍 ❌ Pas de nb_bureaux dans elections:', electionError);
         }
-
-        const centerIds = (electionCenters || []).map((ec: any) => ec.center_id).filter(Boolean);
-        console.log('🔍 centerIds trouvés:', centerIds);
-
-        if (centerIds.length === 0) {
-          console.log('🔍 Aucun centre trouvé pour cette élection');
-          setTotalBureaux(0);
-          setBureauxAvecResultats(0);
-          return;
+      } catch (error) {
+        console.log('🔍 Erreur méthode 1:', error);
+      }
+      
+      // Méthode 2: Si la méthode 1 échoue, essayer la méthode directe
+      if (totalBureauxCount === 0) {
+        try {
+          console.log('🔍 Méthode 2: Récupération directe depuis voting_bureaux...');
+          const response = await supabase
+            .from('voting_bureaux')
+            .select('id, election_id, center_id')
+            .eq('election_id', electionId);
+          
+          if (!response.error && response.data) {
+            totalBureauxCount = response.data.length;
+            isEstimated = false;
+            console.log('🔍 ✅ Nombre total récupéré depuis voting_bureaux:', totalBureauxCount);
+          } else {
+            console.log('🔍 ❌ Erreur méthode 2:', response.error);
+          }
+        } catch (error) {
+          console.log('🔍 Erreur méthode 2:', error);
         }
+      }
+      
+      // Méthode 3: Si les méthodes précédentes échouent, essayer via election_centers
+      if (totalBureauxCount === 0) {
+        try {
+          console.log('🔍 Méthode 3: Récupération via election_centers...');
+          
+          const { data: electionCenters, error: ecError } = await supabase
+            .from('election_centers')
+            .select('center_id')
+            .eq('election_id', electionId);
 
-        // Récupérer les bureaux de ces centres
-        const { data: bureauxDataFallback, error: bureauxErrorFallback } = await supabase
-          .from('voting_bureaux')
-          .select('id')
-          .in('center_id', centerIds);
+          if (!ecError && electionCenters && electionCenters.length > 0) {
+            const centerIds = electionCenters.map((ec: any) => ec.center_id).filter(Boolean);
+            console.log('🔍 centerIds trouvés:', centerIds);
 
-        if (bureauxErrorFallback) {
-          console.error('Erreur lors du chargement des bureaux (fallback):', bureauxErrorFallback);
-          setTotalBureaux(0);
-          setBureauxAvecResultats(0);
-          return;
+            // Récupérer les bureaux de ces centres
+            const { data: bureauxDataFallback, error: bureauxErrorFallback } = await supabase
+              .from('voting_bureaux')
+              .select('id, center_id')
+              .in('center_id', centerIds);
+
+            if (!bureauxErrorFallback && bureauxDataFallback) {
+              totalBureauxCount = bureauxDataFallback.length;
+              isEstimated = false;
+              console.log('🔍 ✅ Nombre total récupéré via election_centers:', totalBureauxCount);
+            } else {
+              console.log('🔍 ❌ Erreur méthode 3:', bureauxErrorFallback);
+            }
+          } else {
+            console.log('🔍 ❌ Aucun centre trouvé pour cette élection:', ecError);
+          }
+        } catch (error) {
+          console.log('🔍 Erreur méthode 3:', error);
         }
-
-        totalBureauxCount = bureauxDataFallback?.length || 0;
-        console.log('🔍 totalBureauxCount depuis DB (fallback):', totalBureauxCount);
+      }
+      
+      // Vérifier le résultat final
+      if (totalBureauxCount === 0) {
+        console.log('🔍 ❌ Aucune donnée de bureau trouvée dans la base pour cette élection');
+        isEstimated = false;
       } else {
-        totalBureauxCount = bureauxData?.length || 0;
-        console.log('🔍 totalBureauxCount depuis DB (direct):', totalBureauxCount);
+        console.log('🔍 ✅ Données réelles récupérées de la base:', totalBureauxCount, 'bureaux');
       }
       
       // Compter les bureaux avec des résultats depuis bureauRows
@@ -354,10 +384,18 @@ const ElectionResults: React.FC = () => {
       
       setTotalBureaux(totalBureauxCount);
       setBureauxAvecResultats(avecResultats);
+      setIsDataEstimated(isEstimated);
       
       console.log('🔍 État final - electionId:', electionId, 'totalBureaux:', totalBureauxCount, 'bureauxAvecResultats:', avecResultats);
       console.log('🔍 setTotalBureaux appelé avec:', totalBureauxCount, 'pour electionId:', electionId);
       console.log('🔍 setBureauxAvecResultats appelé avec:', avecResultats, 'pour electionId:', electionId);
+      
+      // Vérification que les données ont bien été mises à jour
+      if (totalBureauxCount > 0) {
+        console.log('🔍 ✅ Données de couverture mises à jour avec succès');
+      } else {
+        console.log('🔍 ❌ Aucune donnée de bureau trouvée pour cette élection');
+      }
       
       // Vérification mobile : forcer la mise à jour si on est sur mobile
       const isMobile = window.innerWidth < 640;
@@ -1118,33 +1156,151 @@ const ElectionResults: React.FC = () => {
               // Utiliser totalBureaux si disponible, sinon utiliser un fallback intelligent
               let totalBureauxCount = totalBureaux;
               
-              // Ne pas utiliser d'estimation - attendre les vraies données de la base
+              // Si pas de données de la base, utiliser les données disponibles comme fallback temporaire
               if (totalBureauxCount === 0) {
-                console.log('🔍 Attente des vraies données de la base - totalBureaux:', totalBureaux, 'bureauRows.length:', bureauRows.length);
-                // Ne pas utiliser d'estimation, attendre les vraies données
-                return (
-                  <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200 max-w-sm w-full">
-                    <div className="text-center">
-                      <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">
-                        Couverture des bureaux
-                      </h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-4">
-                        Taux de couverture des bureaux de vote
-                      </p>
-                      <div className="bg-gray-100 rounded-lg p-3 sm:p-4 mb-3">
-                        <div className="text-xl sm:text-2xl font-bold text-gray-600 mb-1">
-                          Chargement...
+                console.log('🔍 Aucune donnée disponible - totalBureaux:', totalBureaux, 'bureauRows.length:', bureauRows.length);
+                
+                // Déclencher un recalcul si on n'a pas de données
+                if (electionId && !loading) {
+                  console.log('🔍 Déclenchement calculateBureauCoverage depuis affichage');
+                  calculateBureauCoverage();
+                  
+                  // Continuer à essayer de récupérer les vraies données en arrière-plan
+                  setTimeout(() => {
+                    console.log('🔍 Retry calculateBureauCoverage après 5s');
+                    calculateBureauCoverage();
+                  }, 5000);
+                  
+                  setTimeout(() => {
+                    console.log('🔍 Retry calculateBureauCoverage après 10s');
+                    calculateBureauCoverage();
+                  }, 10000);
+                }
+                
+                // Si on a des données dans bureauRows, essayer de récupérer le vrai total de bureaux
+                if (bureauRows.length > 0) {
+                  console.log('🔍 Tentative de récupération du vrai nombre total de bureaux...');
+                  
+                  // Essayer une méthode alternative pour récupérer le total de bureaux
+                  const fetchRealBureauxCount = async () => {
+                    try {
+                      // Méthode 1: Via la table elections directement
+                      const { data: electionData, error: electionError } = await supabase
+                        .from('elections')
+                        .select('id, nb_bureaux')
+                        .eq('id', electionId)
+                        .single();
+                      
+                      if (!electionError && electionData?.nb_bureaux) {
+                        console.log('🔍 Nombre total de bureaux depuis elections.nb_bureaux:', electionData.nb_bureaux);
+                        return electionData.nb_bureaux;
+                      }
+                      
+                      // Méthode 2: Via une jointure complexe
+                      const { data: jointureData, error: jointureError } = await supabase
+                        .from('election_centers')
+                        .select(`
+                          center_id,
+                          voting_centers!inner(
+                            id,
+                            voting_bureaux(count)
+                          )
+                        `)
+                        .eq('election_id', electionId);
+                      
+                      if (!jointureError && jointureData) {
+                        const totalFromJointure = jointureData.reduce((sum, ec) => {
+                          const count = ec.voting_centers?.voting_bureaux?.[0]?.count || 0;
+                          return sum + count;
+                        }, 0);
+                        console.log('🔍 Nombre total de bureaux depuis jointure:', totalFromJointure);
+                        return totalFromJointure;
+                      }
+                      
+                      return null;
+                    } catch (error) {
+                      console.log('🔍 Erreur lors de la récupération du vrai total:', error);
+                      return null;
+                    }
+                  };
+                  
+                  // Récupérer le vrai total de bureaux
+                  fetchRealBureauxCount().then(realTotal => {
+                    if (realTotal && realTotal > 0) {
+                      console.log('🔍 Mise à jour avec le vrai total:', realTotal);
+                      setTotalBureaux(realTotal);
+                      setIsDataEstimated(false);
+                    }
+                  });
+                  
+                  // En attendant, utiliser une estimation basée sur les données disponibles
+                  const uniqueBureaux = new Set(bureauRows.map(bureau => bureau.bureau_number || bureau.id)).size;
+                  const estimatedTotal = Math.max(uniqueBureaux, bureauRows.length, 25); // Minimum 25 bureaux
+                  
+                  const bureauxAvecResultats = bureauRows.filter(bureau => 
+                    bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
+                  ).length;
+                  
+                  const coveragePercentage = estimatedTotal > 0 ? Math.round((bureauxAvecResultats / estimatedTotal) * 100) : 0;
+                  const isComplete = coveragePercentage >= 100;
+                  
+                  const bgColor = isComplete 
+                    ? "bg-green-100" 
+                    : "bg-orange-100";
+                  const textColor = isComplete 
+                    ? "text-green-800" 
+                    : "text-orange-800";
+                  
+                  return (
+                    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200 max-w-sm w-full">
+                      <div className="text-center">
+                        <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">
+                          Couverture des bureaux
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                          Taux de couverture des bureaux de vote
+                        </p>
+                        <div className={`${bgColor} rounded-lg p-3 sm:p-4 mb-3`}>
+                          <div className={`text-xl sm:text-2xl font-bold ${textColor} mb-1`}>
+                            {coveragePercentage}%
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-600">
+                            {bureauxAvecResultats} sur {estimatedTotal} bureaux
+                          </div>
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-500">
-                          Récupération des données
+                        <div className="text-xs sm:text-sm text-gray-600 flex items-center justify-center gap-2">
+                          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                          Récupération du nombre total...
                         </div>
-                      </div>
-                      <div className="text-xs sm:text-sm text-gray-600">
-                        Chargement des données...
                       </div>
                     </div>
-                  </div>
-                );
+                  );
+                } else {
+                  // Pas de données du tout, afficher le chargement
+                  return (
+                    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200 max-w-sm w-full">
+                      <div className="text-center">
+                        <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">
+                          Couverture des bureaux
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                          Taux de couverture des bureaux de vote
+                        </p>
+                        <div className="bg-gray-100 rounded-lg p-3 sm:p-4 mb-3">
+                          <div className="text-xl sm:text-2xl font-bold text-gray-600 mb-1">
+                            Chargement...
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-500">
+                            Récupération des données
+                          </div>
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-600">
+                          Chargement des données...
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
               }
               
               const bureauxAvecResultats = bureauRows.filter(bureau => 
@@ -1184,9 +1340,11 @@ const ElectionResults: React.FC = () => {
                         </div>
                       </div>
                       <div className="text-xs sm:text-sm text-gray-600">
-                        {isComplete 
-                          ? "Tous les bureaux ont été traités" 
-                          : "Après dépouillement"
+                        {isDataEstimated 
+                          ? "Données estimées"
+                          : isComplete 
+                            ? "Tous les bureaux ont été traités" 
+                            : "Après dépouillement"
                         }
                       </div>
                     </div>
