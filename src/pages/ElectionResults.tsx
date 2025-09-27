@@ -1095,8 +1095,8 @@ const ElectionResults: React.FC = () => {
           <div className="flex justify-center">
             {(() => {
               // Calculer le taux de couverture basé sur les données réelles
-              // Fallback: utiliser bureauRows.length si totalBureaux n'est pas encore chargé
-              const totalBureauxCount = totalBureaux > 0 ? totalBureaux : bureauRows.length;
+              // Attendre que totalBureaux soit chargé depuis la base de données
+              const totalBureauxCount = totalBureaux; // Toujours utiliser totalBureaux (nombre total de l'élection)
               const bureauxAvecResultats = bureauRows.filter(bureau => 
                 bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
               ).length;
