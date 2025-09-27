@@ -261,21 +261,59 @@ const ElectionResults: React.FC = () => {
 
   // Fonction pour calculer le taux de couverture des bureaux
   const calculateBureauCoverage = async () => {
-    if (!electionId) return;
+    if (!electionId) {
+      console.log('🔍 calculateBureauCoverage - Pas d\'electionId');
+      return;
+    }
     
     try {
       console.log('🔍 calculateBureauCoverage - electionId:', electionId);
       
-      // Utiliser les données déjà disponibles dans centerRows et bureauRows
-      console.log('🔍 centerRows:', centerRows);
-      console.log('🔍 bureauRows:', bureauRows);
+      // Récupérer le nombre total de bureaux pour cette élection depuis la base de données
+      // Les bureaux sont liés aux élections via les centres (election_centers -> voting_centers -> voting_bureaux)
+      console.log('🔍 Requête Supabase pour voting_bureaux via election_centers...');
+      console.log('🔍 electionId type:', typeof electionId, 'value:', electionId);
       
-      // Le total de bureaux est la somme de tous les bureaux dans centerRows
-      const totalBureauxCount = centerRows.reduce((total, center) => {
-        return total + (center.bureaux?.length || 0);
-      }, 0);
-      
-      console.log('🔍 totalBureauxCount calculé:', totalBureauxCount);
+      // 1. Récupérer les centres liés à l'élection
+      const { data: electionCenters, error: ecError } = await supabase
+        .from('election_centers')
+        .select('center_id')
+        .eq('election_id', electionId);
+
+      if (ecError) {
+        console.error('Erreur lors du chargement des election_centers:', ecError);
+        setTotalBureaux(0);
+        setBureauxAvecResultats(0);
+        return;
+      }
+
+      const centerIds = (electionCenters || []).map((ec: any) => ec.center_id).filter(Boolean);
+      console.log('🔍 centerIds trouvés:', centerIds);
+
+      if (centerIds.length === 0) {
+        console.log('🔍 Aucun centre trouvé pour cette élection');
+        setTotalBureaux(0);
+        setBureauxAvecResultats(0);
+        return;
+      }
+
+      // 2. Récupérer les bureaux de ces centres
+      const { data: bureauxData, error: bureauxError } = await supabase
+        .from('voting_bureaux')
+        .select('id')
+        .in('center_id', centerIds);
+
+      console.log('🔍 Réponse Supabase - data:', bureauxData, 'error:', bureauxError);
+
+      if (bureauxError) {
+        console.error('Erreur lors du chargement des bureaux:', bureauxError);
+        setTotalBureaux(0);
+        setBureauxAvecResultats(0);
+        return;
+      }
+
+      const totalBureauxCount = bureauxData?.length || 0;
+      console.log('🔍 totalBureauxCount depuis DB:', totalBureauxCount);
       
       // Compter les bureaux avec des résultats depuis bureauRows
       const avecResultats = bureauRows.filter(bureau => 
@@ -283,6 +321,7 @@ const ElectionResults: React.FC = () => {
       ).length;
       
       console.log('🔍 avecResultats:', avecResultats);
+      console.log('🔍 bureauRows.length:', bureauRows.length);
       
       setTotalBureaux(totalBureauxCount);
       setBureauxAvecResultats(avecResultats);
@@ -338,13 +377,20 @@ const ElectionResults: React.FC = () => {
     fetchAvailableElections();
   }, []);
 
-  // Calculer le taux de couverture quand les données des bureaux changent
+  // Calculer le taux de couverture quand l'élection change
   useEffect(() => {
-    console.log('🔍 useEffect calculateBureauCoverage - centerRows.length:', centerRows.length, 'bureauRows.length:', bureauRows.length, 'electionId:', electionId);
-    if (centerRows.length >= 0 && bureauRows.length >= 0) { // Permettre le calcul même avec 0 bureaux
+    if (electionId) {
       calculateBureauCoverage();
     }
-  }, [centerRows, bureauRows, electionId]);
+  }, [electionId]);
+
+  // Recalculer le taux de couverture quand les données des bureaux changent
+  useEffect(() => {
+    console.log('🔍 useEffect calculateBureauCoverage - centerRows.length:', centerRows.length, 'bureauRows.length:', bureauRows.length, 'electionId:', electionId);
+    if (electionId && (centerRows.length >= 0 && bureauRows.length >= 0)) { // Permettre le calcul même avec 0 bureaux
+      calculateBureauCoverage();
+    }
+  }, [centerRows, bureauRows]);
 
   const fetchElectionResults = async (id: string) => {
     try {
@@ -985,7 +1031,7 @@ const ElectionResults: React.FC = () => {
                           ? "Aucun bureau configuré pour cette élection"
                           : isComplete 
                             ? "Tous les bureaux ont été traités" 
-                            : "Mise à jour lors de chaque publication de résultats"
+                            : "Après depouillement"
                         }
                       </div>
                     </div>
