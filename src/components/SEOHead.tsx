@@ -12,15 +12,15 @@ interface SEOHeadProps {
 }
 
 const SEOHead: React.FC<SEOHeadProps> = ({
-  title = 'o'Hitu | République Gabonaise',
-  description = 'o'Hitu - Suivez les résultats en temps réel, découvrez les candidats et participez au processus démocratique en toute transparence.',
-  keywords = 'élections, Gabon, vote, résultats électoraux, démocratie, transparence, République Gabonaise, o'Hitu, candidats, bureaux de vote',
+  title = "o'Hitu | République Gabonaise",
+  description = "o'Hitu - Suivez les résultats en temps réel, découvrez les candidats et participez au processus démocratique en toute transparence.",
+  keywords = "élections, Gabon, vote, résultats électoraux, démocratie, transparence, République Gabonaise, o'Hitu, candidats, bureaux de vote",
   image = 'https://ohitu.gabon.ga/og-image.jpg',
   url = 'https://ohitu.gabon.ga/',
   type = 'website',
   structuredData
 }) => {
-  const fullTitle = title.includes('o'Hitu') ? title : `${title} | o'Hitu`;
+  const fullTitle = title.includes("o'Hitu") ? title : `${title} | o'Hitu`;
   const fullUrl = url.startsWith('http') ? url : `https://ohitu.gabon.ga${url}`;
 
   return (
@@ -37,6 +37,8 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <meta property="og:type" content={type} />
       <meta property="og:url" content={fullUrl} />
       <meta property="og:image" content={image} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content={title} />
       <meta property="og:site_name" content="o'Hitu" />
       <meta property="og:locale" content="fr_GA" />
@@ -46,6 +48,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
+      <meta name="twitter:image:alt" content={title} />
       <meta name="twitter:site" content="@gabon_officiel" />
       <meta name="twitter:creator" content="@gabon_officiel" />
       

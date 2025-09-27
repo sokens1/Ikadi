@@ -1,0 +1,70 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(255,255,255,0.15);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgba(255,255,255,0.05);stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative pattern -->
+  <g opacity="0.1">
+    <circle cx="100" cy="100" r="3" fill="white"/>
+    <circle cx="300" cy="150" r="2" fill="white"/>
+    <circle cx="500" cy="80" r="2" fill="white"/>
+    <circle cx="700" cy="120" r="3" fill="white"/>
+    <circle cx="900" cy="90" r="2" fill="white"/>
+    <circle cx="1100" cy="140" r="3" fill="white"/>
+    <circle cx="200" cy="500" r="2" fill="white"/>
+    <circle cx="400" cy="550" r="3" fill="white"/>
+    <circle cx="600" cy="520" r="2" fill="white"/>
+    <circle cx="800" cy="580" r="3" fill="white"/>
+    <circle cx="1000" cy="510" r="2" fill="white"/>
+  </g>
+  
+  <!-- Main card -->
+  <rect x="50" y="50" width="1100" height="530" rx="20" fill="url(#cardGradient)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+  
+  <!-- Logo/Favicon area -->
+  <rect x="100" y="100" width="80" height="80" rx="12" fill="#1e40af"/>
+  <rect x="110" y="110" width="60" height="4" fill="white"/>
+  <rect x="110" y="130" width="60" height="4" fill="white"/>
+  <rect x="110" y="150" width="40" height="4" fill="white"/>
+  <circle cx="150" cy="150" r="8" fill="#fbbf24"/>
+  <rect x="146" y="146" width="8" height="8" fill="#1e40af"/>
+  <rect x="140" y="120" width="4" height="16" fill="white"/>
+  <rect x="120" y="120" width="4" height="16" fill="white"/>
+  
+  <!-- Title -->
+  <text x="220" y="150" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white">o'Hitu</text>
+  <text x="220" y="190" font-family="Arial, sans-serif" font-size="24" font-weight="normal" fill="rgba(255,255,255,0.9)">République Gabonaise</text>
+  
+  <!-- Election results title -->
+  <text x="100" y="280" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="white" text-anchor="start">Résultats électoraux</text>
+  
+  <!-- Description -->
+  <text x="100" y="330" font-family="Arial, sans-serif" font-size="20" font-weight="normal" fill="rgba(255,255,255,0.8)" text-anchor="start">Suivez les résultats en temps réel</text>
+  <text x="100" y="360" font-family="Arial, sans-serif" font-size="18" font-weight="normal" fill="rgba(255,255,255,0.7)" text-anchor="start">Transparence &amp; Sécurité</text>
+  
+  <!-- Status badge -->
+  <rect x="100" y="400" width="200" height="40" rx="20" fill="rgba(34, 197, 94, 0.2)" stroke="rgba(34, 197, 94, 0.5)" stroke-width="2"/>
+  <circle cx="120" cy="420" r="4" fill="#22c55e"/>
+  <text x="140" y="430" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#22c55e">En direct</text>
+  
+  <!-- URL -->
+  <text x="100" y="500" font-family="Arial, sans-serif" font-size="16" font-weight="normal" fill="rgba(255,255,255,0.6)" text-anchor="start">ohitu.gabon.ga</text>
+  
+  <!-- Decorative elements -->
+  <g opacity="0.3">
+    <path d="M950 200 L1000 150 L1050 200 L1000 250 Z" fill="white"/>
+    <path d="M950 400 L1000 350 L1050 400 L1000 450 Z" fill="white"/>
+  </g>
+</svg>
