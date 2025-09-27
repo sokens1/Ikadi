@@ -1395,6 +1395,7 @@ const ElectionResults: React.FC = () => {
                       <table className="min-w-full bg-white border">
                         <thead className="bg-slate-100 text-gov-dark">
                           <tr>
+                              <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm">Centre</th>
                               <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm">Bureau</th>
                               <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Voix</th>
                               <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Score</th>
@@ -1404,6 +1405,7 @@ const ElectionResults: React.FC = () => {
                           <tbody className="text-xs sm:text-sm">
                             {getSortedCandidateBureaux().map((b, idx) => (
                             <tr key={idx} className="odd:bg-white even:bg-slate-50">
+                                <td className="px-2 sm:px-3 py-2 border">{b.center_name || centerNameById[b.center_id] || b.center_id}</td>
                                 <td className="px-2 sm:px-3 py-2 border">{b.bureau_name}</td>
                                 <td className="px-2 sm:px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
                                 <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage,0),100).toFixed(2)}%` : '-'}</td>
@@ -1566,7 +1568,7 @@ const ElectionResults: React.FC = () => {
                       <table className="min-w-full">
                         <thead>
                           <tr className="border-b border-gray-200">
-                            <th className="text-left px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
+                            <th className="text-left px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">
                               <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
                                 <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
                                 <span className="hidden sm:inline">Bureau</span>
@@ -1617,7 +1619,7 @@ const ElectionResults: React.FC = () => {
                             return numA - numB;
                           }).map((b, i2) => (
                             <tr key={i2} className="hover:bg-blue-50 transition-colors duration-200">
-                              <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-medium text-gray-800 text-[10px] sm:text-xs lg:text-sm">{b.bureau_name}</td>
+                              <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-medium text-gray-800 text-[10px] sm:text-xs lg:text-sm whitespace-nowrap">{b.bureau_name}</td>
                               <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_registered?.toLocaleString() ?? '-'}</td>
                               <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_voters?.toLocaleString() ?? '-'}</td>
                               <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_expressed_votes?.toLocaleString() ?? '-'}</td>
@@ -1679,13 +1681,15 @@ const ElectionResults: React.FC = () => {
                       <th className="text-left px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
                         <div className="flex items-center gap-1">
                           <Building className="w-2 h-2" />
-                          <span>Centres</span>
+                          <span className="hidden sm:inline">Centre</span>
+                          <span className="sm:hidden">Cent.</span>
                         </div>
                       </th>
                       <th className="text-left px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
                         <div className="flex items-center gap-1">
                           <Target className="w-2 h-2" />
-                          <span>Bureau</span>
+                          <span className="hidden sm:inline">Bureau</span>
+                          <span className="sm:hidden">Bur.</span>
                         </div>
                       </th>
                       <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
@@ -1732,7 +1736,7 @@ const ElectionResults: React.FC = () => {
                         <td className="px-2 py-2 text-[8px] sm:text-xs">
                           <div className="flex items-center gap-1">
                             <Target className="w-2 h-2 text-blue-600" />
-                            <span className="truncate">{b.bureau_name}</span>
+                            <span className="truncate whitespace-nowrap">{b.bureau_name}</span>
                           </div>
                         </td>
                         <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
