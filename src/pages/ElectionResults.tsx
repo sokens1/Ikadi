@@ -427,22 +427,31 @@ const ElectionResults: React.FC = () => {
       console.log('🔍 Mobile Appel calculateBureauCoverage depuis useEffect electionId');
       calculateBureauCoverage();
       
-      // Fallback pour mobile : retry après 1 seconde puis 3 secondes si totalBureaux reste à 0
+      // Fallback pour mobile : retry plus agressif
       if (isMobile) {
+        // Retry immédiat après 500ms
         setTimeout(() => {
-          console.log('🔍 Mobile Fallback 1s - totalBureaux:', totalBureaux, 'retryCount:', mobileRetryCount);
-          if (totalBureaux === 0 && mobileRetryCount < 3) {
-            console.log('🔍 Mobile Fallback 1s - Retry calculateBureauCoverage');
-            setMobileRetryCount(prev => prev + 1);
-      calculateBureauCoverage();
-    }
-        }, 1000);
+          console.log('🔍 Mobile Fallback 500ms - totalBureaux:', totalBureaux);
+          if (totalBureaux === 0) {
+            console.log('🔍 Mobile Fallback 500ms - Retry calculateBureauCoverage');
+            calculateBureauCoverage();
+          }
+        }, 500);
         
+        // Retry après 1.5s
         setTimeout(() => {
-          console.log('🔍 Mobile Fallback 3s - totalBureaux:', totalBureaux, 'retryCount:', mobileRetryCount);
-          if (totalBureaux === 0 && mobileRetryCount < 3) {
+          console.log('🔍 Mobile Fallback 1.5s - totalBureaux:', totalBureaux);
+          if (totalBureaux === 0) {
+            console.log('🔍 Mobile Fallback 1.5s - Retry calculateBureauCoverage');
+            calculateBureauCoverage();
+          }
+        }, 1500);
+        
+        // Retry après 3s
+        setTimeout(() => {
+          console.log('🔍 Mobile Fallback 3s - totalBureaux:', totalBureaux);
+          if (totalBureaux === 0) {
             console.log('🔍 Mobile Fallback 3s - Retry calculateBureauCoverage');
-            setMobileRetryCount(prev => prev + 1);
             calculateBureauCoverage();
           }
         }, 3000);
@@ -1086,11 +1095,14 @@ const ElectionResults: React.FC = () => {
           <div className="flex justify-center">
             {(() => {
               // Calculer le taux de couverture basé sur les données réelles
-              // Utiliser totalBureaux (nombre total de bureaux de l'élection) au lieu de bureauRows.length
-              const totalBureauxCount = totalBureaux; // Nombre total de bureaux de l'élection
+              // Fallback: utiliser bureauRows.length si totalBureaux n'est pas encore chargé
+              const totalBureauxCount = totalBureaux > 0 ? totalBureaux : bureauRows.length;
               const bureauxAvecResultats = bureauRows.filter(bureau => 
                 bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
               ).length;
+              
+              // Logs pour debug mobile
+              console.log('🔍 Mobile Coverage Debug - totalBureaux:', totalBureaux, 'bureauRows.length:', bureauRows.length, 'totalBureauxCount:', totalBureauxCount, 'bureauxAvecResultats:', bureauxAvecResultats);
               
               const coveragePercentage = totalBureauxCount > 0 ? Math.round((bureauxAvecResultats / totalBureauxCount) * 100) : 0;
               const isComplete = coveragePercentage >= 100;
@@ -1121,7 +1133,7 @@ const ElectionResults: React.FC = () => {
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600">
                       {totalBureauxCount === 0 
-                        ? "Aucun bureau configuré pour cette élection"
+                        ? "Chargement des données..."
                         : isComplete 
                           ? "Tous les bureaux ont été traités" 
                           : "Après dépouillement"
