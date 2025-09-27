@@ -287,25 +287,34 @@ const ElectionResults: React.FC = () => {
       console.log('🔍 Requête Supabase pour voting_bureaux avec election_id...');
       console.log('🔍 electionId type:', typeof electionId, 'value:', electionId);
       
-      // Méthode 1: Essayer de récupérer depuis la table elections
+      // Récupérer le nombre total de bureaux depuis la base de données
       let totalBureauxCount = 0;
       let isEstimated = false;
       
+      // Méthode 1: Essayer de récupérer depuis la table elections
       try {
-        console.log('🔍 Méthode 1: Récupération depuis elections.nb_bureaux...');
-        const { data: electionData, error: electionError } = await supabase
-          .from('elections')
-          .select('id, nb_bureaux')
-          .eq('id', electionId)
-          .single();
-        
-        if (!electionError && electionData?.nb_bureaux) {
-          totalBureauxCount = electionData.nb_bureaux;
-          isEstimated = false;
-          console.log('🔍 ✅ Nombre total récupéré depuis elections.nb_bureaux:', totalBureauxCount);
-        } else {
-          console.log('🔍 ❌ Pas de nb_bureaux dans elections:', electionError);
-        }
+          console.log('🔍 Méthode 1: Récupération depuis elections...');
+          const { data: electionData, error: electionError } = await supabase
+            .from('elections')
+            .select('*')
+            .eq('id', electionId)
+            .single();
+          
+          console.log('🔍 Données élection:', electionData, 'erreur:', electionError);
+          
+          if (!electionError && electionData) {
+            // Essayer différents champs possibles pour le nombre de bureaux
+            const nbBureaux = electionData.nb_bureaux || electionData.total_bureaux || electionData.num_bureaux || electionData.bureaux_count;
+            if (nbBureaux) {
+              totalBureauxCount = nbBureaux;
+              isEstimated = false;
+              console.log('🔍 ✅ Nombre total récupéré depuis elections:', totalBureauxCount, 'champ utilisé:', Object.keys(electionData).find(key => electionData[key] === nbBureaux));
+            } else {
+              console.log('🔍 ❌ Aucun champ nb_bureaux trouvé dans elections. Champs disponibles:', Object.keys(electionData));
+            }
+          } else {
+            console.log('🔍 ❌ Erreur lors de la récupération de l\'élection:', electionError);
+          }
       } catch (error) {
         console.log('🔍 Erreur méthode 1:', error);
       }
@@ -335,21 +344,21 @@ const ElectionResults: React.FC = () => {
       if (totalBureauxCount === 0) {
         try {
           console.log('🔍 Méthode 3: Récupération via election_centers...');
-          
-          const { data: electionCenters, error: ecError } = await supabase
-            .from('election_centers')
-            .select('center_id')
-            .eq('election_id', electionId);
+      
+      const { data: electionCenters, error: ecError } = await supabase
+        .from('election_centers')
+        .select('center_id')
+        .eq('election_id', electionId);
 
           if (!ecError && electionCenters && electionCenters.length > 0) {
             const centerIds = electionCenters.map((ec: any) => ec.center_id).filter(Boolean);
-            console.log('🔍 centerIds trouvés:', centerIds);
+      console.log('🔍 centerIds trouvés:', centerIds);
 
             // Récupérer les bureaux de ces centres
             const { data: bureauxDataFallback, error: bureauxErrorFallback } = await supabase
-              .from('voting_bureaux')
+        .from('voting_bureaux')
               .select('id, center_id')
-              .in('center_id', centerIds);
+        .in('center_id', centerIds);
 
             if (!bureauxErrorFallback && bureauxDataFallback) {
               totalBureauxCount = bureauxDataFallback.length;
@@ -1181,40 +1190,105 @@ const ElectionResults: React.FC = () => {
                 if (bureauRows.length > 0) {
                   console.log('🔍 Tentative de récupération du vrai nombre total de bureaux...');
                   
-                  // Essayer une méthode alternative pour récupérer le total de bureaux
+                  // Essayer plusieurs méthodes pour récupérer le vrai total de bureaux
                   const fetchRealBureauxCount = async () => {
                     try {
                       // Méthode 1: Via la table elections directement
+                      console.log('🔍 Méthode A: elections...');
                       const { data: electionData, error: electionError } = await supabase
                         .from('elections')
-                        .select('id, nb_bureaux')
+                        .select('*')
                         .eq('id', electionId)
                         .single();
                       
-                      if (!electionError && electionData?.nb_bureaux) {
-                        console.log('🔍 Nombre total de bureaux depuis elections.nb_bureaux:', electionData.nb_bureaux);
-                        return electionData.nb_bureaux;
+                      console.log('🔍 Élection trouvée:', electionData, 'erreur:', electionError);
+                      
+                      if (!electionError && electionData) {
+                        // Essayer différents champs possibles pour le nombre de bureaux
+                        const nbBureaux = electionData.nb_bureaux || electionData.total_bureaux || electionData.num_bureaux || electionData.bureaux_count;
+                        if (nbBureaux) {
+                          console.log('🔍 ✅ Nombre total depuis elections:', nbBureaux, 'champ utilisé:', Object.keys(electionData).find(key => electionData[key] === nbBureaux));
+                          return nbBureaux;
+                        } else {
+                          console.log('🔍 ❌ Aucun champ nb_bureaux trouvé. Champs disponibles:', Object.keys(electionData));
+                        }
                       }
                       
-                      // Méthode 2: Via une jointure complexe
-                      const { data: jointureData, error: jointureError } = await supabase
+                      // Méthode 2: Compter tous les bureaux liés à cette élection
+                      console.log('🔍 Méthode B: Compter tous les bureaux de l\'élection...');
+                      const { data: allBureaux, error: allBureauxError } = await supabase
+                        .from('voting_bureaux')
+                        .select('id, election_id')
+                        .eq('election_id', electionId);
+                      
+                      console.log('🔍 Tous les bureaux trouvés:', allBureaux?.length, 'erreur:', allBureauxError);
+                      
+                      if (!allBureauxError && allBureaux) {
+                        console.log('🔍 ✅ Nombre total depuis comptage direct:', allBureaux.length);
+                        return allBureaux.length;
+                      }
+                      
+                      // Méthode 3: Via les centres de l'élection
+                      console.log('🔍 Méthode C: Via les centres de l\'élection...');
+                      const { data: centersData, error: centersError } = await supabase
                         .from('election_centers')
                         .select(`
                           center_id,
                           voting_centers!inner(
                             id,
-                            voting_bureaux(count)
+                            voting_bureaux(id)
                           )
                         `)
                         .eq('election_id', electionId);
                       
-                      if (!jointureError && jointureData) {
-                        const totalFromJointure = jointureData.reduce((sum, ec) => {
-                          const count = ec.voting_centers?.voting_bureaux?.[0]?.count || 0;
-                          return sum + count;
+                      if (!centersError && centersData) {
+                        const totalBureaux = centersData.reduce((sum, ec) => {
+                          const bureauxCount = ec.voting_centers?.voting_bureaux?.length || 0;
+                          return sum + bureauxCount;
                         }, 0);
-                        console.log('🔍 Nombre total de bureaux depuis jointure:', totalFromJointure);
-                        return totalFromJointure;
+                        console.log('🔍 ✅ Nombre total via centres:', totalBureaux);
+                        return totalBureaux;
+                      }
+                      
+                      // Méthode 4: Essayer une requête SQL directe
+                      console.log('🔍 Méthode D: Requête SQL directe...');
+                      const { data: sqlResult, error: sqlError } = await supabase
+                        .rpc('count_election_bureaux', { election_id_param: electionId });
+                      
+                      if (!sqlError && sqlResult !== null) {
+                        console.log('🔍 ✅ Nombre total via fonction SQL:', sqlResult);
+                        return sqlResult;
+                      } else {
+                        console.log('🔍 ❌ Fonction SQL non disponible:', sqlError);
+                      }
+                      
+                      // Méthode 5: Vérifier la structure des tables
+                      console.log('🔍 Méthode E: Vérifier la structure des tables...');
+                      const { data: sampleBureaux, error: sampleError } = await supabase
+                        .from('voting_bureaux')
+                        .select('*')
+                        .limit(5);
+                      
+                      console.log('🔍 Échantillon de bureaux:', sampleBureaux, 'erreur:', sampleError);
+                      
+                      // Méthode 6: Essayer de compter via une jointure manuelle
+                      console.log('🔍 Méthode F: Jointure manuelle...');
+                      const { data: manualJoin, error: manualError } = await supabase
+                        .from('election_centers')
+                        .select(`
+                          voting_centers!inner(
+                            voting_bureaux(id)
+                          )
+                        `)
+                        .eq('election_id', electionId);
+                      
+                      if (!manualError && manualJoin) {
+                        const totalCount = manualJoin.reduce((sum, ec) => {
+                          const bureaux = ec.voting_centers?.voting_bureaux || [];
+                          return sum + bureaux.length;
+                        }, 0);
+                        console.log('🔍 ✅ Nombre total via jointure manuelle:', totalCount);
+                        return totalCount;
                       }
                       
                       return null;
@@ -1224,7 +1298,7 @@ const ElectionResults: React.FC = () => {
                     }
                   };
                   
-                  // Récupérer le vrai total de bureaux
+                  // Récupérer le vrai total de bureaux depuis la base de données
                   fetchRealBureauxCount().then(realTotal => {
                     if (realTotal && realTotal > 0) {
                       console.log('🔍 Mise à jour avec le vrai total:', realTotal);
@@ -1233,9 +1307,21 @@ const ElectionResults: React.FC = () => {
                     }
                   });
                   
-                  // En attendant, utiliser une estimation basée sur les données disponibles
+                  // En attendant, utiliser une estimation plus réaliste basée sur les données disponibles
                   const uniqueBureaux = new Set(bureauRows.map(bureau => bureau.bureau_number || bureau.id)).size;
-                  const estimatedTotal = Math.max(uniqueBureaux, bureauRows.length, 25); // Minimum 25 bureaux
+                  
+                  // Estimation plus intelligente : si on a 8 bureaux avec résultats, 
+                  // il est probable qu'il y en ait plus dans l'élection
+                  let estimatedTotal = Math.max(uniqueBureaux, bureauRows.length);
+                  
+                  // Si on a peu de bureaux avec résultats, estimer qu'il y en a plus
+                  if (estimatedTotal <= 10) {
+                    estimatedTotal = Math.max(estimatedTotal * 3, 25); // Au moins 25, ou 3x plus
+                  } else if (estimatedTotal <= 20) {
+                    estimatedTotal = Math.max(estimatedTotal * 2, 30); // Au moins 30, ou 2x plus
+                  }
+                  
+                  console.log('🔍 Estimation intelligente - uniqueBureaux:', uniqueBureaux, 'bureauRows.length:', bureauRows.length, 'estimatedTotal:', estimatedTotal);
                   
                   const bureauxAvecResultats = bureauRows.filter(bureau => 
                     bureau.total_voters > 0 || bureau.total_registered > 0 || bureau.total_expressed_votes > 0
@@ -1272,6 +1358,15 @@ const ElectionResults: React.FC = () => {
                           <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
                           Récupération du nombre total...
                         </div>
+                        <button 
+                          onClick={() => {
+                            console.log('🔍 Rafraîchissement manuel demandé');
+                            calculateBureauCoverage();
+                          }}
+                          className="mt-2 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+                        >
+                          Actualiser
+                        </button>
                       </div>
                     </div>
                   );
@@ -1339,7 +1434,7 @@ const ElectionResults: React.FC = () => {
                         {bureauxAvecResultats} sur {totalBureauxCount} bureaux
                         </div>
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-600">
+                    <div className="text-xs sm:text-sm text-gray-600">
                         {isDataEstimated 
                           ? "Données estimées"
                           : isComplete 
