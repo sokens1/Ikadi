@@ -64,6 +64,15 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         if (pvValErr) throw pvValErr;
         if (pvEntErr) throw pvEntErr;
 
+        // Récupérer le nombre total d'inscrits de l'élection par défaut
+        const { data: electionData, error: electionErr } = await supabase
+          .from('elections')
+          .select('nb_electeurs')
+          .eq('id', selectedElection)
+          .single();
+        if (electionErr) throw electionErr;
+        const totalInscritsElection = electionData?.nb_electeurs || 0;
+
         // Restreindre aux centres liés à l'élection via election_centers
         const { data: ecRows, error: ecCentersErr } = await supabase
           .from('election_centers')
@@ -145,7 +154,6 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         });
         let totalVotants = 0;
         let bulletinsNuls = 0;
-        let totalInscrits = 0;
         let totalExprimesPV = 0;
 
         // Agrégation locale à partir des candidate_results (respecte le filtre précédent)
@@ -158,9 +166,11 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         (filteredPvsAll || []).forEach((pv: any) => {
           totalVotants += Number(pv.total_voters) || 0;
           bulletinsNuls += Number(pv.null_votes) || 0;
-          totalInscrits += Number(pv.total_registered) || 0;
           totalExprimesPV += Number(pv.votes_expressed) || 0;
         });
+
+        // Utiliser le nombre total d'inscrits de l'élection par défaut
+        const totalInscrits = totalInscritsElection;
 
         const candidates = Object.values(votesByCandidate).sort((a, b) => b.votes - a.votes);
         const totalVotes = candidates.reduce((s, c) => s + c.votes, 0);
@@ -174,7 +184,23 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         }));
 
         const validatedBureaux = (filteredValidatedPvs || []).length;
-        const totalBureaux = validatedBureaux; // fallback si total inconnu
+        
+        // Récupérer le nombre total de bureaux de l'élection
+        let totalBureaux = 0;
+        if (allowedCenterIds.size > 0) {
+          const { data: totalBureauxData, error: totalBureauxErr } = await supabase
+            .from('voting_bureaux')
+            .select('id', { count: 'exact' })
+            .in('center_id', Array.from(allowedCenterIds));
+          if (totalBureauxErr) {
+            console.error('Erreur récupération total bureaux:', totalBureauxErr);
+            totalBureaux = validatedBureaux; // fallback
+          } else {
+            totalBureaux = totalBureauxData?.length || 0;
+          }
+        } else {
+          totalBureaux = validatedBureaux; // fallback si total inconnu
+        }
 
         setFinalResults({
           participation: {
@@ -202,11 +228,11 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           return {
             center: c?.name || 'Centre',
             bureau: b?.name || 'Bureau',
-          inscrits: 0,
+            inscrits: pv.total_registered || 0, // Utiliser le nombre d'inscrits par défaut du bureau
             votants: pv.total_voters || 0,
-          notreCandidat: 0,
-          adversaire1: 0,
-          adversaire2: 0
+            notreCandidat: 0,
+            adversaire1: 0,
+            adversaire2: 0
           };
         });
         setDetailedResults(detailed);
