@@ -917,7 +917,11 @@ const ElectionResults: React.FC = () => {
       <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
-            {totalBureaux > 0 ? (
+            {(() => {
+              console.log('Condition de rendu - totalBureaux:', totalBureaux, 'type:', typeof totalBureaux);
+              // Forcer l'affichage de la vraie carte pour le débogage
+              return true;
+            })() ? (
               (() => {
                 console.log('Rendu carte couverture - totalBureaux:', totalBureaux, 'bureauxAvecResultats:', bureauxAvecResultats);
                 const coveragePercentage = Math.round((bureauxAvecResultats / totalBureaux) * 100);
@@ -946,7 +950,7 @@ const ElectionResults: React.FC = () => {
                       </p>
                       <div className={`${isComplete ? 'bg-white/10' : 'bg-orange-100/50'} rounded-lg p-3 sm:p-4 mb-3 sm:mb-4`}>
                         <div className={`text-2xl sm:text-3xl font-bold ${isComplete ? 'text-white' : 'text-gray-800'} mb-1`}>
-                          {coveragePercentage}%
+                          {totalBureaux > 0 ? coveragePercentage : 0}%
                         </div>
                         <div className={`text-xs sm:text-sm ${textColor}`}>
                           {bureauxAvecResultats} sur {totalBureaux} bureaux
