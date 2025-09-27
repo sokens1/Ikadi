@@ -978,11 +978,6 @@ const ElectionResults: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
             {(() => {
-              console.log('🔍 Rendu carte couverture - totalBureaux:', totalBureaux, 'bureauxAvecResultats:', bureauxAvecResultats);
-              return null;
-            })()}
-            {totalBureaux > 0 ? (
-              (() => {
                 const coveragePercentage = totalBureaux > 0 ? Math.round((bureauxAvecResultats / totalBureaux) * 100) : 0;
                 const isComplete = coveragePercentage >= 100;
                 const bgColor = isComplete 
@@ -1016,43 +1011,17 @@ const ElectionResults: React.FC = () => {
                         </div>
                       </div>
                       <div className={`text-[9px] sm:text-xs ${textColor} leading-tight`}>
-                        {isComplete 
-                          ? "Tous les bureaux ont été traités" 
-                          : "Après dépouillement"
+                        {totalBureaux === 0 
+                          ? "Aucun bureau configuré pour cette élection"
+                          : isComplete 
+                            ? "Tous les bureaux ont été traités" 
+                            : "Mise à jour lors de chaque publication de résultats"
                         }
                       </div>
                     </div>
                   </div>
                 );
-              })()
-            ) : (
-              <div className="max-w-sm sm:max-w-md w-full bg-gradient-to-br from-orange-200 to-orange-300 border-2 border-orange-300 rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg mx-2 sm:mx-4">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center mb-2 sm:mb-3">
-                      <div className="animate-spin mr-2 sm:mr-3">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      </div>
-                      <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-gray-800">
-                        Couverture des bureaux
-                      </h3>
-                    </div>
-                  <p className="text-gray-600 text-[10px] sm:text-xs lg:text-sm mb-2 sm:mb-3 lg:mb-4">
-                    Chargement des données...
-                  </p>
-                  <div className="bg-orange-100/50 rounded-lg p-2 sm:p-3 lg:p-4">
-                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-1">
-                      -
-                    </div>
-                    <div className="text-[10px] sm:text-xs lg:text-sm text-gray-600">
-                      Résultats en cours de chargement
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            })()}
           </div>
         </div>
       </section>
