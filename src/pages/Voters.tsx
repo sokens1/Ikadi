@@ -40,6 +40,8 @@ const Voters = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingVoter, setEditingVoter] = useState<Voter | null>(null);
   const [newVoter, setNewVoter] = useState({
     province: '',
     department: '',
@@ -132,26 +134,40 @@ const Voters = () => {
 
   const handleAddVoter = async () => {
     try {
-      // Créer un nouveau centre et bureau si nécessaire
-      const voterData: Voter = {
-        id: `temp-${Date.now()}`,
-        province: newVoter.province,
-        department: newVoter.department,
-        commune: newVoter.commune,
-        arrondissement: newVoter.arrondissement,
-        center: newVoter.center,
-        bureau: newVoter.bureau,
-        inscrits: newVoter.inscrits,
-        responsableCentre: newVoter.responsableCentre,
-        contactRespoCentre: newVoter.contactRespoCentre,
-        responsableBureau: newVoter.responsableBureau,
-        contactRespoBureau: newVoter.contactRespoBureau,
-        representantBureau: newVoter.representantBureau,
-        contactReprCentre: newVoter.contactReprCentre
-      };
+      setLoading(true);
+      
+      // Sauvegarder dans Supabase
+      const { data, error } = await supabase
+        .from('inscrits')
+        .insert({
+          province: newVoter.province,
+          departement: newVoter.department,
+          commune: newVoter.commune,
+          arrondissement: newVoter.arrondissement,
+          center: newVoter.center,
+          bureau: newVoter.bureau,
+          inscrits: newVoter.inscrits,
+          responsable_centre: newVoter.responsableCentre,
+          contact_respo_centre: newVoter.contactRespoCentre,
+          responsable_bureau: newVoter.responsableBureau,
+          contact_respo_bureau: newVoter.contactRespoBureau,
+          representant_bureau: newVoter.representantBureau,
+          contact_repr_centre: newVoter.contactReprCentre
+        })
+        .select()
+        .single();
 
-      // Ajouter à la liste
-      setVoters(prev => [...prev, voterData]);
+      if (error) {
+        console.error('Erreur lors de la sauvegarde:', error);
+        toast.error('Erreur lors de la sauvegarde en base de données');
+        return;
+      }
+
+      // Recharger les données depuis Supabase
+      await fetchVotingData();
+      
+      // Recalculer le nombre d'électeurs pour toutes les élections
+      await recalculateAllElectionsVoters();
       
       // Réinitialiser le formulaire
       setNewVoter({
@@ -173,10 +189,135 @@ const Voters = () => {
       // Fermer le modal
       setIsAddModalOpen(false);
       
-      toast.success('Centre/Bureau ajouté avec succès');
+      toast.success('Centre/Bureau ajouté avec succès et élections mises à jour');
     } catch (error) {
       console.error('Erreur lors de l\'ajout:', error);
       toast.error('Erreur lors de l\'ajout');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fonction pour recalculer le nombre d'électeurs pour toutes les élections
+  const recalculateAllElectionsVoters = async () => {
+    try {
+      // Récupérer toutes les élections
+      const { data: elections, error: electionsError } = await supabase
+        .from('elections')
+        .select('id, title');
+
+      if (electionsError) {
+        console.error('Erreur lors de la récupération des élections:', electionsError);
+        return;
+      }
+
+      if (!elections || elections.length === 0) {
+        console.log('Aucune élection trouvée');
+        return;
+      }
+
+      // Pour chaque élection, recalculer le nombre d'électeurs
+      for (const election of elections) {
+        await recalculateElectionVoters(election.id);
+      }
+
+      console.log(`✅ Recalcul effectué pour ${elections.length} élection(s)`);
+    } catch (error) {
+      console.error('Erreur lors du recalcul des élections:', error);
+    }
+  };
+
+  // Fonction pour recalculer le nombre d'électeurs d'une élection spécifique
+  const recalculateElectionVoters = async (electionId: string) => {
+    try {
+      // Récupérer le total des inscrits depuis la table inscrits
+      const { data: inscritsData, error: inscritsError } = await supabase
+        .from('inscrits')
+        .select('inscrits');
+
+      if (inscritsError) {
+        console.error('Erreur lors de la récupération des inscrits:', inscritsError);
+        return;
+      }
+
+      // Calculer le total des inscrits
+      const totalElecteurs = inscritsData?.reduce((sum, row) => sum + (row.inscrits || 0), 0) || 0;
+
+      // Mettre à jour la colonne nb_electeurs de l'élection
+      const { error: updateError } = await supabase
+        .from('elections')
+        .update({ 
+          nb_electeurs: totalElecteurs,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', electionId);
+
+      if (updateError) {
+        console.error('Erreur lors de la mise à jour nb_electeurs:', updateError);
+        return;
+      }
+
+      console.log(`✅ Élection ${electionId} mise à jour: ${totalElecteurs} électeurs`);
+    } catch (error) {
+      console.error('Erreur lors du recalcul pour l\'élection', electionId, ':', error);
+    }
+  };
+
+  // Fonction pour ouvrir le modal d'édition
+  const handleEditVoter = (voter: Voter) => {
+    setEditingVoter(voter);
+    setIsEditModalOpen(true);
+  };
+
+  // Fonction pour sauvegarder les modifications
+  const handleUpdateVoter = async () => {
+    if (!editingVoter) return;
+
+    try {
+      setLoading(true);
+      
+      // Mettre à jour dans Supabase
+      const { error } = await supabase
+        .from('inscrits')
+        .update({
+          province: editingVoter.province,
+          departement: editingVoter.department,
+          commune: editingVoter.commune,
+          arrondissement: editingVoter.arrondissement,
+          center: editingVoter.center,
+          bureau: editingVoter.bureau,
+          inscrits: editingVoter.inscrits,
+          responsable_centre: editingVoter.responsableCentre,
+          contact_respo_centre: editingVoter.contactRespoCentre,
+          responsable_bureau: editingVoter.responsableBureau,
+          contact_respo_bureau: editingVoter.contactRespoBureau,
+          representant_bureau: editingVoter.representantBureau,
+          contact_repr_centre: editingVoter.contactReprCentre
+        })
+        .eq('id', editingVoter.id);
+
+      if (error) {
+        console.error('Erreur lors de la mise à jour:', error);
+        toast.error('Erreur lors de la mise à jour en base de données');
+        return;
+      }
+
+      // Recharger les données depuis Supabase
+      await fetchVotingData();
+      
+      // Recalculer le nombre d'électeurs pour toutes les élections
+      await recalculateAllElectionsVoters();
+      
+      // Fermer le modal
+      setIsEditModalOpen(false);
+      setEditingVoter(null);
+      
+      toast.success('Centre/Bureau modifié avec succès et élections mises à jour');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -653,7 +794,7 @@ const Voters = () => {
                         <TableHead>Centre</TableHead>
                         <TableHead>Bureau</TableHead>
                         <TableHead>Inscrits</TableHead>
-                        <TableHead className="w-[120px]">Actions</TableHead>
+                        <TableHead className="w-[200px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -667,15 +808,25 @@ const Voters = () => {
                           <TableCell>{voter.bureau}</TableCell>
                           <TableCell>{voter.inscrits}</TableCell>
                           <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center space-x-1"
-                              onClick={() => { setSelectedVoter(voter); setDetailOpen(true); }}
-                            >
-                              <Eye className="w-4 h-4" />
-                              <span>Voir détail</span>
-                            </Button>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center space-x-1"
+                                onClick={() => { setSelectedVoter(voter); setDetailOpen(true); }}
+                              >
+                                <Eye className="w-4 h-4" />
+                                <span>Voir</span>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center space-x-1"
+                                onClick={() => handleEditVoter(voter)}
+                              >
+                                <span>Modifier</span>
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -750,6 +901,186 @@ const Voters = () => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal d'édition */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Modifier Centre/Bureau</DialogTitle>
+              <DialogDescription>
+                Modifiez les informations du centre et du bureau de vote
+              </DialogDescription>
+            </DialogHeader>
+            
+            {editingVoter && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Informations géographiques */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Localisation</h3>
+                  
+                  <div>
+                    <Label htmlFor="edit-province">Province *</Label>
+                    <Input
+                      id="edit-province"
+                      value={editingVoter.province}
+                      onChange={(e) => setEditingVoter({...editingVoter, province: e.target.value})}
+                      placeholder="Ex: Haut-Ogooué"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-department">Département *</Label>
+                    <Input
+                      id="edit-department"
+                      value={editingVoter.department}
+                      onChange={(e) => setEditingVoter({...editingVoter, department: e.target.value})}
+                      placeholder="Ex: Machin"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-commune">Commune *</Label>
+                    <Input
+                      id="edit-commune"
+                      value={editingVoter.commune}
+                      onChange={(e) => setEditingVoter({...editingVoter, commune: e.target.value})}
+                      placeholder="Ex: Moanda"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-arrondissement">Arrondissement</Label>
+                    <Input
+                      id="edit-arrondissement"
+                      value={editingVoter.arrondissement}
+                      onChange={(e) => setEditingVoter({...editingVoter, arrondissement: e.target.value})}
+                      placeholder="Ex: 1er"
+                    />
+                  </div>
+                </div>
+
+                {/* Informations du centre */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Centre de Vote</h3>
+                  
+                  <div>
+                    <Label htmlFor="edit-center">Nom du Centre *</Label>
+                    <Input
+                      id="edit-center"
+                      value={editingVoter.center}
+                      onChange={(e) => setEditingVoter({...editingVoter, center: e.target.value})}
+                      placeholder="Ex: Moanda Plaine"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-bureau">Nom du Bureau *</Label>
+                    <Input
+                      id="edit-bureau"
+                      value={editingVoter.bureau}
+                      onChange={(e) => setEditingVoter({...editingVoter, bureau: e.target.value})}
+                      placeholder="Ex: Bureau 1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-inscrits">Nombre d'Inscrits *</Label>
+                    <Input
+                      id="edit-inscrits"
+                      type="number"
+                      value={editingVoter.inscrits}
+                      onChange={(e) => setEditingVoter({...editingVoter, inscrits: parseInt(e.target.value) || 0})}
+                      placeholder="Ex: 411"
+                    />
+                  </div>
+                </div>
+
+                {/* Responsables du centre */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Responsable Centre</h3>
+                  
+                  <div>
+                    <Label htmlFor="edit-responsableCentre">Nom du Responsable *</Label>
+                    <Input
+                      id="edit-responsableCentre"
+                      value={editingVoter.responsableCentre}
+                      onChange={(e) => setEditingVoter({...editingVoter, responsableCentre: e.target.value})}
+                      placeholder="Ex: Jean M."
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-contactRespoCentre">Contact Respo Centre</Label>
+                    <Input
+                      id="edit-contactRespoCentre"
+                      value={editingVoter.contactRespoCentre}
+                      onChange={(e) => setEditingVoter({...editingVoter, contactRespoCentre: e.target.value})}
+                      placeholder="Ex: 076504888"
+                    />
+                  </div>
+                </div>
+
+                {/* Responsables du bureau */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Responsable Bureau</h3>
+                  
+                  <div>
+                    <Label htmlFor="edit-responsableBureau">Nom du Responsable *</Label>
+                    <Input
+                      id="edit-responsableBureau"
+                      value={editingVoter.responsableBureau}
+                      onChange={(e) => setEditingVoter({...editingVoter, responsableBureau: e.target.value})}
+                      placeholder="Ex: Marie K."
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-contactRespoBureau">Contact Respo Bureau</Label>
+                    <Input
+                      id="edit-contactRespoBureau"
+                      value={editingVoter.contactRespoBureau}
+                      onChange={(e) => setEditingVoter({...editingVoter, contactRespoBureau: e.target.value})}
+                      placeholder="Ex: 076504888"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-representantBureau">Représentant Bureau (Candidat)</Label>
+                    <Input
+                      id="edit-representantBureau"
+                      value={editingVoter.representantBureau}
+                      onChange={(e) => setEditingVoter({...editingVoter, representantBureau: e.target.value})}
+                      placeholder="Ex: Paul M."
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-contactReprCentre">Contact Repr Centre</Label>
+                    <Input
+                      id="edit-contactReprCentre"
+                      value={editingVoter.contactReprCentre}
+                      onChange={(e) => setEditingVoter({...editingVoter, contactReprCentre: e.target.value})}
+                      placeholder="Ex: 076504888"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleUpdateVoter}
+                className="bg-gov-blue hover:bg-gov-blue-dark"
+                disabled={!editingVoter?.province || !editingVoter?.department || !editingVoter?.commune || !editingVoter?.center || !editingVoter?.bureau}
+              >
+                Sauvegarder
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
