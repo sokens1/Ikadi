@@ -300,6 +300,31 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     }
   };
 
+  // Fonction pour synchroniser les inscrits avec la table voting_bureaux
+  const syncRegisteredVotersWithBureau = async (bureauId: string, registeredVoters: number) => {
+    if (!bureauId || registeredVoters < 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('voting_bureaux')
+        .update({ 
+          registered_voters: registeredVoters,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bureauId);
+      
+      if (error) {
+        console.error('Erreur lors de la synchronisation des inscrits:', error);
+        toast.warning('Les inscrits ont été enregistrés dans le PV mais la synchronisation avec le bureau a échoué.');
+      } else {
+        console.log(`✅ Inscrits synchronisés: Bureau ${bureauId} -> ${registeredVoters} inscrits`);
+      }
+    } catch (err) {
+      console.error('Erreur lors de la synchronisation des inscrits:', err);
+      toast.warning('Les inscrits ont été enregistrés dans le PV mais la synchronisation avec le bureau a échoué.');
+    }
+  };
+
   const handleSubmitPV = async () => {
     if (!canSubmit() || !selectedElection) return;
     try {
@@ -365,6 +390,9 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
           .single();
         if (updateErr) throw updateErr;
         pv = updated;
+        
+        // Synchroniser les inscrits avec la table voting_bureaux pour les mises à jour aussi
+        await syncRegisteredVotersWithBureau(bureauId, registeredVoters);
       } else {
         const { data: inserted, error: insertErr } = await supabase
           .from('procès_verbaux')
@@ -383,6 +411,9 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
           .single();
         if (insertErr) throw insertErr;
         pv = inserted;
+        
+        // Synchroniser les inscrits avec la table voting_bureaux pour les nouveaux PV aussi
+        await syncRegisteredVotersWithBureau(bureauId, registeredVoters);
       }
 
       const candidateEntries = Object.entries(formData.candidateVotes)
