@@ -1079,10 +1079,21 @@ const ElectionResults: React.FC = () => {
       <section className="relative overflow-hidden">
         {/* Overlay bleu léger */}
         <div className="absolute inset-0 bg-blue-800/20" />
+        
+        {/* Texte d'information sur les résultats provisoires - Positionné tout en haut */}
+        <div className="relative z-10 pt-4 pb-2">
+          <div className="text-center">
+            <p className="text-base sm:text-lg text-gray-600 font-medium">
+              Résultats provisoires à confirmer par le Ministère de l'intérieur.
+            </p>
+          </div>
+        </div>
+        
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-14 xl:py-20 relative">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 xl:gap-16 items-center">
             {/* Colonne gauche: contenu */}
             <div className="order-2 lg:order-1">
+              
               {/* Badge dynamique statut + type */}
               {(() => {
                 const t = (results.election?.title || '').toLowerCase();
@@ -1093,17 +1104,20 @@ const ElectionResults: React.FC = () => {
                 const borderColor = isLocal ? 'border-[#116917]/30' : 'border-[#A51C30]/30';
                 
                 return (
-                  <div className={`inline-flex items-center gap-1.5 sm:gap-2 ${bgColor} ${textColor} rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 mb-3 sm:mb-4 border ${borderColor}`}>
-                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                      results.election?.status === 'Terminée' ? 'bg-green-500' : 
-                      results.election?.status === 'En cours' ? 'bg-yellow-500 animate-pulse' : 
-                      'bg-blue-500'
-                    }`} style={{backgroundColor: results.election?.status === 'Terminée' ? electionColor : undefined}} />
-                    <span className="text-xs sm:text-sm font-medium">
-                      {results.election?.status} • {(() => {
-                        return isLocal ? 'Élections Locales' : 'Élections Législatives';
-                      })()}
-                    </span>
+                  <div className="mb-3 sm:mb-4">
+                    {/* Étiquette de statut de l'élection */}
+                    <div className={`inline-flex items-center gap-1.5 sm:gap-2 ${bgColor} ${textColor} rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 border ${borderColor}`}>
+                      <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
+                        results.election?.status === 'Terminée' ? 'bg-green-500' : 
+                        results.election?.status === 'En cours' ? 'bg-yellow-500 animate-pulse' : 
+                        'bg-blue-500'
+                      }`} style={{backgroundColor: results.election?.status === 'Terminée' ? electionColor : undefined}} />
+                      <span className="text-xs sm:text-sm font-medium">
+                        {results.election?.status} • {(() => {
+                          return isLocal ? 'Élections Locales' : 'Élections Législatives';
+                        })()}
+                      </span>
+                    </div>
                   </div>
                 );
               })()}
@@ -2139,7 +2153,7 @@ const ElectionResults: React.FC = () => {
                       <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
                           <BarChart3 className="w-2 h-2" />
-                          <span>Votes</span>
+                          <span>Suf. Exp</span>
                         </div>
                       </th>
                       <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
