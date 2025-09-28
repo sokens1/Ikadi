@@ -1080,14 +1080,6 @@ const ElectionResults: React.FC = () => {
         {/* Overlay bleu léger */}
         <div className="absolute inset-0 bg-blue-800/20" />
         
-        {/* Texte d'information sur les résultats provisoires - Positionné tout en haut */}
-        <div className="relative z-10 pt-4 pb-2">
-          <div className="text-center">
-            <p className="text-base sm:text-lg text-gray-600 font-medium">
-              Résultats provisoires à confirmer par le Ministère de l'intérieur.
-            </p>
-          </div>
-        </div>
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-14 xl:py-20 relative">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 xl:gap-16 items-center">
@@ -1143,6 +1135,13 @@ const ElectionResults: React.FC = () => {
                   <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gov-blue" />
                   {new Date(results.election?.election_date || '').toLocaleDateString('fr-FR', { year:'numeric', month:'long', day:'numeric' })}
                 </span>
+                
+                {/* Texte d'information sur les résultats provisoires - En miniature avec astérisque */}
+                <div className="text-center mt-2">
+                  <p className="text-xs text-gray-500">
+                    * Résultats provisoires (à confirmer par le Ministère de l'intérieur).
+                  </p>
+                </div>
             {results.election?.localisation && (
                   <span className="flex items-center gap-1.5 sm:gap-2 text-gray-700 bg-white rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border text-xs sm:text-sm w-full sm:w-auto justify-center">
                     <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gov-blue" />
