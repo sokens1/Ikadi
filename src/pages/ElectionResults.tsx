@@ -1139,7 +1139,7 @@ const ElectionResults: React.FC = () => {
                 {/* Texte d'information sur les résultats provisoires - En miniature avec astérisque */}
                 <div className="text-center mt-2">
                   <p className="text-xs text-gray-500">
-                    * Résultats provisoires (à confirmer par le Ministère de l'intérieur).
+                    * Résultats provisoires (à confirmer par le Ministère de l'Intérieur).
                   </p>
                 </div>
             {results.election?.localisation && (
