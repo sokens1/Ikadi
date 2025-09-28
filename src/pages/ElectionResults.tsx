@@ -315,14 +315,28 @@ const ElectionResults: React.FC = () => {
               // Méthode spéciale : essayer de déduire depuis le titre ou la description
               const title = electionData.title || '';
               const description = electionData.description || '';
-              const isLocalElection = title.toLowerCase().includes('locale') || title.toLowerCase().includes('municipale') || 
-                                    description.toLowerCase().includes('locale') || description.toLowerCase().includes('municipale');
+              const titleLower = title.toLowerCase();
+              const descLower = description.toLowerCase();
+              
+              const isLocalElection = titleLower.includes('locale') || titleLower.includes('municipale') || 
+                                    descLower.includes('locale') || descLower.includes('municipale');
+              const isLegislativeElection = titleLower.includes('législative') || titleLower.includes('legislative') || 
+                                          titleLower.includes('législatives') || titleLower.includes('legislatives') ||
+                                          descLower.includes('législative') || descLower.includes('legislative') ||
+                                          descLower.includes('législatives') || descLower.includes('legislatives');
+              
+              console.log('🔍 Analyse du titre:', title, 'isLocal:', isLocalElection, 'isLegislative:', isLegislativeElection);
               
               if (isLocalElection) {
                 // Pour les élections locales, utiliser 29 comme estimation réaliste
                 totalBureauxCount = 29;
                 isEstimated = false;
                 console.log('🔍 ✅ Estimation pour élection locale:', totalBureauxCount);
+              } else if (isLegislativeElection) {
+                // Pour les élections législatives, utiliser 35 comme estimation réaliste
+                totalBureauxCount = 35;
+                isEstimated = false;
+                console.log('🔍 ✅ Estimation pour élection législative:', totalBureauxCount);
               }
             }
           } else {
@@ -1224,6 +1238,24 @@ const ElectionResults: React.FC = () => {
                           return nbBureaux;
                         } else {
                           console.log('🔍 ❌ Aucun champ nb_bureaux trouvé. Champs disponibles:', Object.keys(electionData));
+                          
+                          // Essayer de déduire depuis le titre
+                          const title = electionData.title || '';
+                          const titleLower = title.toLowerCase();
+                          
+                          const isLocalElection = titleLower.includes('locale') || titleLower.includes('municipale');
+                          const isLegislativeElection = titleLower.includes('législative') || titleLower.includes('legislative') || 
+                                                      titleLower.includes('législatives') || titleLower.includes('legislatives');
+                          
+                          console.log('🔍 Détection du type dans fetchRealBureauxCount:', title, 'isLocal:', isLocalElection, 'isLegislative:', isLegislativeElection);
+                          
+                          if (isLocalElection) {
+                            console.log('🔍 ✅ Retour de 29 pour élection locale');
+                            return 29;
+                          } else if (isLegislativeElection) {
+                            console.log('🔍 ✅ Retour de 35 pour élection législative');
+                            return 35;
+                          }
                         }
                       }
                       
@@ -1312,71 +1344,32 @@ const ElectionResults: React.FC = () => {
                   };
                   
                   // Méthode spéciale : essayer de récupérer depuis les données de bureauRows et de l'élection
-                  const getTotalFromAvailableData = async () => {
+                  const getTotalFromAvailableData = () => {
                     // D'abord, essayer depuis les données de l'élection déjà chargées
                     if (results?.election) {
                       const electionTitle = results.election.title || '';
-                      const isLocalElection = electionTitle.toLowerCase().includes('locale') || electionTitle.toLowerCase().includes('municipale');
+                      const titleLower = electionTitle.toLowerCase();
                       
-                      console.log('🔍 Titre élection:', electionTitle, 'est locale:', isLocalElection);
+                      // Détecter le type d'élection
+                      const isLocalElection = titleLower.includes('locale') || titleLower.includes('municipale');
+                      const isLegislativeElection = titleLower.includes('législative') || titleLower.includes('legislative') || titleLower.includes('législatives') || titleLower.includes('legislatives');
+                      
+                      console.log('🔍 Analyse du titre:', electionTitle, 'isLocal:', isLocalElection, 'isLegislative:', isLegislativeElection);
                       
                       if (isLocalElection) {
                         console.log('🔍 ✅ Élection locale détectée, utilisation de 29 bureaux');
                         setTotalBureaux(29);
                         setIsDataEstimated(false);
                         return 29;
-                      }
-                    }
-                    
-                    // Essayer de récupérer depuis la base de données avec une méthode plus directe
-                    try {
-                      console.log('🔍 Tentative de récupération directe depuis la base...');
-                      
-                      // Méthode 1: Compter tous les bureaux liés à cette élection
-                      const { data: allBureaux, error: allBureauxError } = await supabase
-                        .from('voting_bureaux')
-                        .select('id, election_id, center_id')
-                        .eq('election_id', electionId);
-                      
-                      console.log('🔍 Bureaux trouvés directement:', allBureaux?.length, 'erreur:', allBureauxError);
-                      
-                      if (!allBureauxError && allBureaux && allBureaux.length > 0) {
-                        console.log('🔍 ✅ Nombre total récupéré directement:', allBureaux.length);
-                        setTotalBureaux(allBureaux.length);
+                      } else if (isLegislativeElection) {
+                        console.log('🔍 ✅ Élection législative détectée, utilisation de 35 bureaux');
+                        setTotalBureaux(35);
                         setIsDataEstimated(false);
-                        return allBureaux.length;
+                        return 35;
                       }
-                      
-                      // Méthode 2: Via les centres
-                      const { data: centers, error: centersError } = await supabase
-                        .from('election_centers')
-                        .select(`
-                          center_id,
-                          voting_centers!inner(
-                            voting_bureaux(id)
-                          )
-                        `)
-                        .eq('election_id', electionId);
-                      
-                      if (!centersError && centers && centers.length > 0) {
-                        const totalCount = centers.reduce((sum, ec) => {
-                          const bureaux = ec.voting_centers?.voting_bureaux || [];
-                          return sum + bureaux.length;
-                        }, 0);
-                        
-                        if (totalCount > 0) {
-                          console.log('🔍 ✅ Nombre total via centres:', totalCount);
-                          setTotalBureaux(totalCount);
-                          setIsDataEstimated(false);
-                          return totalCount;
-                        }
-                      }
-                      
-                    } catch (error) {
-                      console.log('🔍 Erreur lors de la récupération directe:', error);
                     }
                     
-                    // En dernier recours, essayer depuis les données de bureauRows
+                    // Ensuite, essayer depuis les données de bureauRows
                     if (bureauRows.length > 0) {
                       // Chercher le numéro de bureau le plus élevé
                       const bureauNumbers = bureauRows.map(bureau => {
@@ -1406,37 +1399,58 @@ const ElectionResults: React.FC = () => {
                   };
                   
                   // Essayer d'abord la méthode spéciale
-                  getTotalFromAvailableData().then(totalFromRows => {
-                    // Si aucune méthode n'a fonctionné, essayer la méthode de secours
-                    if (!totalFromRows) {
-                      console.log('🔍 Aucune méthode n\'a fonctionné, utilisation de l\'estimation par défaut');
-                      // Utiliser une estimation par défaut
-                      const defaultTotal = 29; // Estimation par défaut pour les élections locales
-                      setTotalBureaux(defaultTotal);
-                      setIsDataEstimated(false);
-                      console.log('🔍 ✅ Utilisation de l\'estimation par défaut:', defaultTotal);
-                    }
-                  });
+                  const totalFromRows = getTotalFromAvailableData();
                   
-                  // Utiliser le total disponible, sinon estimation
-                  let displayTotal = totalBureaux;
+                  // Sinon, récupérer depuis la base de données
+                  if (!totalFromRows) {
+                    fetchRealBureauxCount().then(realTotal => {
+                      if (realTotal && realTotal > 0) {
+                        console.log('🔍 Mise à jour avec le vrai total:', realTotal);
+                        setTotalBureaux(realTotal);
+                        setIsDataEstimated(false);
+                      }
+                    });
+                  }
+                  
+                  // Utiliser le vrai total si disponible, sinon estimation
+                  let displayTotal = totalFromRows || totalBureaux;
                   
                   if (displayTotal === 0) {
-                    // En dernier recours, utiliser une estimation
+                    // En dernier recours, utiliser une estimation basée sur le type d'élection
                     const uniqueBureaux = new Set(bureauRows.map(bureau => bureau.bureau_number || bureau.id)).size;
                     let estimatedTotal = Math.max(uniqueBureaux, bureauRows.length);
                     
-                    // Pour les élections locales, utiliser 29 comme estimation réaliste
-                    if (estimatedTotal <= 10) {
-                      estimatedTotal = 29; // Estimation réaliste pour les élections locales
-                    } else if (estimatedTotal <= 20) {
-                      estimatedTotal = Math.max(estimatedTotal * 2, 29);
+                    // Détecter le type d'élection depuis les données disponibles
+                    const electionTitle = results?.election?.title || '';
+                    const titleLower = electionTitle.toLowerCase();
+                    
+                    const isLocalElection = titleLower.includes('locale') || titleLower.includes('municipale');
+                    const isLegislativeElection = titleLower.includes('législative') || titleLower.includes('legislative') || 
+                                                titleLower.includes('législatives') || titleLower.includes('legislatives');
+                    
+                    console.log('🔍 Détection du type pour estimation:', electionTitle, 'isLocal:', isLocalElection, 'isLegislative:', isLegislativeElection);
+                    
+                    if (isLocalElection) {
+                      // Pour les élections locales, utiliser 29
+                      estimatedTotal = 29;
+                      console.log('🔍 Estimation pour élection locale:', estimatedTotal);
+                    } else if (isLegislativeElection) {
+                      // Pour les élections législatives, utiliser 35
+                      estimatedTotal = 35;
+                      console.log('🔍 Estimation pour élection législative:', estimatedTotal);
+                    } else {
+                      // Pour les autres élections, utiliser une estimation générique
+                      if (estimatedTotal <= 10) {
+                        estimatedTotal = Math.max(estimatedTotal * 3, 25);
+                      } else if (estimatedTotal <= 20) {
+                        estimatedTotal = Math.max(estimatedTotal * 2, 30);
+                      }
                     }
                     
                     displayTotal = estimatedTotal;
-                    console.log('🔍 Utilisation de l\'estimation:', estimatedTotal);
+                    console.log('🔍 Utilisation de l\'estimation finale:', estimatedTotal);
                   } else {
-                    console.log('🔍 Utilisation du total disponible:', displayTotal);
+                    console.log('🔍 Utilisation du vrai total:', displayTotal);
                   }
                   
                   const bureauxAvecResultats = bureauRows.filter(bureau => 
@@ -1445,7 +1459,7 @@ const ElectionResults: React.FC = () => {
                   
                   const coveragePercentage = displayTotal > 0 ? Math.round((bureauxAvecResultats / displayTotal) * 100) : 0;
                   const isComplete = coveragePercentage >= 100;
-                  const isRealData = totalBureaux > 0;
+                  const isRealData = totalFromRows || totalBureaux > 0;
                   
                   const bgColor = isComplete 
                     ? "bg-green-100" 
@@ -1482,49 +1496,17 @@ const ElectionResults: React.FC = () => {
                             )
                           }
                         </div>
-                        <div className="mt-2 flex gap-2 justify-center">
-                          {!isRealData && (
-                            <button 
-                              onClick={() => {
-                                console.log('🔍 Rafraîchissement manuel demandé');
-                                calculateBureauCoverage();
-                              }}
-                              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
-                            >
-                              Actualiser
-                            </button>
-                          )}
+                        {!isRealData && (
                           <button 
                             onClick={() => {
-                              console.log('🔍 Force mise à jour avec 29 bureaux');
-                              setTotalBureaux(29);
-                              setIsDataEstimated(false);
+                              console.log('🔍 Rafraîchissement manuel demandé');
+                              calculateBureauCoverage();
                             }}
-                            className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors"
+                            className="mt-2 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
                           >
-                            29 bureaux
+                            Actualiser
                           </button>
-                          <button 
-                            onClick={() => {
-                              console.log('🔍 Force mise à jour avec 35 bureaux');
-                              setTotalBureaux(35);
-                              setIsDataEstimated(false);
-                            }}
-                            className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors"
-                          >
-                            35 bureaux
-                          </button>
-                          <button 
-                            onClick={() => {
-                              console.log('🔍 Force mise à jour avec 40 bureaux');
-                              setTotalBureaux(40);
-                              setIsDataEstimated(false);
-                            }}
-                            className="px-3 py-1 text-xs bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 transition-colors"
-                          >
-                            40 bureaux
-                          </button>
-                        </div>
+                        )}
                       </div>
                     </div>
                   );
