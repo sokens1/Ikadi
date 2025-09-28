@@ -1099,16 +1099,16 @@ const ElectionResults: React.FC = () => {
                   <div className="mb-3 sm:mb-4">
                     {/* Étiquette de statut de l'élection */}
                     <div className={`inline-flex items-center gap-1.5 sm:gap-2 ${bgColor} ${textColor} rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 border ${borderColor}`}>
-                      <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                        results.election?.status === 'Terminée' ? 'bg-green-500' : 
-                        results.election?.status === 'En cours' ? 'bg-yellow-500 animate-pulse' : 
-                        'bg-blue-500'
-                      }`} style={{backgroundColor: results.election?.status === 'Terminée' ? electionColor : undefined}} />
-                      <span className="text-xs sm:text-sm font-medium">
-                        {results.election?.status} • {(() => {
-                          return isLocal ? 'Élections Locales' : 'Élections Législatives';
-                        })()}
-                      </span>
+                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
+                      results.election?.status === 'Terminée' ? 'bg-green-500' : 
+                      results.election?.status === 'En cours' ? 'bg-yellow-500 animate-pulse' : 
+                      'bg-blue-500'
+                    }`} style={{backgroundColor: results.election?.status === 'Terminée' ? electionColor : undefined}} />
+                    <span className="text-xs sm:text-sm font-medium">
+                      {results.election?.status} • {(() => {
+                        return isLocal ? 'Élections Locales' : 'Élections Législatives';
+                      })()}
+                    </span>
                     </div>
                   </div>
                 );
