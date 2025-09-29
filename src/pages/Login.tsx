@@ -186,6 +186,13 @@ const Login = () => {
               <span className="text-xs">Accessible</span>
             </div>
           </div>
+          {/* Copyright desktop aligné à la même colonne (conteneur max-w-md centré) */}
+          <div className="hidden lg:block w-full mt-8">
+            <div className="max-w-md mx-auto text-blue-100 text-[10px] lg:text-xs opacity-80 text-center">
+              © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
+            </div>
+          </div>
+          {/* Copyright déplacé plus bas (voir footer absolu ci-dessous) */}
         </div>
 
       </div>
@@ -194,7 +201,7 @@ const Login = () => {
       <div className="lg:hidden bg-gradient-to-br from-gov-blue via-blue-700 to-gov-blue-dark text-white pt-8 pb-6 px-6">
         <div className="max-w-md mx-auto">
           {/* Logo mobile */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 px-2">
             <div className="flex items-center justify-center space-x-3 mb-6">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
                 <span className="text-gov-blue font-bold text-lg">o'H</span>
@@ -204,10 +211,10 @@ const Login = () => {
               </div>
             </div>
             
-            <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent tracking-tight leading-tight break-words">
               MOANDA, 1er Arr.
             </h2>
-            <p className="text-blue-100 text-sm leading-relaxed">
+            <p className="text-blue-100 text-sm leading-relaxed whitespace-normal break-words">
             Sélectionnez le type d'élections pour accéder aux résultats.
             </p>
           </div>
@@ -222,12 +229,12 @@ const Login = () => {
                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="text-left flex-1">
-                  <h3 className="font-bold text-base">Élections Législatives</h3>
-                  <p className="text-xs opacity-80">Élection des députés</p>
+                  <h3 className="font-bold text-base leading-snug whitespace-normal">Élections Législatives</h3>
+                  <p className="text-xs opacity-80 leading-snug whitespace-normal">Élection des députés</p>
                 </div>
-                {!electionsLoading && <ArrowRight className="w-4 h-4 text-white/60" />}
+                {!electionsLoading && <ArrowRight className="w-4 h-4 text-white/60 shrink-0" />}
               </div>
             </button>
 
@@ -239,18 +246,18 @@ const Login = () => {
                 electionsLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="text-left flex-1">
-                  <h3 className="font-bold text-base">Élections Locales</h3>
-                  <p className="text-xs opacity-80">Élection des conseils municipaux</p>
+                  <h3 className="font-bold text-base leading-snug whitespace-normal">Élections Locales</h3>
+                  <p className="text-xs opacity-80 leading-snug whitespace-normal">Élection des conseils municipaux</p>
                 </div>
-                {!electionsLoading && <ArrowRight className="w-4 h-4 text-white/60" />}
+                {!electionsLoading && <ArrowRight className="w-4 h-4 text-white/60 shrink-0" />}
               </div>
             </button>
           </div>
 
           {/* Avantages de la plateforme mobile */}
-          <div className="mt-4 flex flex-row justify-center gap-4">
+          <div className="mt-4 flex flex-row flex-wrap justify-center gap-3 px-2">
             <div className="flex items-center space-x-1 text-blue-100">
               <Shield className="w-3 h-3 text-green-400" />
               <span className="text-xs">Sécurisé</span>
@@ -264,8 +271,12 @@ const Login = () => {
               <span className="text-xs">Accessible</span>
             </div>
               </div>
+              <div className="mt-12 text-blue-100 text-[10px] opacity-80 text-center px-2 leading-snug whitespace-normal">
+                © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
+              </div>
             </div>
         </div>
+        {/* Footer desktop absolu supprimé pour garder l'alignement avec la colonne centralisée */}
 
       {/* Section droite - Formulaire */}
       <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-4 sm:p-6 lg:p-8">

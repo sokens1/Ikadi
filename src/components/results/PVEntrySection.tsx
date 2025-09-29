@@ -300,28 +300,40 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     }
   };
 
-  // Fonction pour synchroniser les inscrits avec la table voting_bureaux
-  const syncRegisteredVotersWithBureau = async (bureauId: string, registeredVoters: number) => {
-    if (!bureauId || registeredVoters < 0) return;
-    
+  // Fonction pour recalculer le total des inscrits d'une élection
+  // basé uniquement sur les PV de cette élection (sans écraser les données des bureaux)
+  const recalculateElectionVoters = async (electionId: string) => {
     try {
-      const { error } = await supabase
-        .from('voting_bureaux')
+      // Récupérer tous les PV de cette élection
+      const { data: pvs, error: pvError } = await supabase
+        .from('procès_verbaux')
+        .select('total_registered')
+        .eq('election_id', electionId);
+      
+      if (pvError) {
+        console.error('Erreur lors du calcul des inscrits:', pvError);
+        return;
+      }
+      
+      // Calculer le total des inscrits pour cette élection
+      const totalInscrits = (pvs || []).reduce((sum, pv) => sum + (pv.total_registered || 0), 0);
+      
+      // Mettre à jour le champ nb_electeurs de l'élection
+      const { error: updateError } = await supabase
+        .from('elections')
         .update({ 
-          registered_voters: registeredVoters,
+          nb_electeurs: totalInscrits,
           updated_at: new Date().toISOString()
         })
-        .eq('id', bureauId);
+        .eq('id', electionId);
       
-      if (error) {
-        console.error('Erreur lors de la synchronisation des inscrits:', error);
-        toast.warning('Les inscrits ont été enregistrés dans le PV mais la synchronisation avec le bureau a échoué.');
+      if (updateError) {
+        console.error('Erreur lors de la mise à jour nb_electeurs:', updateError);
       } else {
-        console.log(`✅ Inscrits synchronisés: Bureau ${bureauId} -> ${registeredVoters} inscrits`);
+        console.log(`✅ Total inscrits mis à jour pour l'élection ${electionId}: ${totalInscrits}`);
       }
     } catch (err) {
-      console.error('Erreur lors de la synchronisation des inscrits:', err);
-      toast.warning('Les inscrits ont été enregistrés dans le PV mais la synchronisation avec le bureau a échoué.');
+      console.error('Erreur lors du recalcul des inscrits:', err);
     }
   };
 
@@ -390,9 +402,6 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
           .single();
         if (updateErr) throw updateErr;
         pv = updated;
-        
-        // Synchroniser les inscrits avec la table voting_bureaux pour les mises à jour aussi
-        await syncRegisteredVotersWithBureau(bureauId, registeredVoters);
       } else {
         const { data: inserted, error: insertErr } = await supabase
           .from('procès_verbaux')
@@ -411,9 +420,6 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
           .single();
         if (insertErr) throw insertErr;
         pv = inserted;
-        
-        // Synchroniser les inscrits avec la table voting_bureaux pour les nouveaux PV aussi
-        await syncRegisteredVotersWithBureau(bureauId, registeredVoters);
       }
 
       const candidateEntries = Object.entries(formData.candidateVotes)
@@ -426,6 +432,9 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
         const { error: crErr } = await supabase.from('candidate_results').insert(candidateEntries);
         if (crErr) throw crErr;
       }
+
+      // Recalculer le total des inscrits pour cette élection
+      await recalculateElectionVoters(selectedElection);
 
       toast.success(existingPv?.id ? 'PV mis à jour avec succès.' : 'PV enregistré avec succès.');
       onClose();

@@ -1142,6 +1142,10 @@ const ElectionResults: React.FC = () => {
                     * Résultats provisoires (à confirmer par le Ministère de l'Intérieur).
                   </p>
                 </div>
+                {/* Copyright mobile sous le texte provisoire */}
+                <div className="sm:hidden w-full text-center mt-2 text-gray-600 text-[10px]">
+                  © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
+                </div>
             {results.election?.localisation && (
                   <span className="flex items-center gap-1.5 sm:gap-2 text-gray-700 bg-white rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border text-xs sm:text-sm w-full sm:w-auto justify-center">
                     <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gov-blue" />
@@ -1158,6 +1162,10 @@ const ElectionResults: React.FC = () => {
                 <img src={'/images/resultat_election.jpg'} alt="Aperçu des résultats" className="w-full h-auto object-cover" />
                 </div>
             </div>
+          </div>
+          {/* Copyright desktop centré en bas de la section héro */}
+          <div className="hidden lg:block absolute bottom-12 left-0 right-0 text-center text-gray-500 text-xs z-20">
+            © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
           </div>
         </div>
       </section>
