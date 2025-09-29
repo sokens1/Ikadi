@@ -87,11 +87,13 @@ const EditBureauModal: React.FC<EditBureauModalProps> = ({
 
     try {
       // Mettre à jour le bureau dans la base de données
+      // ATTENTION: Ne pas mettre à jour registered_voters car cela cause des conflits entre élections
+      // Les inscrits sont maintenant gérés uniquement dans les PV (procès_verbaux.total_registered)
       const { error } = await supabase
         .from('voting_bureaux')
         .update({
           name: name,
-          registered_voters: formData.registered_voters,
+          // registered_voters: formData.registered_voters, // SUPPRIMÉ pour éviter les conflits entre élections
           president_name: presidentName,
           president_phone: presidentPhone,
           urns_count: formData.urns_count,

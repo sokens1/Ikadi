@@ -15,10 +15,11 @@ import {
   Clock,
   FileText,
   User,
-  MessageSquare
+  MessageSquare,
+  RotateCcw
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 interface PVValidationSectionProps { selectedElection: string }
@@ -41,6 +42,8 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Helpers d'upload (alignés avec PVEntrySection)
   const ensureBucketExists = async (bucket: string) => {
@@ -221,20 +224,177 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
     return Object.keys(errors).length === 0;
   };
 
+  // Fonction pour réinitialiser les chiffres du bureau
+  const handleResetBureauData = async () => {
+    if (!selectedPV) return;
+    
+    setResetting(true);
+    try {
+      // Récupérer le nombre d'électeurs inscrits par défaut du bureau
+      let defaultRegisteredVoters = 0;
+      try {
+        const { data: pvData } = await supabase
+          .from('procès_verbaux')
+          .select('bureau_id')
+          .eq('id', selectedPV)
+          .single();
+
+        if (pvData?.bureau_id) {
+          const { data: bureauData } = await supabase
+            .from('voting_bureaux')
+            .select('registered_voters')
+            .eq('id', pvData.bureau_id)
+            .single();
+
+          defaultRegisteredVoters = bureauData?.registered_voters || 0;
+        }
+      } catch (error) {
+        console.warn('Impossible de récupérer le nombre d\'électeurs inscrits par défaut:', error);
+      }
+
+      // Supprimer les résultats des candidats
+      const { error: deleteResultsError } = await supabase
+        .from('candidate_results')
+        .delete()
+        .eq('pv_id', selectedPV);
+
+      if (deleteResultsError) {
+        console.error('Erreur lors de la suppression des résultats candidats:', deleteResultsError);
+        toast.error('Erreur lors de la suppression des résultats candidats');
+        return;
+      }
+
+      // Réinitialiser le PV à "En attente de saisie" avec le nombre d'électeurs inscrits par défaut
+      const { error: resetPVError } = await supabase
+        .from('procès_verbaux')
+        .update({
+          status: 'pending',
+          total_registered: defaultRegisteredVoters,
+          total_voters: 0,
+          null_votes: 0,
+          votes_expressed: 0,
+          entered_by: null,
+          entered_at: null,
+          validated_at: null,
+          pv_photo_url: null,
+          anomalies: null
+        })
+        .eq('id', selectedPV);
+
+      if (resetPVError) {
+        console.error('Erreur lors de la réinitialisation du PV:', resetPVError);
+        toast.error('Erreur lors de la réinitialisation du PV');
+        return;
+      }
+
+      // Mettre à jour l'état local
+      setPvs(prev => prev.map(pv => 
+        pv.id === selectedPV 
+          ? { 
+              ...pv, 
+              status: 'pending',
+              total_registered: defaultRegisteredVoters,
+              total_voters: 0,
+              null_votes: 0,
+              votes_expressed: 0,
+              entered_by: null,
+              entered_at: null,
+              validated_at: null,
+              pv_photo_url: null,
+              anomalies: null
+            }
+          : pv
+      ));
+
+      // Réinitialiser les valeurs d'édition avec le nombre d'électeurs inscrits par défaut
+      setEditValues({
+        total_registered: defaultRegisteredVoters,
+        total_voters: 0,
+        null_votes: 0,
+        votes_expressed: 0
+      });
+
+      // Vider les résultats des candidats
+      setCandidateResults([]);
+
+      // Recharger les candidats pour cette élection
+      try {
+        const { data: candidatesData, error: candidatesError } = await supabase
+          .from('election_candidates')
+          .select('candidate_id, candidates(id, name)')
+          .eq('election_id', selectedElection);
+
+        if (!candidatesError && candidatesData) {
+          const candidates = candidatesData.map((ec: any) => ({
+            id: ec.candidates?.id || ec.candidate_id,
+            name: ec.candidates?.name || 'Candidat',
+            votes: 0
+          }));
+          setCandidateResults(candidates);
+        }
+      } catch (error) {
+        console.error('Erreur lors du rechargement des candidats:', error);
+      }
+
+      toast.success('Les chiffres du bureau ont été réinitialisés avec succès');
+      setDetailOpen(false);
+    } catch (error) {
+      console.error('Erreur lors de la réinitialisation:', error);
+      toast.error('Erreur lors de la réinitialisation des données');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   // Charger les résultats par candidat pour le PV sélectionné
   useEffect(() => {
     const loadCandidateResults = async () => {
-      if (!selectedPV) { setCandidateResults([]); return; }
-      const { data, error } = await supabase
-        .from('candidate_results')
-        .select('id, votes, candidates(id, name)')
-        .eq('pv_id', selectedPV);
-      if (error) { console.error('Erreur chargement résultats candidats:', error); setCandidateResults([]); return; }
-      const mapped = (data || []).map((r: any) => ({ id: r.candidates?.id || r.id, name: r.candidates?.name || 'Candidat', votes: r.votes || 0 }));
-      setCandidateResults(mapped);
+      if (!selectedPV || !selectedElection) { setCandidateResults([]); return; }
+      
+      try {
+        // D'abord, charger tous les candidats de l'élection
+        const { data: candidatesData, error: candidatesError } = await supabase
+          .from('election_candidates')
+          .select('candidate_id, candidates(id, name)')
+          .eq('election_id', selectedElection);
+
+        if (candidatesError) {
+          console.error('Erreur chargement candidats élection:', candidatesError);
+          setCandidateResults([]);
+          return;
+        }
+
+        // Ensuite, charger les résultats existants pour ce PV
+        const { data: resultsData, error: resultsError } = await supabase
+          .from('candidate_results')
+          .select('id, votes, candidate_id')
+          .eq('pv_id', selectedPV);
+
+        if (resultsError) {
+          console.error('Erreur chargement résultats candidats:', resultsError);
+        }
+
+        // Créer un map des résultats existants
+        const resultsMap = new Map();
+        (resultsData || []).forEach((r: any) => {
+          resultsMap.set(r.candidate_id, r.votes || 0);
+        });
+
+        // Combiner candidats et résultats
+        const mapped = (candidatesData || []).map((ec: any) => ({
+          id: ec.candidates?.id || ec.candidate_id,
+          name: ec.candidates?.name || 'Candidat',
+          votes: resultsMap.get(ec.candidates?.id || ec.candidate_id) || 0
+        }));
+
+        setCandidateResults(mapped);
+      } catch (error) {
+        console.error('Erreur lors du chargement des candidats:', error);
+        setCandidateResults([]);
+      }
     };
     loadCandidateResults();
-  }, [selectedPV]);
+  }, [selectedPV, selectedElection]);
 
   useEffect(() => {
     if (!selectedPVData) return;
@@ -533,6 +693,15 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
                     {saving ? 'Enregistrement…' : 'Enregistrer'}
                   </Button>
                 )}
+      <Button
+        onClick={() => setShowResetConfirm(true)}
+        disabled={resetting}
+        variant="outline"
+        className="border-orange-300 text-orange-700 hover:bg-orange-50"
+      >
+        <RotateCcw className="w-4 h-4 mr-2" />
+        {resetting ? 'Réinitialisation...' : 'Réinitialiser les chiffres du bureau'}
+      </Button>
                 <Button onClick={async () => {
                   if (!selectedPV) return;
                   if (!confirm('Supprimer ce PV ? Cette action est irréversible.')) return;
@@ -593,6 +762,61 @@ const PVValidationSection: React.FC<PVValidationSectionProps> = ({ selectedElect
               )}
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de confirmation de réinitialisation */}
+      <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="w-5 h-5" />
+              Confirmer la réinitialisation
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Êtes-vous sûr de vouloir réinitialiser les chiffres de ce bureau ?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-orange-800">
+                  <p className="font-medium mb-2">Cette action va :</p>
+                  <ul className="space-y-1 text-orange-700">
+                    <li>• Remettre le statut à "En attente de saisie"</li>
+                    <li>• Supprimer toutes les données saisies</li>
+                    <li>• Réinitialiser les votes des candidats à 0</li>
+                    <li>• Restaurer le nombre d'électeurs inscrits par défaut</li>
+                  </ul>
+                  <p className="font-medium mt-2 text-orange-800">
+                    Cette action est irréversible.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowResetConfirm(false)}
+              disabled={resetting}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={async () => {
+                setShowResetConfirm(false);
+                await handleResetBureauData();
+              }}
+              disabled={resetting}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {resetting ? 'Réinitialisation...' : 'Confirmer la réinitialisation'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -18,6 +18,7 @@ import {
   Plus
 } from 'lucide-react';
 import PVEntrySection from './PVEntrySection';
+import { toast } from 'sonner';
 
 interface DataEntrySectionProps {
   stats: {
@@ -293,8 +294,21 @@ const DataEntrySection: React.FC<DataEntrySectionProps> = ({ stats, selectedElec
                         .map((bureau) => (
                         <div 
                           key={bureau.id} 
-                          className="flex items-center justify-between p-3 bg-white rounded-lg border cursor-pointer hover:bg-gray-50"
+                          className={`flex items-center justify-between p-3 bg-white rounded-lg border ${
+                            bureau.status === 'entered' || bureau.status === 'saisi' 
+                              ? 'cursor-not-allowed opacity-60' 
+                              : 'cursor-pointer hover:bg-gray-50'
+                          }`}
                           onClick={() => {
+                            // Vérifier si le bureau est déjà saisi
+                            if (bureau.status === 'entered' || bureau.status === 'saisi') {
+                              toast.warning('Ce bureau a déjà été saisi. Utilisez l\'onglet "Valider les résultats" pour le modifier.', {
+                                duration: 4000,
+                                position: 'bottom-center'
+                              });
+                              return;
+                            }
+                            
                             setShowPVEntry(true);
                             // pré-remplir via stockage local minimal
                             try {

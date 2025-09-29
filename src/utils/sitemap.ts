@@ -1,4 +1,4 @@
-// Générateur de sitemap dynamique pour iKADI
+// Générateur de sitemap dynamique pour o'Hitu
 export interface SitemapEntry {
   url: string;
   lastmod?: string;
@@ -7,7 +7,7 @@ export interface SitemapEntry {
 }
 
 export const generateSitemap = (entries: SitemapEntry[]): string => {
-  const baseUrl = 'https://ikadi.gabon.ga';
+  const baseUrl = 'https://ohitu.gabon.ga';
   
   const sitemapEntries = entries.map(entry => {
     const fullUrl = entry.url.startsWith('http') ? entry.url : `${baseUrl}${entry.url}`;

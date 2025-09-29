@@ -87,7 +87,7 @@ const CenterDetailModal: React.FC<CenterDetailModalProps> = ({ center, onClose }
         .insert({
           name: newBureau.name.trim(),
           center_id: center.id,
-          registered_voters: newBureau.registered_voters || 0,
+          registered_voters: 0, // Initialisé à 0, les vrais inscrits sont gérés dans les PV
           president_name: 'N/A',
           president_phone: '000000000',
           urns_count: 0

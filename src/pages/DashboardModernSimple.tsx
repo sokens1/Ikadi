@@ -75,17 +75,20 @@ const DashboardModernSimple = () => {
           e.status === 'Terminée'
         ).length || 0;
 
-        // 2. Statistiques des électeurs
+        // 2. Statistiques des électeurs - Valeur d'une élection spécifique (la plus récente)
+        const { data: latestElection } = await supabase
+          .from('elections')
+          .select('nb_electeurs')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        const totalVoters = latestElection?.nb_electeurs || 0;
+
+        // Garder les données des électeurs pour d'autres usages si nécessaire
         const { data: votersData } = await supabase
           .from('voters')
           .select('id, created_at');
-
-        const { data: centersData } = await supabase
-          .from('voting_centers')
-          .select('id, total_voters');
-
-        const totalVoters = centersData?.reduce((sum, center) => 
-          sum + (center.total_voters || 0), 0) || 0;
 
         // 3. Infrastructure
         const { count: centersCount } = await supabase
@@ -104,9 +107,10 @@ const DashboardModernSimple = () => {
           .from('communes')
           .select('*', { count: 'exact', head: true });
 
+        // Compter uniquement les candidats qui sont dans la table election_candidates
         const { count: candidatesCount } = await supabase
-          .from('candidates')
-          .select('*', { count: 'exact', head: true });
+          .from('election_candidates')
+          .select('candidate_id', { count: 'exact', head: true });
 
         setStats({
           elections: {
@@ -166,7 +170,7 @@ const DashboardModernSimple = () => {
                   Tableau de Bord
                 </h1>
                 <p className="text-blue-100 text-sm sm:text-base lg:text-lg leading-relaxed">
-                  Vue d'ensemble du système électoral iKADI
+                  Vue d'ensemble du système électoral o'Hitu
                 </p>
                 <div className="flex items-center gap-4 mt-3">
                   <div className="flex items-center gap-2">

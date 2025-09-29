@@ -276,9 +276,9 @@ const PublicHomePage = () => {
   const homePageStructuredData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "iKADI",
-    "description": "Plateforme officielle de gestion électorale de la République Gabonaise",
-    "url": "https://ikadi.gabon.ga/",
+    "name": "o'Hitu",
+    "description": "o'Hitu - République Gabonaise",
+    "url": "https://ohitu.gabon.ga/",
     "publisher": {
       "@type": "GovernmentOrganization",
       "name": "République Gabonaise",
@@ -290,7 +290,7 @@ const PublicHomePage = () => {
     },
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://ikadi.gabon.ga/search?q={search_term_string}",
+      "target": "https://ohitu.gabon.ga/search?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   };
@@ -299,7 +299,7 @@ const PublicHomePage = () => {
     <>
       <SEOHead
         title={dynamicTitle}
-        description={`Suivez ${dynamicTitle} en temps réel avec iKADI. Plateforme officielle de gestion électorale garantissant transparence et sécurité du processus démocratique gabonais.`}
+        description={`Suivez ${dynamicTitle} en temps réel avec o'Hitu. Transparence et sécurité du processus démocratique gabonais.`}
         keywords={`${dynamicTitle}, élections Gabon, résultats électoraux, ${results.election?.election_date ? new Date(results.election.election_date).getFullYear() : '2024'}, démocratie, transparence`}
         structuredData={homePageStructuredData}
       />
@@ -313,13 +313,12 @@ const PublicHomePage = () => {
                 <img src="/favicon.ico" alt="Logo iKADI" className="w-8 h-8 object-contain" />
               </Link>
               <div>
-                <h1 className="text-white font-bold text-2xl">iKADI</h1>
-                <p className="text-white/80 text-sm">Plateforme de gestion électorale</p>
+                <h1 className="text-white font-bold text-2xl">o'Hitu</h1>
               </div>
             </div>
               <nav className="hidden md:flex items-center space-x-6" role="navigation" aria-label="Menu principal">
                 <Link to="/" className="hover:text-blue-200 transition-colors" aria-label="Accueil">Accueil</Link>
-                {/* <a href="#about" className="hover:text-blue-200 transition-colors" aria-label="En savoir plus sur iKADI">A propos</a>
+                {/* <a href="#about" className="hover:text-blue-200 transition-colors" aria-label="En savoir plus sur o'Hitu">A propos</a>
                 <a href="#infos" className="hover:text-blue-200 transition-colors" aria-label="Informations électorales">Infos électorales</a>
                 <a href="#candidats" className="hover:text-blue-200 transition-colors" aria-label="Voir les candidats">Candidats</a> */}
                 <div className="relative" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
@@ -417,8 +416,8 @@ const PublicHomePage = () => {
 
       {/* Bande statique style Ghana: stations, partis, électeurs — déplacée hors de la hero */}
       <section className="w-full bg-slate-200 text-gov-dark">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-around gap-6">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-around gap-4 sm:gap-6">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-white rounded-lg"><Landmark className="w-8 h-8 text-gov-blue" /></div>
               <div>
@@ -567,10 +566,10 @@ const PublicHomePage = () => {
                   <img src="/favicon.ico" alt="Logo iKADI" className="w-7 h-7 object-contain" />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg">iKADI</h3>
+                  <h3 className="text-white font-bold text-lg">o'Hitu</h3>
                 </div>
               </div>
-              <p className="text-white/80 text-sm">Système de gestion des processus électoraux alliant transparence, sécurité et efficacité.</p>
+              <p className="text-white/80 text-sm">Plateforme de gestion du processus électoral alliant accessibilité, sécurité et transparence.</p>
             </div>
             
             {/* Ressources au milieu (non centré) */}
@@ -638,7 +637,7 @@ const PublicHomePage = () => {
           </div>
 
           {/* Copyright centré en bas */}
-          <div className="mt-12 text-center font-semibold">© {new Date().getFullYear()} iKADI. Tous droits réservés.</div>
+          <div className="mt-12 text-center font-semibold">© {new Date().getFullYear()} o'Hitu. Tous droits réservés.</div>
         </div>
       </footer>
     </div>

@@ -1,4 +1,4 @@
-## Audit du projet Ikadi-ResElec
+## Audit du projet o'Hitu-ResElec
 
 ### 1) Contexte
 - **Domaine**: Gestion électorale (préparation, saisie, validation et publication des résultats).

@@ -377,7 +377,8 @@ const EditElectionModal: React.FC<EditElectionModalProps> = ({
         },
         statistics: {
           ...election.statistics,
-          totalVoters: Number(formData.nbElecteurs) || 0,
+          // Utiliser la valeur calculée automatiquement depuis la base de données
+          totalVoters: election.statistics.totalVoters || 0,
         },
       };
 

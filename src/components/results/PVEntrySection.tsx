@@ -300,6 +300,43 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
     }
   };
 
+  // Fonction pour recalculer le total des inscrits d'une élection
+  // basé uniquement sur les PV de cette élection (sans écraser les données des bureaux)
+  const recalculateElectionVoters = async (electionId: string) => {
+    try {
+      // Récupérer tous les PV de cette élection
+      const { data: pvs, error: pvError } = await supabase
+        .from('procès_verbaux')
+        .select('total_registered')
+        .eq('election_id', electionId);
+      
+      if (pvError) {
+        console.error('Erreur lors du calcul des inscrits:', pvError);
+        return;
+      }
+      
+      // Calculer le total des inscrits pour cette élection
+      const totalInscrits = (pvs || []).reduce((sum, pv) => sum + (pv.total_registered || 0), 0);
+      
+      // Mettre à jour le champ nb_electeurs de l'élection
+      const { error: updateError } = await supabase
+        .from('elections')
+        .update({ 
+          nb_electeurs: totalInscrits,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', electionId);
+      
+      if (updateError) {
+        console.error('Erreur lors de la mise à jour nb_electeurs:', updateError);
+      } else {
+        console.log(`✅ Total inscrits mis à jour pour l'élection ${electionId}: ${totalInscrits}`);
+      }
+    } catch (err) {
+      console.error('Erreur lors du recalcul des inscrits:', err);
+    }
+  };
+
   const handleSubmitPV = async () => {
     if (!canSubmit() || !selectedElection) return;
     try {
@@ -395,6 +432,9 @@ const PVEntrySection: React.FC<PVEntrySectionProps> = ({ onClose, selectedElecti
         const { error: crErr } = await supabase.from('candidate_results').insert(candidateEntries);
         if (crErr) throw crErr;
       }
+
+      // Recalculer le total des inscrits pour cette élection
+      await recalculateElectionVoters(selectedElection);
 
       toast.success(existingPv?.id ? 'PV mis à jour avec succès.' : 'PV enregistré avec succès.');
       onClose();

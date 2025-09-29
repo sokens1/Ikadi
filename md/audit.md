@@ -1,4 +1,4 @@
-# Audit du Projet Ikadi-ResElec (EWANA ELECTIONS CENTRAL)
+# Audit du Projet o'Hitu-ResElec (EWANA ELECTIONS CENTRAL)
 
 ## 1. Contexte du Projet
 

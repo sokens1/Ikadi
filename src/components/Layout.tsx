@@ -99,8 +99,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             {(sidebarOpen || isMobile) && (
               <div className="min-w-0">
-                <h1 className="font-bold text-lg truncate">iKadi</h1>
-                <p className="text-xs text-blue-200 truncate">Gestion Électorale</p>
+                <h1 className="font-bold text-lg truncate">o'Hitu</h1>
               </div>
             )}
           </div>
