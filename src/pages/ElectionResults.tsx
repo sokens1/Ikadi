@@ -5,7 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Menu, X, Facebook, Link as LinkIcon, Trophy, Medal, Crown, Share2, Heart, Star, Vote, BarChart3, Building, Target, AlertCircle, CheckCircle, Clock, Eye, Filter, Globe, Home, Info, Layers, PieChart, Search, Settings, Shield, TrendingDown, User, Users2, Zap, RotateCcw, ArrowRightLeft, LayoutGrid, Table as TableIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Menu, X, Facebook, Link as LinkIcon, Trophy, Medal, Crown, Share2, Heart, Star, Vote, BarChart3, Building, Target, AlertCircle, CheckCircle, Clock, Eye, Filter, Globe, Home, Info, Layers, PieChart, Search, Settings, Shield, TrendingDown, User, Users2, Zap, RotateCcw, ArrowRightLeft, LayoutGrid, Table as TableIcon, ChevronDown, ChevronUp, Check, X as XIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fetchElectionById, fetchAllElections } from '../api/elections';
 import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCenterSummaryByCandidate, fetchBureauSummaryByCandidate } from '../api/results';
@@ -45,6 +49,23 @@ interface ElectionResults {
   participation_rate: number;
   candidates: CandidateResult[];
   last_updated: string;
+}
+
+// Interfaces pour le système de filtres
+interface FilterState {
+  selectedCandidates: string[];
+  selectedCenter: string | null;
+  selectedBureau: string | null;
+  searchQuery: string;
+  showFilterPanel: boolean;
+  comparisonMode: boolean;
+}
+
+interface FilteredData {
+  candidates: CandidateResult[];
+  centers: any[];
+  bureaus: any[];
+  comparisonData: any[];
 }
 
 // Composant MetricCard moderne
@@ -221,6 +242,386 @@ const CandidateCard: React.FC<{
   );
 };
 
+// Composant FilterPanel pour le système de filtres avancés
+const FilterPanel: React.FC<{
+  filterState: FilterState;
+  onFilterChange: (newState: Partial<FilterState>) => void;
+  candidates: CandidateResult[];
+  centers: any[];
+  bureaus: any[];
+  isLoading: boolean;
+}> = ({ filterState, onFilterChange, candidates, centers, bureaus, isLoading }) => {
+  const [expandedSections, setExpandedSections] = useState({
+    candidates: true,
+    centers: false,
+    bureaus: false
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const handleCandidateToggle = (candidateId: string) => {
+    const newSelected = filterState.selectedCandidates.includes(candidateId)
+      ? filterState.selectedCandidates.filter(id => id !== candidateId)
+      : [...filterState.selectedCandidates, candidateId];
+    
+    onFilterChange({ selectedCandidates: newSelected });
+  };
+
+  const handleCenterSelect = (centerId: string) => {
+    const newCenter = filterState.selectedCenter === centerId ? null : centerId;
+    onFilterChange({ selectedCenter: newCenter });
+  };
+
+  const handleBureauSelect = (bureauId: string) => {
+    const newBureau = filterState.selectedBureau === bureauId ? null : bureauId;
+    onFilterChange({ selectedBureau: newBureau });
+  };
+
+  const clearAllFilters = () => {
+    onFilterChange({
+      selectedCandidates: [],
+      selectedCenter: null,
+      selectedBureau: null,
+      searchQuery: ''
+    });
+  };
+
+  const filteredCandidates = candidates.filter(candidate =>
+    candidate.candidate_name.toLowerCase().includes(filterState.searchQuery.toLowerCase()) ||
+    candidate.party_name.toLowerCase().includes(filterState.searchQuery.toLowerCase())
+  );
+
+  const filteredCenters = centers.filter(center =>
+    center.center_name?.toLowerCase().includes(filterState.searchQuery.toLowerCase())
+  );
+
+  const filteredBureaus = bureaus.filter(bureau =>
+    bureau.bureau_name?.toLowerCase().includes(filterState.searchQuery.toLowerCase())
+  );
+
+  const hasActiveFilters = filterState.selectedCandidates.length > 0 || 
+    filterState.selectedCenter || filterState.selectedBureau;
+
+  return (
+    <Card className="w-full mb-6 border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-white">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <Filter className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <CardTitle className="text-lg font-semibold text-gray-800">
+                Filtres Avancés
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-1">
+                Sélectionnez des candidats, centres et bureaux pour analyser et comparer
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                {filterState.selectedCandidates.length + (filterState.selectedCenter ? 1 : 0) + (filterState.selectedBureau ? 1 : 0)} filtre(s) actif(s)
+              </Badge>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAllFilters}
+              disabled={!hasActiveFilters}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              <XIcon className="w-4 h-4 mr-1" />
+              Effacer
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {/* Barre de recherche */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="Rechercher candidats, centres, bureaux..."
+            value={filterState.searchQuery}
+            onChange={(e) => onFilterChange({ searchQuery: e.target.value })}
+            className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+          />
+        </div>
+
+        {/* Section Candidats */}
+        <Collapsible 
+          open={expandedSections.candidates} 
+          onOpenChange={() => toggleSection('candidates')}
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-between p-0 h-auto font-semibold text-left"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <User className="w-4 h-4 text-green-600" />
+                </div>
+                <span className="text-gray-800">
+                  Candidats ({filterState.selectedCandidates.length}/{candidates.length})
+                </span>
+                {filterState.selectedCandidates.length > 0 && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-700">
+                    {filterState.selectedCandidates.length} sélectionné(s)
+                  </Badge>
+                )}
+              </div>
+              {expandedSections.candidates ? 
+                <ChevronUp className="w-4 h-4 text-gray-500" /> : 
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              }
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <div className="max-h-60 overflow-y-auto space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+                  <span className="ml-2 text-gray-600">Chargement...</span>
+                </div>
+              ) : filteredCandidates.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  <User className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p>Aucun candidat trouvé</p>
+                </div>
+              ) : (
+                filteredCandidates.map((candidate) => (
+                  <div
+                    key={candidate.candidate_id}
+                    className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <Checkbox
+                      id={`candidate-${candidate.candidate_id}`}
+                      checked={filterState.selectedCandidates.includes(candidate.candidate_id)}
+                      onCheckedChange={() => handleCandidateToggle(candidate.candidate_id)}
+                      className="border-gray-300"
+                    />
+                    <Label
+                      htmlFor={`candidate-${candidate.candidate_id}`}
+                      className="flex-1 cursor-pointer flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="font-medium text-gray-800">{candidate.candidate_name}</div>
+                        <div className="text-sm text-gray-600">{candidate.party_name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-gray-800">{candidate.total_votes.toLocaleString()} voix</div>
+                        <div className="text-sm text-gray-600">{candidate.percentage.toFixed(1)}%</div>
+                      </div>
+                    </Label>
+                  </div>
+                ))
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Section Centres */}
+        <Collapsible 
+          open={expandedSections.centers} 
+          onOpenChange={() => toggleSection('centers')}
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-between p-0 h-auto font-semibold text-left"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Building className="w-4 h-4 text-blue-600" />
+                </div>
+                <span className="text-gray-800">
+                  Centres de Vote ({filterState.selectedCenter ? '1' : '0'}/{centers.length})
+                </span>
+                {filterState.selectedCenter && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                    1 sélectionné
+                  </Badge>
+                )}
+              </div>
+              {expandedSections.centers ? 
+                <ChevronUp className="w-4 h-4 text-gray-500" /> : 
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              }
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <div className="max-h-60 overflow-y-auto space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">Chargement...</span>
+                </div>
+              ) : filteredCenters.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  <Building className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p>Aucun centre trouvé</p>
+                </div>
+              ) : (
+                filteredCenters.map((center) => (
+                  <div
+                    key={center.center_id}
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${
+                      filterState.selectedCenter === center.center_id
+                        ? 'bg-blue-100 border-2 border-blue-300'
+                        : 'bg-white border border-gray-200 hover:bg-blue-50'
+                    }`}
+                    onClick={() => handleCenterSelect(center.center_id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          filterState.selectedCenter === center.center_id
+                            ? 'bg-blue-600 border-blue-600'
+                            : 'border-gray-300'
+                        }`}>
+                          {filterState.selectedCenter === center.center_id && (
+                            <Check className="w-3 h-3 text-white" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-800">{center.center_name}</div>
+                          <div className="text-sm text-gray-600">
+                            {center.total_voters?.toLocaleString()} électeurs
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right text-sm text-gray-600">
+                        <div>{center.participation_pct?.toFixed(1)}% participation</div>
+                        <div>{center.total_expressed_votes?.toLocaleString()} voix</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Section Bureaux */}
+        <Collapsible 
+          open={expandedSections.bureaus} 
+          onOpenChange={() => toggleSection('bureaus')}
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-between p-0 h-auto font-semibold text-left"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                  <Target className="w-4 h-4 text-purple-600" />
+                </div>
+                <span className="text-gray-800">
+                  Bureaux de Vote ({filterState.selectedBureau ? '1' : '0'}/{bureaus.length})
+                </span>
+                {filterState.selectedBureau && (
+                  <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                    1 sélectionné
+                  </Badge>
+                )}
+              </div>
+              {expandedSections.bureaus ? 
+                <ChevronUp className="w-4 h-4 text-gray-500" /> : 
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              }
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <div className="max-h-60 overflow-y-auto space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                  <span className="ml-2 text-gray-600">Chargement...</span>
+                </div>
+              ) : filteredBureaus.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  <Target className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p>Aucun bureau trouvé</p>
+                </div>
+              ) : (
+                filteredBureaus.map((bureau) => (
+                  <div
+                    key={bureau.bureau_id}
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${
+                      filterState.selectedBureau === bureau.bureau_id
+                        ? 'bg-purple-100 border-2 border-purple-300'
+                        : 'bg-white border border-gray-200 hover:bg-purple-50'
+                    }`}
+                    onClick={() => handleBureauSelect(bureau.bureau_id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          filterState.selectedBureau === bureau.bureau_id
+                            ? 'bg-purple-600 border-purple-600'
+                            : 'border-gray-300'
+                        }`}>
+                          {filterState.selectedBureau === bureau.bureau_id && (
+                            <Check className="w-3 h-3 text-white" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-800">{bureau.bureau_name}</div>
+                          <div className="text-sm text-gray-600">
+                            {bureau.total_voters?.toLocaleString()} électeurs
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right text-sm text-gray-600">
+                        <div>{bureau.participation_pct?.toFixed(1)}% participation</div>
+                        <div>{bureau.total_expressed_votes?.toLocaleString()} voix</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Mode Comparaison */}
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+              <BarChart3 className="w-4 h-4 text-yellow-600" />
+            </div>
+            <div>
+              <div className="font-semibold text-gray-800">Mode Comparaison</div>
+              <div className="text-sm text-gray-600">
+                Activez pour comparer les éléments sélectionnés
+              </div>
+            </div>
+          </div>
+          <Button
+            variant={filterState.comparisonMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => onFilterChange({ comparisonMode: !filterState.comparisonMode })}
+            disabled={!hasActiveFilters}
+            className={filterState.comparisonMode ? "bg-yellow-600 hover:bg-yellow-700" : ""}
+          >
+            <BarChart3 className="w-4 h-4 mr-1" />
+            {filterState.comparisonMode ? 'Désactiver l\'analyse' : 'Voir l\'analyse'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const ElectionResults: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const navigate = useNavigate();
@@ -254,6 +655,22 @@ const ElectionResults: React.FC = () => {
   const [bureauxAvecResultats, setBureauxAvecResultats] = useState<number>(0);
   const [mobileRetryCount, setMobileRetryCount] = useState<number>(0);
   const [isDataEstimated, setIsDataEstimated] = useState<boolean>(false);
+
+  // États pour le système de filtres avancés
+  const [filterState, setFilterState] = useState<FilterState>({
+    selectedCandidates: [],
+    selectedCenter: null,
+    selectedBureau: null,
+    searchQuery: '',
+    showFilterPanel: false,
+    comparisonMode: false
+  });
+  const [filteredData, setFilteredData] = useState<FilteredData>({
+    candidates: [],
+    centers: [],
+    bureaus: [],
+    comparisonData: []
+  });
 
   // Fonctions pour vérifier la présence de données
   const hasCenterData = () => {
@@ -654,6 +1071,88 @@ const ElectionResults: React.FC = () => {
       navigate(`/election/${targetElectionId}/results`);
     }
   };
+
+  // Fonctions pour le système de filtres avancés
+  const handleFilterChange = (newState: Partial<FilterState>) => {
+    setFilterState(prev => ({ ...prev, ...newState }));
+  };
+
+  const applyFilters = async () => {
+    if (!results?.election || !electionId) return;
+
+    try {
+      const newFilteredData: FilteredData = {
+        candidates: [],
+        centers: [],
+        bureaus: [],
+        comparisonData: []
+      };
+
+      // Filtrer les candidats sélectionnés
+      if (filterState.selectedCandidates.length > 0) {
+        newFilteredData.candidates = results.candidates.filter(candidate =>
+          filterState.selectedCandidates.includes(candidate.candidate_id)
+        );
+      }
+
+      // Récupérer les données des centres et bureaux sélectionnés
+      if (filterState.selectedCenter) {
+        const centerData = centerRows.filter(center => 
+          center.center_id === filterState.selectedCenter
+        );
+        newFilteredData.centers = centerData;
+      }
+
+      if (filterState.selectedBureau) {
+        const bureauData = bureauRows.filter(bureau => 
+          bureau.bureau_id === filterState.selectedBureau
+        );
+        newFilteredData.bureaus = bureauData;
+      }
+
+      // Si le mode comparaison est activé, récupérer les données de comparaison
+      if (filterState.comparisonMode) {
+        const comparisonPromises = [];
+
+        // Récupérer les données par candidat pour les centres/bureaux sélectionnés
+        for (const candidateId of filterState.selectedCandidates) {
+          if (filterState.selectedCenter) {
+            comparisonPromises.push(
+              fetchCenterSummaryByCandidate(electionId, candidateId).then(data => ({
+                type: 'center',
+                candidateId,
+                data: data.filter(item => item.center_id === filterState.selectedCenter)
+              }))
+            );
+          }
+          if (filterState.selectedBureau) {
+            comparisonPromises.push(
+              fetchBureauSummaryByCandidate(electionId, candidateId).then(data => ({
+                type: 'bureau',
+                candidateId,
+                data: data.filter(item => item.bureau_id === filterState.selectedBureau)
+              }))
+            );
+          }
+        }
+
+        const comparisonResults = await Promise.all(comparisonPromises);
+        newFilteredData.comparisonData = comparisonResults;
+      }
+
+      setFilteredData(newFilteredData);
+    } catch (error) {
+      console.error('Erreur lors de l\'application des filtres:', error);
+      toast.error('Erreur lors de l\'application des filtres');
+    }
+  };
+
+  // Appliquer les filtres automatiquement quand l'état change
+  useEffect(() => {
+    if (filterState.selectedCandidates.length > 0 || filterState.selectedCenter || filterState.selectedBureau) {
+      applyFilters();
+    }
+  }, [filterState.selectedCandidates, filterState.selectedCenter, filterState.selectedBureau, filterState.comparisonMode]);
 
   // Trouver l'élection alternative (législative <-> locale)
   const getAlternativeElection = () => {
@@ -1621,6 +2120,7 @@ const ElectionResults: React.FC = () => {
                 Découvrez les performances de chaque candidat suite au vote
               </p>
             </div>
+
             {/* Sélecteur de vue */}
             <div className="flex items-center justify-center sm:justify-end mb-3 sm:mb-4 lg:mb-6">
               <div className="inline-flex rounded-lg border bg-white overflow-hidden">
@@ -1714,6 +2214,208 @@ const ElectionResults: React.FC = () => {
                   </table>
                 </div>
               )
+            )}
+          </div>
+        </section>
+
+        {/* Section des filtres et résultats filtrés */}
+        <section className="py-6 sm:py-8 lg:py-12 xl:py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Panneau de filtres avancés */}
+            <div className="mb-8">
+              <FilterPanel
+                filterState={filterState}
+                onFilterChange={handleFilterChange}
+                candidates={results?.candidates || []}
+                centers={centerRows}
+                bureaus={bureauRows}
+                isLoading={loading}
+              />
+            </div>
+
+            {/* Résultats filtrés et comparaison */}
+            {(filterState.selectedCandidates.length > 0 || filterState.selectedCenter || filterState.selectedBureau) && (
+              <>
+                <div className="text-center mb-6 sm:mb-8 lg:mb-12">
+                  <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3 lg:mb-4">
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-blue-600" />
+                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800">
+                      {filterState.comparisonMode ? 'Analyse Comparée' : 'Résultats Filtrés'}
+                    </h2>
+                  </div>
+                  <p className="text-gray-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto px-2 sm:px-4">
+                    {filterState.comparisonMode 
+                      ? 'Comparaison détaillée des éléments sélectionnés'
+                      : 'Analyse des éléments sélectionnés dans les filtres'
+                    }
+                  </p>
+                </div>
+
+              {/* Candidats sélectionnés */}
+              {filterState.selectedCandidates.length > 0 && (
+                <div className="mb-8">
+                  <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3 text-green-800">
+                        <User className="w-5 h-5" />
+                        Candidats Sélectionnés ({filterState.selectedCandidates.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredData.candidates.map((candidate, index) => (
+                          <div key={candidate.candidate_id} className="p-4 bg-white rounded-lg border border-green-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-gray-800">{candidate.candidate_name}</h4>
+                              <Badge variant="secondary" className="bg-green-100 text-green-700">
+                                #{candidate.rank}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-3">{candidate.party_name}</p>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className="text-gray-500">Voix:</span>
+                                <span className="font-semibold ml-1">{candidate.total_votes.toLocaleString()}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">%:</span>
+                                <span className="font-semibold ml-1">{candidate.percentage.toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Centres sélectionnés */}
+              {filterState.selectedCenter && (
+                <div className="mb-8">
+                  <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3 text-blue-800">
+                        <Building className="w-5 h-5" />
+                        Centre de Vote Sélectionné
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {filteredData.centers.map((center) => (
+                        <div key={center.center_id} className="p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
+                          <h4 className="font-semibold text-gray-800 mb-3">{center.center_name}</h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500">Électeurs:</span>
+                              <div className="font-semibold">{center.total_voters?.toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Participation:</span>
+                              <div className="font-semibold">{center.participation_pct?.toFixed(1)}%</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Voix exprimées:</span>
+                              <div className="font-semibold">{center.total_expressed_votes?.toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Voix nulles:</span>
+                              <div className="font-semibold">{center.total_null_votes?.toLocaleString()}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Bureaux sélectionnés */}
+              {filterState.selectedBureau && (
+                <div className="mb-8">
+                  <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-violet-50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3 text-purple-800">
+                        <Target className="w-5 h-5" />
+                        Bureau de Vote Sélectionné
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {filteredData.bureaus.map((bureau) => (
+                        <div key={bureau.bureau_id} className="p-4 bg-white rounded-lg border border-purple-200 shadow-sm">
+                          <h4 className="font-semibold text-gray-800 mb-3">{bureau.bureau_name}</h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500">Électeurs:</span>
+                              <div className="font-semibold">{bureau.total_voters?.toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Participation:</span>
+                              <div className="font-semibold">{bureau.participation_pct?.toFixed(1)}%</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Voix exprimées:</span>
+                              <div className="font-semibold">{bureau.total_expressed_votes?.toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Voix nulles:</span>
+                              <div className="font-semibold">{bureau.total_null_votes?.toLocaleString()}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Données de comparaison */}
+              {filterState.comparisonMode && filteredData.comparisonData.length > 0 && (
+                <div className="mb-8">
+                  <Card className="border-2 border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3 text-yellow-800">
+                        <BarChart3 className="w-5 h-5" />
+                        Données de Comparaison
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {filteredData.comparisonData.map((comparisonItem, index) => (
+                          <div key={index} className="p-4 bg-white rounded-lg border border-yellow-200 shadow-sm">
+                            <h5 className="font-semibold text-gray-800 mb-3">
+                              {comparisonItem.type === 'center' ? 'Centre' : 'Bureau'} - {(() => {
+                                const candidate = results?.candidates.find(c => c.candidate_id === comparisonItem.candidateId);
+                                return candidate ? candidate.candidate_name : `Candidat ${comparisonItem.candidateId}`;
+                              })()}
+                            </h5>
+                            {comparisonItem.data.map((item, itemIndex) => (
+                              <div key={itemIndex} className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-500">Voix candidat:</span>
+                                  <div className="font-semibold">{item.candidate_votes?.toLocaleString()}</div>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">% candidat:</span>
+                                  <div className="font-semibold">{item.candidate_percentage?.toFixed(1)}%</div>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Participation:</span>
+                                  <div className="font-semibold">{item.candidate_participation_pct?.toFixed(1)}%</div>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">{comparisonItem.type === 'center' ? 'Centre:' : 'Bureau:'}</span>
+                                  <div className="font-semibold">{item.center_name || item.bureau_name}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              </>
             )}
           </div>
         </section>
