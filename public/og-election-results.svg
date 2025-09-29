@@ -60,7 +60,7 @@
   <text x="140" y="430" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#22c55e">En direct</text>
   
   <!-- URL -->
-  <text x="100" y="500" font-family="Arial, sans-serif" font-size="16" font-weight="normal" fill="rgba(255,255,255,0.6)" text-anchor="start">ohitu.gabon.ga</text>
+  <text x="100" y="500" font-family="Arial, sans-serif" font-size="16" font-weight="normal" fill="rgba(255,255,255,0.6)" text-anchor="start">www.ohitu.com</text>
   
   <!-- Decorative elements -->
   <g opacity="0.3">

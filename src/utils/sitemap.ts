@@ -7,7 +7,7 @@ export interface SitemapEntry {
 }
 
 export const generateSitemap = (entries: SitemapEntry[]): string => {
-  const baseUrl = 'https://ohitu.gabon.ga';
+  const baseUrl = 'https://www.ohitu.com';
   
   const sitemapEntries = entries.map(entry => {
     const fullUrl = entry.url.startsWith('http') ? entry.url : `${baseUrl}${entry.url}`;

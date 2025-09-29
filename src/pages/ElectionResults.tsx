@@ -928,7 +928,7 @@ const ElectionResults: React.FC = () => {
       return {
         title: 'Résultats d\'élection | o\'Hitu',
         description: 'Consultez les résultats électoraux en temps réel sur o\'Hitu - République Gabonaise',
-        image: 'https://ohitu.gabon.ga/images/resultat_election.jpg'
+        image: 'https://www.ohitu.com/images/resultat_election.jpg?v=3'
       };
     }
 
@@ -956,8 +956,8 @@ const ElectionResults: React.FC = () => {
     return {
       title,
       description,
-      image: 'https://ohitu.gabon.ga/images/resultat_election.jpg?v=2',
-      url: `https://ohitu.gabon.ga/election/${electionId}/results?v=2`
+      image: 'https://www.ohitu.com/images/resultat_election.jpg?v=3',
+      url: `https://www.ohitu.com/election/${electionId}/results?v=3`
     };
   };
 
@@ -983,7 +983,7 @@ const ElectionResults: React.FC = () => {
           "publisher": {
             "@type": "GovernmentOrganization",
             "name": "o'Hitu",
-            "url": "https://ohitu.gabon.ga"
+            "url": "https://www.ohitu.com"
           },
           "mainEntity": {
             "@type": "Election",
