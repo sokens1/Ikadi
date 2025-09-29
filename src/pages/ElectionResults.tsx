@@ -927,19 +927,33 @@ const ElectionResults: React.FC = () => {
     const normalizeCandidateName = (name?: string) => {
       if (!name) return name;
       let fixed = name;
-      // Corrige les variantes fréquentes repérées en ligne
-      fixed = fixed.replace(/\bAlbert\b/gi, 'Arnauld');
-      fixed = fixed.replace(/\bArnaud\b/gi, 'Arnauld');
-      fixed = fixed.replace(/\bClaubert\b/gi, 'Clobert');
-      // Normalise espaces multiples
+      
+      // Normaliser les espaces
       fixed = fixed.replace(/\s+/g, ' ').trim();
-      // S'assure que le bloc complet correspond au format souhaité si les 3 tokens sont présents
-      const parts = fixed.split(' ');
-      if (parts.length >= 3 && /^(LEBOMO)$/i.test(parts[0])) {
-        parts[1] = 'Arnauld';
-        parts[2] = 'Clobert';
-        fixed = parts.join(' ');
+      
+      // Corrections spécifiques pour LEBOMO
+      if (/LEBOMO/i.test(fixed)) {
+        // Remplacer Albert par Arnauld (priorité haute)
+        fixed = fixed.replace(/\bAlbert\b/gi, 'Arnauld');
+        // Remplacer Arnaud par Arnauld
+        fixed = fixed.replace(/\bArnaud\b/gi, 'Arnauld');
+        // Remplacer Claubert par Clobert
+        fixed = fixed.replace(/\bClaubert\b/gi, 'Clobert');
+        
+        // Forcer la correction pour LEBOMO spécifiquement
+        const parts = fixed.split(' ');
+        if (parts.length >= 3 && /^(LEBOMO)$/i.test(parts[0])) {
+          parts[1] = 'Arnauld';
+          parts[2] = 'Clobert';
+          fixed = parts.join(' ');
+        }
+      } else {
+        // Corrections générales pour tous les autres candidats
+        fixed = fixed.replace(/\bAlbert\b/gi, 'Arnauld');
+        fixed = fixed.replace(/\bArnaud\b/gi, 'Arnauld');
+        fixed = fixed.replace(/\bClaubert\b/gi, 'Clobert');
       }
+      
       return fixed;
     };
     if (!results?.election) {
