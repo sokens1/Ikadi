@@ -113,8 +113,8 @@ const Login = () => {
         {/* Logo */}
         <div className="absolute top-6 lg:top-8 left-6 lg:left-8">
           <div className="flex items-center space-x-2 lg:space-x-3">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-white rounded-full flex items-center justify-center">
-              <span className="text-gov-blue font-bold text-sm lg:text-lg">o'H</span>
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-white rounded-full flex items-center justify-center overflow-hidden">
+              <img src="/favicon.ico" alt="Logo iKADI" className="w-6 h-6 lg:w-8 lg:h-8 object-contain" />
             </div>
             <div>
               <h1 className="text-white font-bold text-xl lg:text-2xl">o'Hitu</h1>
@@ -201,10 +201,10 @@ const Login = () => {
       <div className="lg:hidden bg-gradient-to-br from-gov-blue via-blue-700 to-gov-blue-dark text-white pt-8 pb-6 px-6">
         <div className="max-w-md mx-auto">
           {/* Logo mobile */}
-        <div className="text-center mb-8 px-2">
+          <div className="text-center mb-8">
             <div className="flex items-center justify-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <span className="text-gov-blue font-bold text-lg">o'H</span>
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                <img src="/favicon.ico" alt="Logo iKADI" className="w-8 h-8 object-contain" />
               </div>
               <div className="text-left">
                 <h1 className="text-white font-bold text-2xl">o'Hitu</h1>

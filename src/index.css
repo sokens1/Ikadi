@@ -371,8 +371,8 @@
 }
 
 .multi-select-option-content {
-  flex: 1;
-  min-width: 0;
+    flex: 1;
+    min-width: 0;
   margin-right: 12px;
 }
 
@@ -389,7 +389,7 @@
   font-size: 14px;
   color: #6b7280;
   white-space: nowrap;
-  overflow: hidden;
+    overflow: hidden;
   text-overflow: ellipsis;
 }
 
@@ -412,7 +412,7 @@
 
 /* Améliorations pour les boutons de sélection en masse */
 .selection-actions {
-  display: flex;
+    display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
