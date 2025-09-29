@@ -627,20 +627,17 @@ const ElectionResults: React.FC = () => {
   };
 
   const handleShare = (platform: string) => {
-    // Utiliser l'URL de production au lieu de localhost
-    const url = `https://ohitu.gabon.ga/election/${electionId}/results`;
-    const title = 'Résultats des Élections Locales et Législatives Moanda, 1 Arr.';
-    const shareText = `${title} - www.ohitu.com`;
-
+    // Toujours partager uniquement l'URL courte du site
+    const url = `https://www.ohitu.com/election/${electionId}/results`;
     switch (platform) {
       case 'whatsapp':
-        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
         break;
       case 'facebook':
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
         break;
       case 'copy':
-        navigator.clipboard.writeText(shareText);
+        navigator.clipboard.writeText(url);
         toast.success('Lien copié dans le presse-papiers');
         break;
     }
