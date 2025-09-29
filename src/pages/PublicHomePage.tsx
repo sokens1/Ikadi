@@ -191,11 +191,11 @@ const PublicHomePage = () => {
       const resultsProgress = totalCenters > 0 ? Math.min((totalPVs / totalCenters) * 100, 100) : 0;
 
       const { data: candidatesAgg } = await supabase
-        .from('election_candidates')
-        .select(`
-          candidates(id, name, party),
-          candidate_results(votes)
-        `)
+          .from('election_candidates')
+          .select(`
+            candidates(id, name, party),
+            candidate_results(votes)
+          `)
         .eq('election_id', currentElection.id);
 
         let processed: CandidateResult[] = [];
@@ -208,7 +208,7 @@ const PublicHomePage = () => {
         });
         candidatesAgg.forEach((item: any, index: number) => {
           if (item.candidates) {
-            const candidateVotes = item.candidate_results
+            const candidateVotes = item.candidate_results 
               ? item.candidate_results.reduce((sum: number, r: any) => sum + (r.votes || 0), 0)
               : 0;
             processed.push({
@@ -309,9 +309,9 @@ const PublicHomePage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-                <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm" aria-label="Aller à l'accueil">
-                <span className="text-gov-blue font-bold text-lg">iK</span>
-                </Link>
+              <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm overflow-hidden" aria-label="Aller à l'accueil">
+                <img src="/favicon.ico" alt="Logo iKADI" className="w-8 h-8 object-contain" />
+              </Link>
               <div>
                 <h1 className="text-white font-bold text-2xl">iKADI</h1>
                 <p className="text-white/80 text-sm">Plateforme de gestion électorale</p>
@@ -407,10 +407,10 @@ const PublicHomePage = () => {
                   <Link to="/login" aria-label="Accéder à l'interface d'administration">
                   <Button className="bg-gov-blue text-white hover:bg-gov-blue/90">
                     Accès admin
-                  </Button>
-                </Link>
-              </div>
-            </div>
+              </Button>
+            </Link>
+          </div>
+        </div>
           </div>
         </div>
       </section>
@@ -425,23 +425,23 @@ const PublicHomePage = () => {
                 <div className="text-2xl md:text-3xl font-bold">{totalBureaux.toLocaleString()}</div>
                 <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Bureaux de vote</div>
               </div>
-            </div>
+          </div>
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-white rounded-lg"><Flag className="w-8 h-8 text-gov-blue" /></div>
               <div>
                 <div className="text-2xl md:text-3xl font-bold">{distinctParties.toLocaleString()}</div>
                 <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Partis politiques</div>
-              </div>
-            </div>
+          </div>
+                </div>
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-white rounded-lg"><Users className="w-8 h-8 text-gov-blue" /></div>
               <div>
                 <div className="text-2xl md:text-3xl font-bold">{results.totalVoters.toLocaleString()}</div>
                 <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">Électeurs inscrits</div>
-              </div>
-            </div>
+                </div>
+                </div>
+                </div>
           </div>
-        </div>
       </section>
 
       {/* Ticker d'annonces (rouge) */}
@@ -458,10 +458,10 @@ const PublicHomePage = () => {
                       {a}
                     </span>
                   ))}
-                </div>
-              </div>
-            </div>
-          </div>
+                        </div>
+                        </div>
+                      </div>
+                      </div>
         </div>
         <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
       </section> */}
@@ -485,9 +485,9 @@ const PublicHomePage = () => {
                 <div key={t.label} className="text-center min-w-[64px] md:min-w-[80px]">
                   <div className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">{String(t.value).padStart(2, '0')}</div>
                   <div className="mt-1 text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wide border-t border-white/40 pt-1 opacity-90">{t.label}</div>
-              </div>
-            ))}
-          </div>
+                    </div>
+                  ))}
+                </div>
             {isCountdownZero && (
           <div className="mt-8 text-center">
                 {/* <Button
@@ -497,8 +497,8 @@ const PublicHomePage = () => {
                 >
               Voir les résultats
                 </Button> */}
-          </div>
-            )}
+                </div>
+              )}
         </div>
       </section>
 
@@ -527,7 +527,7 @@ const PublicHomePage = () => {
               >
                 Élections à venir
               </button>
-        </div>
+                </div>
             <div className="max-h-[600px] overflow-y-auto pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {selectedLibrary.map((e, idx) => (
@@ -541,19 +541,19 @@ const PublicHomePage = () => {
                     <div className="relative p-4 text-white">
                       <div className="text-xs sm:text-sm opacity-90">{new Date(e.election_date).getFullYear()}</div>
                       <div className="font-semibold line-clamp-2 text-sm sm:text-base">{e.title}</div>
-                          </div>
-                        </div>
+                </div>
+              </div>
                 )).slice(0, 100)}
                 {selectedLibrary.length === 0 && (
                   <div className="col-span-full text-center py-12">
                     <div className="text-6xl mb-4">🗳️</div>
                     <h3 className="text-xl font-semibold text-gov-dark mb-2">Aucune élection disponible</h3>
                     <p className="text-gov-gray">Aucune élection {libraryTab === 'past' ? 'passée' : libraryTab === 'current' ? 'en cours' : 'à venir'} à afficher pour le moment.</p>
-                  </div>
+                </div>
                 )}
-                        </div>
-                      </div>
-                  </div>
+                </div>
+              </div>
+        </div>
       </section>
 
       {/* Footer bleu plateforme avec texte blanc */}
@@ -563,8 +563,8 @@ const PublicHomePage = () => {
             {/* Colonne gauche: logo + description */}
             <div className="order-1 max-w-sm">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-gov-blue font-semibold">iK</span>
+                <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                  <img src="/favicon.ico" alt="Logo iKADI" className="w-7 h-7 object-contain" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-lg">iKADI</h3>
@@ -572,7 +572,7 @@ const PublicHomePage = () => {
               </div>
               <p className="text-white/80 text-sm">Système de gestion des processus électoraux alliant transparence, sécurité et efficacité.</p>
             </div>
-
+            
             {/* Ressources au milieu (non centré) */}
                 <div className="order-3 md:order-2 text-sm text-white/90 max-w-sm w-full text-left">
               <h4 className="font-semibold text-white mb-2">Ressources</h4>
@@ -595,7 +595,7 @@ const PublicHomePage = () => {
                   </li>
               </ul>
             </div>
-
+            
             {/* Partage à droite (ligne) */}
             <div className="order-2 md:order-3 text-sm text-white/90 md:justify-self-end max-w-sm">
               <h4 className="font-semibold text-white mb-2">Partager</h4>
@@ -633,8 +633,8 @@ const PublicHomePage = () => {
                 >
                   <LinkIcon className="w-7 h-7" />
                 </button>
-              </div>
             </div>
+          </div>
           </div>
 
           {/* Copyright centré en bas */}

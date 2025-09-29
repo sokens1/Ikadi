@@ -94,8 +94,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       } transition-all duration-300 gov-bg-primary text-white flex flex-col h-screen sticky top-0`}>
         <div className="flex-shrink-0 p-3 sm:p-4 border-b border-gov-blue-light">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-gov-blue font-bold text-sm">iK</span>
+            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <img src="/favicon.ico" alt="Logo iKADI" className="w-6 h-6 object-contain" />
             </div>
             {(sidebarOpen || isMobile) && (
               <div className="min-w-0">
@@ -267,10 +267,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {user?.role?.replace('-', ' ')}
                 </p>
               </div>
-              <div className="w-8 h-8 bg-gov-blue rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-medium text-sm">
-                  {user?.name?.charAt(0)}
-                </span>
+              <div className="w-8 h-8 bg-gov-blue rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src="/favicon.ico" alt="Logo iKADI" className="w-6 h-6 object-contain" />
               </div>
             </div>
           </div>

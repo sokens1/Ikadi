@@ -658,13 +658,13 @@ const ElectionResults: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-3">
               <button onClick={() => navigate('/')} className="flex items-center space-x-2 sm:space-x-3 group" aria-label="Aller à l'accueil">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                <span className="text-gov-blue font-bold text-sm sm:text-lg">iK</span>
-              </div>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center shadow-sm overflow-hidden">
+                  <img src="/favicon.ico" alt="Logo iKADI" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
+                </div>
                 <div className="text-left">
-                <h1 className="text-white font-bold text-lg sm:text-xl lg:text-2xl">iKADI</h1>
-                <p className="text-white/80 text-xs sm:text-sm">Plateforme de gestion électorale</p>
-            </div>
+                  <h1 className="text-white font-bold text-lg sm:text-xl lg:text-2xl">iKADI</h1>
+                  <p className="text-white/80 text-xs sm:text-sm">Plateforme de gestion électorale</p>
+                </div>
               </button>
             </div>
             <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
@@ -1608,9 +1608,9 @@ const ElectionResults: React.FC = () => {
             {/* Colonne gauche: logo + description */}
             <div className="order-1 max-w-xs sm:max-w-sm">
               <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
-              <Link to="/" className="w-6 h-6 sm:w-8 sm:h-8 lg:w-9 lg:h-9 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-gov-blue font-semibold text-xs sm:text-sm lg:text-base">iK</span>
-                </Link>
+              <Link to="/" className="w-6 h-6 sm:w-8 sm:h-8 lg:w-9 lg:h-9 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                <img src="/favicon.ico" alt="Logo iKADI" className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 object-contain" />
+              </Link>
                 <div>
                   <h3 className="text-white font-bold text-sm sm:text-base lg:text-lg">iKADI</h3>
                 </div>
