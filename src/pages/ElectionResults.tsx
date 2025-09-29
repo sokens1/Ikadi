@@ -937,7 +937,9 @@ const ElectionResults: React.FC = () => {
     const participation = results.participation_rate ? `${results.participation_rate.toFixed(1)}%` : 'En cours';
 
     // Titre optimisé pour WhatsApp
-    const title = `Résultats des Élections Locales et Législatives Moanda, 1 Arr.`;
+    const title = winner?.candidate_name
+      ? `${winner.candidate_name} en tête | Résultats Élections Moanda (1er Arr.)`
+      : `Résultats des Élections Locales et Législatives Moanda, 1er Arr.`;
 
     // Description optimisée pour le partage
     let description = `🗳️ Résultats des Élections Locales et Législatives Moanda, 1 Arr.\n\n`;
@@ -954,8 +956,8 @@ const ElectionResults: React.FC = () => {
     return {
       title,
       description,
-      image: 'https://ohitu.gabon.ga/images/resultat_election.jpg',
-      url: `https://ohitu.gabon.ga/election/${electionId}/results`
+      image: 'https://ohitu.gabon.ga/images/resultat_election.jpg?v=2',
+      url: `https://ohitu.gabon.ga/election/${electionId}/results?v=2`
     };
   };
 
