@@ -414,11 +414,16 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           return;
         }
 
-        // Méthode 1: rechercher par center_id directement
+        // Préparer versions string et numérique de l'ID pour robustesse mobile
+        const idStr = String(selectedCenterId);
+        const idNum = Number(selectedCenterId);
+        const idNumValid = !Number.isNaN(idNum) && String(idNum) === idStr.replace(/\D/g, '') || !Number.isNaN(idNum);
+
+        // Méthode 1: rechercher par center_id (string ou number)
         const { data: bureauData, error: bureauError } = await supabase
           .from('voting_bureaux')
           .select('id, name, center_id')
-          .eq('center_id', selectedCenterId)
+          .or(idNumValid ? `center_id.eq.${idStr},center_id.eq.${idNum}` : `center_id.eq.${idStr}`)
           .order('name');
 
         console.log('[Analyse croisée] Méthode 1 - center_id:', { bureauData, bureauError, selectedCenterId });
@@ -430,11 +435,11 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           return;
         }
 
-        // Méthode 2: rechercher par voting_center_id
+        // Méthode 2: rechercher par voting_center_id (string ou number)
         const { data: votingCenterData, error: votingCenterError } = await supabase
           .from('voting_bureaux')
           .select('id, name, voting_center_id')
-          .eq('voting_center_id', selectedCenterId)
+          .or(idNumValid ? `voting_center_id.eq.${idStr},voting_center_id.eq.${idNum}` : `voting_center_id.eq.${idStr}`)
           .order('name');
 
         console.log('[Analyse croisée] Méthode 2 - voting_center_id:', { votingCenterData, votingCenterError, selectedCenterId });
@@ -761,7 +766,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
               <div className="space-y-2 order-3">
                 <Label>{zoneType ? `Centre (${zoneType === 'departement' ? '6 max' : '10 max'})` : 'Centre'}</Label>
-                <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!zoneType || filteredCenters.length === 0}>
+                <Select value={selectedCenterId} onValueChange={(v) => { const vv = String(v || ''); setSelectedCenterId(vv); setSelectedCenterName(filteredCenters.find(c => c.id === vv)?.name || ''); setSelectedBureauId(''); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!zoneType || filteredCenters.length === 0}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d\'abord'} />
                   </SelectTrigger>
@@ -775,7 +780,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
               <div className="space-y-2 order-4">
                 <Label>Bureau</Label>
-                <Select value={selectedBureauId} onValueChange={(v) => { setSelectedBureauId(String(v)); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!selectedCenterId || bureaux.length === 0 || loadingBureaux}>
+                <Select value={selectedBureauId} onValueChange={(v) => { const vv = String(v || ''); setSelectedBureauId(vv); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!selectedCenterId || bureaux.length === 0 || loadingBureaux}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={
                       loadingBureaux ? 'Chargement...' :
