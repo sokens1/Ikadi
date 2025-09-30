@@ -2036,9 +2036,9 @@ const ElectionResults: React.FC = () => {
                             <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
                               <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Abstention</div>
                               <div className={`font-bold text-xs sm:text-sm lg:text-lg ${typeof c.participation_pct === 'number'
-                                ? ((100 - c.participation_pct) > 65
+                                ? ((100 - c.participation_pct) >= 49.51
                                   ? 'text-red-600'
-                                  : ( (100 - c.participation_pct) < 65 && (100 - c.participation_pct) >= 30 ? 'text-yellow-600' : 'text-green-600'))
+                                  : (((100 - c.participation_pct) > 20.5 && (100 - c.participation_pct) <= 49.5) ? 'text-yellow-600' : 'text-green-600'))
                                 : 'text-green-600'}`}>
                                 {typeof c.participation_pct === 'number' ? `${(100 - Math.min(Math.max(c.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
                               </div>
@@ -2106,8 +2106,8 @@ const ElectionResults: React.FC = () => {
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_voters?.toLocaleString() ?? '-'}</td>
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_expressed_votes?.toLocaleString() ?? '-'}</td>
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right">
-                                      <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${typeof b.participation_pct === 'number' && (100 - b.participation_pct) > 65 ? 'bg-red-100 text-red-800' :
-                                        typeof b.participation_pct === 'number' && (100 - b.participation_pct) < 65 && (100 - b.participation_pct) >= 30 ? 'bg-yellow-100 text-yellow-800' :
+                                      <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${typeof b.participation_pct === 'number' && (100 - b.participation_pct) >= 49.51 ? 'bg-red-100 text-red-800' :
+                                        typeof b.participation_pct === 'number' && ((100 - b.participation_pct) > 20.5 && (100 - b.participation_pct) <= 49.5) ? 'bg-yellow-100 text-yellow-800' :
                                           'bg-green-100 text-green-800'
                                         }`}>
                                         {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
@@ -2231,8 +2231,8 @@ const ElectionResults: React.FC = () => {
                               <span className="font-bold text-blue-600">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</span>
                             </td>
                             <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
-                              <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${typeof b.participation_pct === 'number' && (100 - b.participation_pct) > 65 ? 'bg-red-100 text-red-800' :
-                                typeof b.participation_pct === 'number' && (100 - b.participation_pct) < 65 && (100 - b.participation_pct) >= 30 ? 'bg-yellow-100 text-yellow-800' :
+                              <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${typeof b.participation_pct === 'number' && (100 - b.participation_pct) >= 49.51 ? 'bg-red-100 text-red-800' :
+                                typeof b.participation_pct === 'number' && ((100 - b.participation_pct) > 20.5 && (100 - b.participation_pct) <= 49.5) ? 'bg-yellow-100 text-yellow-800' :
                                   'bg-green-100 text-green-800'
                                 }`}>
                                 {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : (b.participation_pct || '-')}
