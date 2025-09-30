@@ -358,13 +358,6 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           legislativeElectionCentersCount: legislativeElectionCenters.length
         });
 
-        // Méthode 0: Vérifier d'abord s'il y a des bureaux dans la table
-        const { data: allBureauxCount, error: countError } = await supabase
-          .from('voting_bureaux')
-          .select('id', { count: 'exact' });
-
-        console.log('[Analyse croisée] Nombre total de bureaux dans la table:', { allBureauxCount, countError });
-
         // Vérifier d'abord que le centre existe dans voting_centers
         const { data: centerCheck, error: centerCheckError } = await supabase
           .from('voting_centers')
@@ -414,138 +407,21 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           return;
         }
 
-        // Préparer versions string et numérique de l'ID pour robustesse mobile
-        const idStr = String(selectedCenterId);
-        const idNum = Number(selectedCenterId);
-        const idNumValid = !Number.isNaN(idNum) && String(idNum) === idStr.replace(/\D/g, '') || !Number.isNaN(idNum);
-
-        // Méthode 1: rechercher par center_id (string ou number)
+        // Requête simple et sûre: filtrer uniquement par center_id (UUID)
+        const idStr = String(selectedCenterId).trim();
         const { data: bureauData, error: bureauError } = await supabase
           .from('voting_bureaux')
           .select('id, name, center_id')
-          .or(idNumValid ? `center_id.eq.${idStr},center_id.eq.${idNum}` : `center_id.eq.${idStr}`)
+          .eq('center_id', idStr as any)
           .order('name');
-
-        console.log('[Analyse croisée] Méthode 1 - center_id:', { bureauData, bureauError, selectedCenterId });
 
         if (!bureauError && Array.isArray(bureauData) && bureauData.length > 0) {
           const list: BureauRow[] = bureauData.map((b: any) => ({ id: String(b.id), name: b.name }));
           setBureaux(list);
-          console.log('[Analyse croisée] Bureaux trouvés via center_id:', list);
           return;
         }
 
-        // Méthode 2: rechercher par voting_center_id (string ou number)
-        const { data: votingCenterData, error: votingCenterError } = await supabase
-          .from('voting_bureaux')
-          .select('id, name, voting_center_id')
-          .or(idNumValid ? `voting_center_id.eq.${idStr},voting_center_id.eq.${idNum}` : `voting_center_id.eq.${idStr}`)
-          .order('name');
-
-        console.log('[Analyse croisée] Méthode 2 - voting_center_id:', { votingCenterData, votingCenterError, selectedCenterId });
-
-        if (!votingCenterError && Array.isArray(votingCenterData) && votingCenterData.length > 0) {
-          const list: BureauRow[] = votingCenterData.map((b: any) => ({ id: String(b.id), name: b.name }));
-          setBureaux(list);
-          console.log('[Analyse croisée] Bureaux trouvés via voting_center_id:', list);
-          return;
-        }
-
-        // Méthode 3: Recherche par jointure avec voting_centers
-        const { data: joinData, error: joinError } = await supabase
-          .from('voting_bureaux')
-          .select('id, name, voting_centers!inner(id)')
-          .eq('voting_centers.id', selectedCenterId)
-          .order('name');
-
-        console.log('[Analyse croisée] Méthode 3 - jointure:', { joinData, joinError });
-
-        if (!joinError && Array.isArray(joinData) && joinData.length > 0) {
-          const list: BureauRow[] = joinData.map((b: any) => ({ id: String(b.id), name: b.name }));
-          setBureaux(list);
-          console.log('[Analyse croisée] Bureaux trouvés via jointure:', list);
-          return;
-        }
-
-        // Méthode 4: Recherche par election_id et center_id
-        const { data: electionData, error: electionError } = await supabase
-          .from('voting_bureaux')
-          .select('id, name, election_id, center_id, voting_center_id')
-          .eq('election_id', selectionElectionId)
-          .or(`center_id.eq.${selectedCenterId},voting_center_id.eq.${selectedCenterId}`)
-          .order('name');
-
-        console.log('[Analyse croisée] Méthode 4 - election_id:', { electionData, electionError, selectionElectionId });
-
-        if (!electionError && Array.isArray(electionData) && electionData.length > 0) {
-          const list: BureauRow[] = electionData.map((b: any) => ({ id: String(b.id), name: b.name }));
-          setBureaux(list);
-          console.log('[Analyse croisée] Bureaux trouvés via election_id:', list);
-          return;
-        }
-
-
-        // Méthode 4b: Fallback via vue d'agrégats (bureau_results_summary)
-        try {
-          const { data: brs, error: brsErr } = await supabase
-            .from('bureau_results_summary')
-            .select('bureau_id, bureau_name, center_id, center_name, election_id')
-            .eq('election_id', selectionElectionId)
-            .or(`center_id.eq.${selectedCenterId},center_name.ilike.%${selectedCenterName || ''}%`)
-            .order('bureau_name');
-          if (!brsErr && Array.isArray(brs) && brs.length > 0) {
-            const list: BureauRow[] = brs.map((b: any) => ({ id: String(b.bureau_id), name: b.bureau_name }));
-            setBureaux(list);
-            console.log('[Analyse croisée] Bureaux via bureau_results_summary:', list);
-            return;
-          }
-        } catch (e) {
-          console.log('[Analyse croisée] Fallback brs erreur:', e);
-        }
-
-        // Méthode 5: Explorer la structure de la table voting_bureaux
-        const { data: allBureaux, error: allBureauxError } = await supabase
-          .from('voting_bureaux')
-          .select('id, name, center_id, voting_center_id, election_id')
-          .limit(10);
-
-        console.log('[Analyse croisée] Structure table voting_bureaux:', { allBureaux, allBureauxError });
-
-        // Méthode 6: Recherche par nom de centre (si disponible)
-        if (selectedCenterName) {
-          const { data: nameData, error: nameError } = await supabase
-            .from('voting_bureaux')
-            .select('id, name, voting_centers!inner(id, name)')
-            .eq('voting_centers.name', selectedCenterName)
-            .order('name');
-
-          console.log('[Analyse croisée] Méthode 6 - recherche par nom:', { nameData, nameError, selectedCenterName });
-
-          if (!nameError && Array.isArray(nameData) && nameData.length > 0) {
-            const list: BureauRow[] = nameData.map((b: any) => ({ id: String(b.id), name: b.name }));
-            setBureaux(list);
-            console.log('[Analyse croisée] Bureaux trouvés via nom:', list);
-            return;
-          }
-
-          // Méthode 7: Recherche par nom ilike (tolérant)
-          const { data: nameIlikeData, error: nameIlikeError } = await supabase
-            .from('voting_bureaux')
-            .select('id, name, voting_centers!inner(id, name)')
-            .ilike('voting_centers.name', `%${selectedCenterName}%`)
-            .order('name');
-
-          console.log('[Analyse croisée] Méthode 7 - recherche par nom ilike:', { nameIlikeData, nameIlikeError, selectedCenterName });
-
-          if (!nameIlikeError && Array.isArray(nameIlikeData) && nameIlikeData.length > 0) {
-            const list: BureauRow[] = nameIlikeData.map((b: any) => ({ id: String(b.id), name: b.name }));
-            setBureaux(list);
-            console.log('[Analyse croisée] Bureaux trouvés via nom ilike:', list);
-            return;
-          }
-        }
-
-        console.log('[Analyse croisée] Aucun bureau trouvé pour le centre:', { selectedCenterId, selectedCenterName });
+        // Si aucun bureau trouvé, retourner liste vide
         setBureaux([]);
       } catch (_) {
         setBureaux([]);
@@ -784,7 +660,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
               <div className="space-y-2 order-3">
                 <Label>{zoneType ? `Centre (${zoneType === 'departement' ? '6 max' : '10 max'})` : 'Centre'}</Label>
-                <Select value={selectedCenterId} onValueChange={(v) => { const vv = String(v || ''); setSelectedCenterId(vv); setSelectedCenterName(filteredCenters.find(c => c.id === vv)?.name || ''); setSelectedBureauId(''); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!zoneType || filteredCenters.length === 0}>
+                <Select value={selectedCenterId} onValueChange={(v) => { const vv = String(v || '').trim(); setSelectedCenterId(vv); const foundName = filteredCenters.find(c => c.id === vv)?.name || ''; setSelectedCenterName((foundName || '').trim()); setSelectedBureauId(''); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!zoneType || filteredCenters.length === 0}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d\'abord'} />
                   </SelectTrigger>
@@ -798,20 +674,15 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
               <div className="space-y-2 order-4">
                 <Label>Bureau</Label>
-                <Select value={selectedBureauId} onValueChange={(v) => { const vv = String(v || ''); setSelectedBureauId(vv); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!selectedCenterId || loadingBureaux}>
+                <Select value={selectedBureauId} onValueChange={(v) => { const vv = String(v || ''); setSelectedBureauId(vv); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!selectedCenterId || bureaux.length === 0 || loadingBureaux}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={
                       loadingBureaux ? 'Chargement...' :
                       !selectedCenterId ? 'Choisir un centre' : 
-                      (bureaux.length ? 'Sélectionner un bureau' : 'Recherche des bureaux…')
+                      (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau trouvé')
                     } />
                   </SelectTrigger>
                   <SelectContent className="z-[100]" position="popper">
-                    {(!loadingBureaux && selectedCenterId && bureaux.length === 0) && (
-                      <div className="px-2 py-1 text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded mx-2 my-1">
-                        Aucun bureau trouvé pour ce centre
-                      </div>
-                    )}
                     {bureaux.map((b) => (
                       <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                     ))}
