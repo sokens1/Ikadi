@@ -1810,7 +1810,7 @@ const ElectionResults: React.FC = () => {
                           <div className="px-0 sm:px-2 py-3">
                                 <div className="relative overflow-x-auto rounded-lg border bg-white/50 p-1 sm:p-2">
                                   <table className="w-full bg-white rounded-md table-fixed">
-                                    <thead className="bg-slate-100">
+                                <thead className="bg-slate-100">
                                   <tr>
                                         <th className="text-left px-1.5 sm:px-3 py-1.5 sm:py-2 border text-[10px] sm:text-sm truncate">Bureau</th>
                                         <th className="text-right px-1.5 sm:px-3 py-1.5 sm:py-2 border text-[10px] sm:text-sm">Voix</th>
@@ -2023,8 +2023,8 @@ const ElectionResults: React.FC = () => {
                          <div className="font-bold text-blue-600 text-sm sm:text-lg">{typeof c.score_pct === 'number' ? `${Math.min(Math.max(c.score_pct,0),100).toFixed(1)}%` : '-'}</div>
                        </div> */}
                             <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
-                              <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Participation</div>
-                              <div className="font-bold text-green-600 text-xs sm:text-sm lg:text-lg">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct, 0), 100).toFixed(2)}%` : '-'}</div>
+                              <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Abstention</div>
+                              <div className="font-bold text-red-600 text-xs sm:text-sm lg:text-lg">{typeof c.participation_pct === 'number' ? `${(100 - Math.min(Math.max(c.participation_pct, 0), 100)).toFixed(2)}%` : '-'}</div>
                             </div>
                             {/** Participation masquée. Conserver uniquement l'abstention parmi les indicateurs.
                              * Pour réactiver la vignette de participation, rétablir la grille à 4 colonnes et décommenter le bloc ci-dessous.
@@ -2159,32 +2159,12 @@ const ElectionResults: React.FC = () => {
                       Tous les bureaux de vote avec leurs statistiques complètes
                     </p>
                   </div>
-                  {/* Vue compacte mobile (liste) */}
-                  <div className="sm:hidden mt-3 space-y-1">
-                    {(getSortedAndGroupedData() as BureauData[]).map((b, idx) => (
-                      <div key={`${b.center_id}-${b.bureau_number}-m-${idx}`} className="flex items-center justify-between rounded-md border bg-white px-2.5 py-2 text-[12px]">
-                        <div className="min-w-0 mr-2">
-                          <div className="font-medium truncate">{b.center_name || centerNameById[b.center_id] || b.center_id} • {b.bureau_name}</div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-semibold text-blue-700">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes || '-'}</span>
-                          <span className={`px-1.5 py-0.5 rounded-full text-[11px] ${typeof b.participation_pct === 'number' && (100 - Math.min(Math.max(b.participation_pct, 0), 100)) >= 50 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-                            {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                    {(getSortedAndGroupedData() as BureauData[]).length === 0 && (
-                      <div className="rounded-md border bg-white px-3 py-4 text-center text-gray-600">Aucun bureau à afficher</div>
-                    )}
-                  </div>
-
-                  {/* Tableau desktop/tablette */}
-                  <div className="hidden sm:block relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 rounded-lg border bg-white/50 p-1 sm:p-2">
+                  {/* Tableau visible sur toutes tailles avec scroll horizontal */}
+                  <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 rounded-lg border bg-white/50 p-1 sm:p-2">
                     <table className="w-full bg-white rounded-md table-fixed">
                       <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                         <tr>
-                          <th className="hidden sm:table-cell text-left px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs truncate">
+                          <th className="text-left px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs truncate whitespace-nowrap">
                             <div className="flex items-center gap-1">
                               <Building className="w-2 h-2" />
                               <span className="hidden sm:inline">Centre</span>
@@ -2198,13 +2178,13 @@ const ElectionResults: React.FC = () => {
                               <span className="sm:hidden">Bur.</span>
                             </div>
                           </th>
-                          <th className="hidden sm:table-cell text-right px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs">
+                          <th className="text-right px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
                               <Users className="w-2 h-2" />
                               <span>Inscrits</span>
                             </div>
                           </th>
-                          <th className="hidden sm:table-cell text-right px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs">
+                          <th className="text-right px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
                               <Vote className="w-2 h-2" />
                               <span>Votants</span>
@@ -2239,24 +2219,24 @@ const ElectionResults: React.FC = () => {
                   </tr>
                 </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {(getSortedAndGroupedData() as BureauData[]).map((b, idx) => (
+                         {(getSortedAndGroupedData() as BureauData[]).map((b, idx) => (
                           <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="hover:bg-blue-50 transition-colors duration-200">
-                            <td className="hidden sm:table-cell px-1.5 sm:px-2 py-1.5 sm:py-2 font-medium text-gray-800 text-[10px] sm:text-xs truncate">
+                             <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 font-medium text-gray-800 text-[10px] sm:text-xs truncate whitespace-nowrap">
                               <div className="flex items-center gap-1">
                                 <Building className="w-2 h-2 text-blue-600" />
                                 <span className="truncate">{b.center_name || centerNameById[b.center_id] || b.center_id}</span>
                               </div>
                             </td>
-                            <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 text-[10px] sm:text-xs truncate">
+                             <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 text-[10px] sm:text-xs truncate whitespace-nowrap">
                               <div className="flex items-center gap-1">
                                 <Target className="w-2 h-2 text-blue-600" />
                                 <span className="truncate whitespace-nowrap">{b.bureau_name}</span>
                               </div>
                             </td>
-                            <td className="hidden sm:table-cell px-1.5 sm:px-2 py-1.5 sm:py-2 text-right text-[10px] sm:text-xs">
+                             <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 text-right text-[10px] sm:text-xs">
                               <span className="font-bold text-gray-800">{b.total_registered?.toLocaleString() ?? '-'}</span>
                             </td>
-                            <td className="hidden sm:table-cell px-1.5 sm:px-2 py-1.5 sm:py-2 text-right text-[10px] sm:text-xs">
+                             <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 text-right text-[10px] sm:text-xs">
                               <span className="font-bold text-gray-800">{b.total_voters?.toLocaleString() ?? '-'}</span>
                             </td>
                             <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 text-right text-[10px] sm:text-xs">
