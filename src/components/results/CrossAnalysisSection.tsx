@@ -42,6 +42,7 @@ interface BureauCandidateSummaryRow {
 const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId }) => {
   const [zoneType, setZoneType] = useState<ZoneType | ''>('');
   const [zoneKey, setZoneKey] = useState<string>('');
+  const [isLocalElection, setIsLocalElection] = useState<boolean>(false);
   const [centers, setCenters] = useState<CenterRow[]>([]);
   const [filteredCenters, setFilteredCenters] = useState<CenterRow[]>([]);
   const [localElectionCenters, setLocalElectionCenters] = useState<CenterRow[]>([]);
@@ -97,6 +98,11 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
         try {
           // Si l'élection courante est Locale, utiliser ses centres; sinon chercher la dernière Locale dans la même commune
           const isCurrentLocal = String(cur?.type || '').toLowerCase().includes('locale');
+          setIsLocalElection(isCurrentLocal);
+          if (isCurrentLocal) {
+            // Forcer la zone à Commune pour les élections locales
+            setZoneType('commune');
+          }
           let localElectionId: string | null = null;
 
           if (isCurrentLocal) {
@@ -560,13 +566,19 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Zone</Label>
-                <Select value={zoneType} onValueChange={(v) => { setZoneType(v as ZoneType); setZoneKey(''); }}>
+                <Select value={zoneType} onValueChange={(v) => { setZoneType(v as ZoneType); setZoneKey(''); }} disabled={isLocalElection}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sélectionner une zone" />
+                    <SelectValue placeholder={isLocalElection ? 'Commune' : 'Sélectionner une zone'} />
                   </SelectTrigger>
                   <SelectContent className="z-[100]" position="popper">
-                    <SelectItem value="departement">Département</SelectItem>
-                    <SelectItem value="commune">Commune</SelectItem>
+                    {isLocalElection ? (
+                      <SelectItem value="commune">Commune</SelectItem>
+                    ) : (
+                      <>
+                        <SelectItem value="departement">Département</SelectItem>
+                        <SelectItem value="commune">Commune</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

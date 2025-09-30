@@ -190,14 +190,14 @@ const ConsolidationSection = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Participation</p>
+                <p className="text-sm text-gray-600">Abstention</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {consolidatedResults.global.tauxParticipation}%
+                  {(100 - consolidatedResults.global.tauxParticipation)}%
                 </p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
-            <Progress value={consolidatedResults.global.tauxParticipation} className="mt-2" />
+            <Progress value={(100 - consolidatedResults.global.tauxParticipation)} className="mt-2" />
             <p className="text-xs text-gray-500 mt-1">
               {consolidatedResults.global.totalVotants.toLocaleString()} / {consolidatedResults.global.totalInscrits.toLocaleString()} électeurs
             </p>
@@ -347,7 +347,7 @@ const ConsolidationSection = () => {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">{region.region}</h3>
                     <Badge className="bg-blue-100 text-blue-800">
-                      {region.participation}% participation
+                      {(100 - region.participation)}% abstention
                     </Badge>
                   </div>
                   
@@ -364,8 +364,8 @@ const ConsolidationSection = () => {
                           <span className="font-medium">{region.votants.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Taux de participation:</span>
-                          <span className="font-medium">{region.participation}%</span>
+                          <span>Taux d'abstention:</span>
+                          <span className="font-medium">{(100 - region.participation)}%</span>
                         </div>
                       </div>
                     </div>

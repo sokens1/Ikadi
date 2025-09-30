@@ -478,16 +478,16 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-gov-gray">
               <Users className="w-5 h-5" />
-              <span>Participation Électorale</span>
+              <span>Abstention Électorale</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 mb-2">
-                  {finalResults ? Number(finalResults.participation.tauxParticipation).toFixed(2) : '0.00'}%
+                  {finalResults ? (100 - Number(finalResults.participation.tauxParticipation)).toFixed(2) : '0.00'}%
                 </div>
-                <div className="text-sm text-gray-600">Taux de participation</div>
+                <div className="text-sm text-gray-600">Taux d'abstention</div>
               </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -520,7 +520,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
               {finalResults?.participation?.verificationAlt && (
                 <div className="mt-3 text-xs">
                   <span className="inline-block px-2 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200">
-                    Vérif (modèle 2) — Exprimés: {Number(finalResults.participation.verificationAlt.exprimésAlt || finalResults.participation.verificationAlt.exprimesAlt).toLocaleString()} • Taux: {Number(finalResults.participation.verificationAlt.tauxAlt).toFixed(2)}%
+                    Vérif (modèle 2) — Exprimés: {Number(finalResults.participation.verificationAlt.exprimésAlt || finalResults.participation.verificationAlt.exprimesAlt).toLocaleString()} • Taux (participation): {Number(finalResults.participation.verificationAlt.tauxAlt).toFixed(2)}% • Abstention: {(100 - Number(finalResults.participation.verificationAlt.tauxAlt)).toFixed(2)}%
                   </span>
                 </div>
               )}
