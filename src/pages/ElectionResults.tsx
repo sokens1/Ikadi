@@ -11,7 +11,6 @@ import { fetchElectionById, fetchAllElections } from '../api/elections';
 import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCenterSummaryByCandidate, fetchBureauSummaryByCandidate } from '../api/results';
 import { toast } from 'sonner';
 import SEOHead from '@/components/SEOHead';
-import CrossAnalysisSection from '@/components/results/CrossAnalysisSection';
 
 // Icone WhatsApp (SVG minimal)
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -570,7 +569,7 @@ const ElectionResults: React.FC = () => {
   const fetchElectionResults = async (id: string) => {
     try {
       setLoading(true);
-
+      
       // Récupérer les données de l'élection
       const election = await fetchElectionById(id);
       if (!election) {
@@ -604,10 +603,10 @@ const ElectionResults: React.FC = () => {
         participation_rate: participationRate,
         candidates: (summaryData || [])
           .map((c: any) => ({
-            candidate_id: c.candidate_id,
-            candidate_name: c.candidate_name,
-            party_name: c.candidate_party ?? c.party ?? '',
-            total_votes: c.total_votes || 0,
+          candidate_id: c.candidate_id,
+          candidate_name: c.candidate_name,
+          party_name: c.candidate_party ?? c.party ?? '',
+          total_votes: c.total_votes || 0,
             percentage: totalVotesCast > 0 ? (100 * (c.total_votes || 0)) / totalVotesCast : 0,
             rank: 0
           }))
@@ -925,38 +924,6 @@ const ElectionResults: React.FC = () => {
 
   // Générer les meta tags dynamiques pour le partage
   const generateSEOData = () => {
-    const normalizeCandidateName = (name?: string) => {
-      if (!name) return name;
-      let fixed = name;
-      
-      // Normaliser les espaces
-      fixed = fixed.replace(/\s+/g, ' ').trim();
-      
-      // Corrections spécifiques pour LEBOMO
-      if (/LEBOMO/i.test(fixed)) {
-        // Remplacer Albert par Arnauld (priorité haute)
-        fixed = fixed.replace(/\bAlbert\b/gi, 'Arnauld');
-        // Remplacer Arnaud par Arnauld
-        fixed = fixed.replace(/\bArnaud\b/gi, 'Arnauld');
-        // Remplacer Claubert par Clobert
-        fixed = fixed.replace(/\bClaubert\b/gi, 'Clobert');
-        
-        // Forcer la correction pour LEBOMO spécifiquement
-        const parts = fixed.split(' ');
-        if (parts.length >= 3 && /^(LEBOMO)$/i.test(parts[0])) {
-          parts[1] = 'Arnauld';
-          parts[2] = 'Clobert';
-          fixed = parts.join(' ');
-        }
-      } else {
-        // Corrections générales pour tous les autres candidats
-        fixed = fixed.replace(/\bAlbert\b/gi, 'Arnauld');
-        fixed = fixed.replace(/\bArnaud\b/gi, 'Arnauld');
-        fixed = fixed.replace(/\bClaubert\b/gi, 'Clobert');
-      }
-      
-      return fixed;
-    };
     if (!results?.election) {
       return {
         title: 'Résultats d\'élection | o\'Hitu',
@@ -967,23 +934,22 @@ const ElectionResults: React.FC = () => {
 
     const election = results.election;
     const winner = results.candidates.find(c => c.rank === 1);
-    const winnerName = normalizeCandidateName(winner?.candidate_name);
-    const participation = results.participation_rate ? `${results.participation_rate.toFixed(1)}%` : 'En cours';
+    // const participation = results.participation_rate ? `${results.participation_rate.toFixed(1)}%` : 'En cours';
 
     // Titre optimisé pour WhatsApp
-    const title = winnerName
-      ? `${winnerName} en tête | Résultats Élections Moanda (1er Arr.)`
+    const title = winner?.candidate_name
+      ? `${winner.candidate_name} en tête | Résultats Élections Moanda (1er Arr.)`
       : `Résultats des Élections Locales et Législatives Moanda, 1er Arr.`;
 
     // Description optimisée pour le partage
     let description = `🗳️ Résultats des Élections Locales et Législatives Moanda, 1 Arr.\n\n`;
 
     if (winner) {
-      description += `🏆 ${winnerName || winner.candidate_name} en tête\n`;
+      description += `🏆 ${winner.candidate_name} en tête\n`;
       description += `📊 ${winner.total_votes.toLocaleString()} voix (${winner.percentage.toFixed(1)}%)\n`;
     }
 
-    description += `📈 Participation: ${participation}\n`;
+    // description += `📈 Participation: ${participation}\n`;
     description += `📱 Suivez les résultats en temps réel sur o'Hitu\n`;
     description += `🌍 République Gabonaise`;
 
@@ -1027,19 +993,19 @@ const ElectionResults: React.FC = () => {
           }
         }}
       />
-      <div className="min-h-screen bg-white">
-        {/* Header identique à la Home */}
-        <header className="border-b bg-gov-blue text-white">
+    <div className="min-h-screen bg-white">
+      {/* Header identique à la Home */}
+      <header className="border-b bg-gov-blue text-white">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <button onClick={() => navigate('/')} className="flex items-center space-x-2 sm:space-x-3 group" aria-label="Aller à l'accueil">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center shadow-sm overflow-hidden">
                     <img src="/favicon.ico" alt="Logo iKADI" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
-                  </div>
+              </div>
                   <div className="text-left">
                     <h1 className="text-white font-bold text-lg sm:text-xl lg:text-2xl">o'Hitu</h1>
-                  </div>
+            </div>
                 </button>
               </div>
               <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
@@ -1047,64 +1013,64 @@ const ElectionResults: React.FC = () => {
                   <Home className="w-3 h-3 lg:w-4 lg:h-4" />
                   <span className="hidden lg:inline">Accueil</span>
                 </Link>
-                {/* <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
+              {/* <a href="#about" className="hover:text-blue-200 transition-colors">A propos</a>
               <a href="#infos" className="hover:text-blue-200 transition-colors">Infos électorales</a>
               <a href="#candidats" className="hover:text-blue-200 transition-colors">Candidats</a> */}
                 {/* Résultats - temporairement masqué */}
                 {false && (
-                  <div className="relative text-left" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
+              <div className="relative text-left" onMouseEnter={() => setResultsMenuOpen(true)} onMouseLeave={() => setResultsMenuOpen(false)}>
                     <button className="hover:text-blue-200 transition-colors flex items-center gap-2" onClick={() => setResultsMenuOpen(v => !v)}>
                       <BarChart3 className="w-4 h-4" />
                       Résultats
                     </button>
-                    {resultsMenuOpen && (
+                {resultsMenuOpen && (
                       <div className="absolute right-0 left-auto mt-2 bg-white rounded shadow-lg border min-w-[260px] z-50 py-2">
                         <div className="px-3 pb-2 text-xs font-semibold text-gray-600 uppercase tracking-wide flex items-center gap-2">
                           <Zap className="w-3 h-3" />
                           Accès rapide
                         </div>
-                        <button
+                  <button
                           className="w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-gray-800 flex items-center gap-2"
-                          onClick={() => navigate('/')}
-                        >
+                    onClick={() => navigate('/')}
+                  >
                           <Home className="w-3 h-3" />
-                          Tous les résultats (accueil)
-                        </button>
-                        {results?.election && (
-                          <button
+                    Tous les résultats (accueil)
+                  </button>
+                  {results?.election && (
+                    <button
                             className="w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-gray-800 flex items-center gap-2"
-                            onClick={() => navigate(`/election/${results.election.id}/results`)}
-                          >
+                      onClick={() => navigate(`/election/${results.election.id}/results`)}
+                    >
                             <BarChart3 className="w-3 h-3" />
-                            Résultats courants
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                      Résultats courants
+                    </button>
+                  )}
+                </div>
                 )}
-                {/* <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
+              </div>
+                )}
+              {/* <a href="#circonscriptions" className="hover:text-blue-200 transition-colors">Circonscriptions / Bureaux</a>
               <a href="#contact" className="hover:text-blue-200 transition-colors">Contact</a> */}
-              </nav>
+            </nav>
               <button className="md:hidden p-1.5 sm:p-2 rounded hover:bg-white/10" aria-label="Ouvrir le menu" onClick={() => setMobileOpen(v => !v)}>
                 {mobileOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
-              </button>
-            </div>
-            {mobileOpen && (
+            </button>
+          </div>
+          {mobileOpen && (
               <div className="mt-3 md:hidden border-t border-white/10 pt-3 space-y-1 sm:space-y-2">
                 {[
                   { href: '/', label: 'Accueil', icon: Home },
                   // { href: '#resultats', label: 'Résultats', icon: BarChart3 }, // masqué pour l'instant
-                ].map(link => (
+              ].map(link => (
                   <Link key={link.label} to={link.href} className="px-2 sm:px-3 py-2 sm:py-2.5 rounded hover:bg-white/10 flex items-center gap-2 text-sm sm:text-base" onClick={() => setMobileOpen(false)}>
                     <link.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                    {link.label}
+                  {link.label}
                   </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </header>
+              ))}
+            </div>
+          )}
+        </div>
+      </header>
 
         {/* Hero Section inspirée (gauche: texte, droite: illustration) */}
         <section className="relative overflow-hidden">
@@ -1112,7 +1078,7 @@ const ElectionResults: React.FC = () => {
           <div className="absolute inset-0 bg-blue-800/20" />
 
 
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 xl:py-14 relative">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-14 xl:py-20 relative">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 xl:gap-16 items-center">
               {/* Colonne gauche: contenu */}
               <div className="order-2 lg:order-1">
@@ -1145,8 +1111,8 @@ const ElectionResults: React.FC = () => {
                 })()}
 
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight text-gray-900 mb-3 sm:mb-4 leading-tight">
-                  {results.election?.title}
-                </h1>
+              {results.election?.title}
+            </h1>
                 <p className="text-gray-600 text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl mb-4 sm:mb-6">
                   Consultez les résultats, mis à jour pour {results.election?.localisation || 'cette élection'}.
                 </p>
@@ -1166,17 +1132,23 @@ const ElectionResults: React.FC = () => {
                     {new Date(results.election?.election_date || '').toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </span>
 
-                  {/* Texte d'information sur les résultats provisoires */}
-                  <div className="w-full mt-2">
-                    <p className="text-xs text-gray-500">* Résultats provisoires (à confirmer par le Ministère de l'Intérieur).</p>
+                  {/* Texte d'information sur les résultats provisoires - En miniature avec astérisque */}
+                  <div className="text-center mt-2">
+                    <p className="text-xs text-gray-500">
+                      * Résultats provisoires (à confirmer par le Ministère de l'Intérieur).
+                    </p>
                   </div>
-                  {results.election?.localisation && (
+                  {/* Copyright mobile sous le texte provisoire */}
+                  <div className="sm:hidden w-full text-center mt-2 text-gray-600 text-[10px]">
+                    © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
+                  </div>
+            {results.election?.localisation && (
                     <span className="flex items-center gap-1.5 sm:gap-2 text-gray-700 bg-white rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border text-xs sm:text-sm w-full sm:w-auto justify-center">
                       <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gov-blue" />
-                      {results.election.localisation}
-                    </span>
+                {results.election.localisation}
+              </span>
                   )}
-                </div>
+            </div>
               </div>
 
               {/* Colonne droite: illustration */}
@@ -1187,13 +1159,12 @@ const ElectionResults: React.FC = () => {
                 </div>
               </div>
             </div>
-            {/* Copyright aligné à gauche, léger décalage à droite et police légèrement agrandie */}
-            <div className="mt-3 sm:mt-2 lg:mt-2 pl-1 sm:pl-2 text-gray-600 text-[11px] leading-none text-left">
+            {/* Copyright desktop centré en bas de la section héro */}
+            <div className="hidden lg:block absolute bottom-12 left-0 right-0 text-center text-gray-500 text-xs z-20">
               © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
-            </div>
-            {/* Supprimé: copyright dupliqué en desktop */}
           </div>
-        </section>
+        </div>
+      </section>
 
         {/* Statistiques principales modernisées */}
         <section id="statistiques" className="bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-8 lg:py-12 xl:py-16 -mt-2 sm:-mt-4 lg:-mt-6 xl:-mt-8 relative z-10">
@@ -1216,18 +1187,33 @@ const ElectionResults: React.FC = () => {
                 subtitle="Votes comptabilisés"
                 animated={true}
               />
+              {/**
+               * Carte Taux de participation masquée temporairement sur demande.
+               * À réactiver en retirant ces commentaires.
+               */}
+              {false && (
+                <MetricCard
+                  title="Taux de participation"
+                  value={results.participation_rate ? results.participation_rate : 0}
+                  icon={<div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><span className="text-blue-600 font-bold text-lg">%</span></div>}
+                  color="bg-gradient-to-br from-purple-500 to-purple-600"
+                  subtitle="Pourcentage de participation"
+                  animated={true}
+                  showDecimals={true}
+                />
+              )}
               <MetricCard
-                title="Taux de participation"
-                value={results.participation_rate ? results.participation_rate : 0}
-                icon={<div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><span className="text-blue-600 font-bold text-lg">%</span></div>}
-                color="bg-gradient-to-br from-purple-500 to-purple-600"
-                subtitle="Pourcentage de participation"
+                title="Taux d'abstention"
+                value={100 - (results.participation_rate || 0)}
+                icon={<div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><span className="text-red-600 font-bold text-lg">%</span></div>}
+                color="bg-gradient-to-br from-red-500 to-red-600"
+                subtitle="100% - participation"
                 animated={true}
                 showDecimals={true}
               />
-            </div>
           </div>
-        </section>
+        </div>
+      </section>
 
         {/* Section Couverture des bureaux - Version dynamique */}
         <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
@@ -1526,11 +1512,11 @@ const ElectionResults: React.FC = () => {
                           <div className={`${bgColor} rounded-lg p-3 sm:p-4 mb-3`}>
                             <div className={`text-xl sm:text-2xl font-bold ${textColor} mb-1`}>
                               {coveragePercentage}%
-                            </div>
+            </div>
                             <div className="text-xs sm:text-sm text-gray-600">
                               {bureauxAvecResultats} sur {displayTotal} bureaux
-                            </div>
-                          </div>
+                        </div>
+                        </div>
                           <div className="text-xs sm:text-sm text-gray-600">
                             {isRealData
                               ? (isComplete ? "Tous les bureaux ont été traités" : "Après dépouillement")
@@ -1538,10 +1524,10 @@ const ElectionResults: React.FC = () => {
                                 <div className="flex items-center justify-center gap-2">
                                   <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
                                   Récupération du nombre total...
-                                </div>
+                      </div>
                               )
                             }
-                          </div>
+                        </div>
                           {!isRealData && (
                             <button
                               onClick={() => {
@@ -1570,14 +1556,14 @@ const ElectionResults: React.FC = () => {
                           <div className="bg-gray-100 rounded-lg p-3 sm:p-4 mb-3">
                             <div className="text-xl sm:text-2xl font-bold text-gray-600 mb-1">
                               Chargement...
-                            </div>
+                    </div>
                             <div className="text-xs sm:text-sm text-gray-500">
                               Récupération des données
-                            </div>
-                          </div>
+                        </div>
+                      </div>
                           <div className="text-xs sm:text-sm text-gray-600">
                             Chargement des données...
-                          </div>
+            </div>
                         </div>
                       </div>
                     );
@@ -1743,33 +1729,33 @@ const ElectionResults: React.FC = () => {
                   </table>
                 </div>
               )
-            )}
-          </div>
-        </section>
+          )}
+        </div>
+      </section>
 
-        {/* Modal détail candidat */}
-        <Dialog open={!!openCandidateId} onOpenChange={(o) => !o && setOpenCandidateId(null)}>
+      {/* Modal détail candidat */}
+      <Dialog open={!!openCandidateId} onOpenChange={(o) => !o && setOpenCandidateId(null)}>
           <DialogContent
-            className="w-[min(28rem,calc(100vw-2rem))] sm:w-full sm:max-w-4xl lg:max-w-5xl max-h-[calc(100vh-2rem)] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6"
+            className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[calc(100vh-1rem)] sm:max-h-[90vh] overflow-y-auto p-3 sm:p-5"
           >
-            <DialogHeader>
+          <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl">Détails du candidat</DialogTitle>
-            </DialogHeader>
-            {(() => {
-              const c = results.candidates.find(x => x.candidate_id === openCandidateId);
-              if (!c) return <div className="text-gov-gray">Aucune donnée</div>;
-              return (
-                <div>
+          </DialogHeader>
+          {(() => {
+            const c = results.candidates.find(x => x.candidate_id === openCandidateId);
+            if (!c) return <div className="text-gov-gray">Aucune donnée</div>;
+            return (
+              <div>
                   <div className="mb-3 sm:mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-gov-dark">{c.candidate_name}</h3>
                     <p className="text-gov-gray text-sm sm:text-base">{c.party_name}</p>
                     {/* <div className="mt-2 text-sm text-gov-gray">Voix: {c.total_votes.toLocaleString()} • Part: {c.percentage.toFixed(1)}%</div> */}
-                  </div>
-                  <Tabs defaultValue="center">
-                    <TabsList className="grid w-full grid-cols-2">
+                </div>
+                <Tabs defaultValue="center">
+                    <TabsList className="grid w-full grid-cols-2 rounded-lg bg-slate-50 p-0.5 border">
                       <TabsTrigger value="center" className="text-xs sm:text-sm">Par centre</TabsTrigger>
                       <TabsTrigger value="bureau" className="text-xs sm:text-sm">Par bureau</TabsTrigger>
-                    </TabsList>
+                  </TabsList>
 
                     {/* Contrôles de tri pour les modales des candidats - affichés seulement s'il y a des données */}
                     {hasAnyCandidateData() && (
@@ -1808,51 +1794,53 @@ const ElectionResults: React.FC = () => {
                       </div>
                     )}
 
-                    <TabsContent value="center">
+                  <TabsContent value="center">
                       {hasCandidateCenterData() ? (
-                        <div className="space-y-3 mt-3">
+                    <div className="space-y-3 mt-3">
                           {getSortedCandidateCenters().map((row, idx) => (
-                            <details key={idx} className="bg-white rounded border">
+                        <details key={idx} className="bg-white rounded border">
                               <summary className="cursor-pointer px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-100">
-                                <span className="font-semibold text-sm sm:text-base">{row.center_name}</span>
-                                <div className="grid grid-cols-3 gap-2 sm:gap-3 text-xs sm:text-sm">
+                                <span className="font-semibold text-sm sm:text-base truncate max-w-full">{row.center_name}</span>
+                                <div className="grid grid-cols-3 gap-2 sm:gap-3 text-[10px] sm:text-sm w-full sm:w-auto">
                                   <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Voix</div><div className="font-semibold text-xs sm:text-sm">{row.candidate_votes}</div></div>
                                   <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Score</div><div className="font-semibold text-xs sm:text-sm">{typeof row.candidate_percentage === 'number' ? `${Math.min(Math.max(row.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</div></div>
-                                  <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Participation</div><div className="font-semibold text-xs sm:text-sm">{typeof row.candidate_participation_pct === 'number' ? `${Math.min(Math.max(row.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</div></div>
-                                </div>
-                              </summary>
-                              <div className="px-0 sm:px-2 py-3">
-                                <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8">
-                                  <table className="min-w-full bg-white">
+                                  <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Abstention</div><div className="font-semibold text-xs sm:text-sm">{typeof row.candidate_participation_pct === 'number' ? `${(100 - Math.min(Math.max(row.candidate_participation_pct, 0), 100)).toFixed(2)}%` : '-'}</div></div>
+                            </div>
+                          </summary>
+                          <div className="px-0 sm:px-2 py-3">
+                                <div className="relative overflow-x-auto rounded-lg border bg-white/50 p-1 sm:p-2">
+                                  <table className="w-full bg-white rounded-md table-fixed">
                                     <thead className="bg-slate-100">
-                                      <tr>
-                                        <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm">Bureau</th>
-                                        <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Voix</th>
-                                        <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Score</th>
-                                        <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Participation</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="text-xs sm:text-sm">
+                                  <tr>
+                                        <th className="text-left px-1.5 sm:px-3 py-1.5 sm:py-2 border text-[10px] sm:text-sm truncate">Bureau</th>
+                                        <th className="text-right px-1.5 sm:px-3 py-1.5 sm:py-2 border text-[10px] sm:text-sm">Voix</th>
+                                        <th className="text-right px-1.5 sm:px-3 py-1.5 sm:py-2 border text-[10px] sm:text-sm">Score</th>
+                                        {false && (<th className="text-right px-1.5 sm:px-3 py-1.5 sm:py-2 border text-[10px] sm:text-sm">Participation</th>)}
+                                        <th className="text-right px-1.5 sm:px-3 py-1.5 sm:py-2 border text-[10px] sm:text-sm">Abstention</th>
+                                  </tr>
+                                </thead>
+                                    <tbody className="text-[11px] sm:text-sm">
                                       {getSortedCandidateBureaux().filter(b => b.center_id === row.center_id).map((b, i2) => (
-                                        <tr key={i2} className="odd:bg-white even:bg-slate-50">
-                                          <td className="px-2 sm:px-3 py-2 border">{b.bureau_name}</td>
-                                          <td className="px-2 sm:px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
-                                          <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</td>
-                                          <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</td>
-                                        </tr>
-                                      ))}
+                                    <tr key={i2} className="odd:bg-white even:bg-slate-50">
+                                          <td className="px-1.5 sm:px-3 py-1.5 sm:py-2 border truncate">{b.bureau_name}</td>
+                                          <td className="px-1.5 sm:px-3 py-1.5 sm:py-2 border text-right">{b.candidate_votes ?? '-'}</td>
+                                          <td className="px-1.5 sm:px-3 py-1.5 sm:py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</td>
+                                          {false && (<td className="px-1.5 sm:px-3 py-1.5 sm:py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</td>)}
+                                          <td className="px-1.5 sm:px-3 py-1.5 sm:py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.candidate_participation_pct, 0), 100)).toFixed(2)}%` : '-'}</td>
+                                    </tr>
+                                  ))}
                                       {getSortedCandidateBureaux().filter(b => b.center_id === row.center_id).length === 0 && (
-                                        <tr>
-                                          <td className="px-3 py-4 text-center text-gov-gray text-xs sm:text-sm" colSpan={4}>Aucun bureau</td>
-                                        </tr>
-                                      )}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            </details>
-                          ))}
-                        </div>
+                                    <tr>
+                                          <td className="px-3 py-4 text-center text-gov-gray text-xs sm:text-sm" colSpan={5}>Aucun bureau</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </details>
+                      ))}
+                    </div>
                       ) : (
                         <div className="mt-6 p-8 text-center">
                           <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
@@ -1866,33 +1854,35 @@ const ElectionResults: React.FC = () => {
                           </p>
                         </div>
                       )}
-                    </TabsContent>
-                    <TabsContent value="bureau">
+                  </TabsContent>
+                  <TabsContent value="bureau">
                       {hasCandidateBureauData() ? (
-                        <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-3 -mx-4 sm:-mx-6 lg:-mx-8">
-                          <table className="min-w-full min-w-[500px] bg-white border">
-                            <thead className="bg-slate-100 text-gov-dark">
-                              <tr>
+                        <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-3 rounded-lg border bg-white/50 p-1 sm:p-2">
+                          <table className="w-full min-w-[640px] bg-white rounded-md">
+                            <thead className="bg-slate-100 text-gov-dark rounded-t-md">
+                          <tr>
                                 <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm whitespace-nowrap">Centre</th>
                                 <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm whitespace-nowrap">Bureau</th>
                                 <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Voix</th>
                                 <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Score</th>
-                                <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Participation</th>
-                              </tr>
-                            </thead>
+                                {false && (<th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Participation</th>)}
+                                <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Abstention</th>
+                          </tr>
+                        </thead>
                             <tbody className="text-xs sm:text-sm">
                               {getSortedCandidateBureaux().map((b, idx) => (
-                                <tr key={idx} className="odd:bg-white even:bg-slate-50">
+                            <tr key={idx} className="odd:bg-white even:bg-slate-50">
                                   <td className="px-2 sm:px-3 py-2 border whitespace-nowrap">{b.center_name || centerNameById[b.center_id] || b.center_id}</td>
                                   <td className="px-2 sm:px-3 py-2 border whitespace-nowrap">{b.bureau_name}</td>
                                   <td className="px-2 sm:px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
                                   <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</td>
-                                  <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                                  {false && (<td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</td>)}
+                                  <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.candidate_participation_pct, 0), 100)).toFixed(2)}%` : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                       ) : (
                         <div className="mt-6 p-8 text-center">
                           <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
@@ -1906,13 +1896,13 @@ const ElectionResults: React.FC = () => {
                           </p>
                         </div>
                       )}
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              );
-            })()}
-          </DialogContent>
-        </Dialog>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
         {/* Vue détaillée par centre / par bureau modernisée */}
         <section id="analyse" className="py-6 sm:py-8 lg:py-12 xl:py-16 bg-gradient-to-br from-gray-50 to-gray-100">
@@ -2001,9 +1991,9 @@ const ElectionResults: React.FC = () => {
                     </div>
                   </div>
                 )}
-              </div>
+          </div>
 
-              {viewMode === 'center' ? (
+          {viewMode === 'center' ? (
                 <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                   {(getSortedAndGroupedData() as CenterGroup[]).map((group, idx) => {
                     const c = group.center;
@@ -2036,8 +2026,11 @@ const ElectionResults: React.FC = () => {
                               <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Participation</div>
                               <div className="font-bold text-green-600 text-xs sm:text-sm lg:text-lg">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct, 0), 100).toFixed(2)}%` : '-'}</div>
                             </div>
-                          </div>
-                        </summary>
+                            {/** Participation masquée. Conserver uniquement l'abstention parmi les indicateurs.
+                             * Pour réactiver la vignette de participation, rétablir la grille à 4 colonnes et décommenter le bloc ci-dessous.
+                             */}
+                    </div>
+                  </summary>
                         <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gray-50">
                           <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 -mx-4 sm:-mx-6 lg:-mx-8">
                             <table className="min-w-full min-w-[500px]">
@@ -2071,11 +2064,21 @@ const ElectionResults: React.FC = () => {
                                       <span className="sm:hidden">Expr.</span>
                                     </div>
                                   </th>
+                                  {/** Colonne Participation masquée temporairement. Réactiver en supprimant {false && (...)} */}
+                                  {false && (
+                                    <th className="text-right px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
+                                      <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
+                                        <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
+                                        <span className="hidden sm:inline">Participation</span>
+                                        <span className="sm:hidden">Part.</span>
+                                      </div>
+                                    </th>
+                                  )}
                                   <th className="text-right px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
                                     <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
-                                      <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
-                                      <span className="hidden sm:inline">Participation</span>
-                                      <span className="sm:hidden">Part.</span>
+                                      <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
+                                      <span className="hidden sm:inline">Abstention</span>
+                                      <span className="sm:hidden">Abs.</span>
                                     </div>
                                   </th>
                                   {/* <th className="text-right px-2 sm:px-4 py-2 sm:py-3 font-semibold text-gray-700 text-xs sm:text-sm">
@@ -2084,8 +2087,8 @@ const ElectionResults: React.FC = () => {
                                  Score
                                </div>
                              </th> */}
-                                </tr>
-                              </thead>
+                          </tr>
+                        </thead>
                               <tbody className="divide-y divide-gray-200">
                                 {group.bureaux.sort((a, b) => {
                                   // Trier les bureaux par numéro de bureau
@@ -2098,12 +2101,19 @@ const ElectionResults: React.FC = () => {
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_registered?.toLocaleString() ?? '-'}</td>
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_voters?.toLocaleString() ?? '-'}</td>
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_expressed_votes?.toLocaleString() ?? '-'}</td>
+                                    {false && (
+                                      <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right">
+                                        <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
+                                          typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-red-100 text-red-800'
+                                          }`}>
+                                          {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : '-'}
+                                        </span>
+                                      </td>
+                                    )}
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right">
-                                      <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
-                                        typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                                          'bg-red-100 text-red-800'
-                                        }`}>
-                                        {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : '-'}
+                                      <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${typeof b.participation_pct === 'number' && (100 - b.participation_pct) >= 50 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                                        {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
                                       </span>
                                     </td>
                                     {/* <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
@@ -2115,30 +2125,30 @@ const ElectionResults: React.FC = () => {
                                    {typeof b.score_pct === 'number' ? `${Math.min(Math.max(b.score_pct,0),100).toFixed(1)}%` : '-'}
                                  </span>
                                </td> */}
-                                  </tr>
-                                ))}
+                            </tr>
+                          ))}
                                 {group.bureaux.length === 0 && (
                                   <tr>
-                                    <td className="px-2 sm:px-4 py-4 sm:py-6 lg:py-8 text-center text-gray-500 text-[10px] sm:text-xs lg:text-sm" colSpan={5}>
+                                    <td className="px-2 sm:px-4 py-4 sm:py-6 lg:py-8 text-center text-gray-500 text-[10px] sm:text-xs lg:text-sm" colSpan={6}>
                                       <div className="flex flex-col items-center gap-1 sm:gap-2">
                                         <Target className="w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-gray-400" />
                                         <span>Aucun bureau disponible</span>
                                       </div>
                                     </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </details>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
                     )
                   })}
                   {(getSortedAndGroupedData() as CenterGroup[]).length === 0 && (
-                    <div className="text-center text-gov-gray">Aucun centre à afficher.</div>
-                  )}
-                </div>
-              ) : (
+                <div className="text-center text-gov-gray">Aucun centre à afficher.</div>
+              )}
+            </div>
+          ) : (
                 <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
                   <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
                     <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 flex items-center gap-1.5 sm:gap-2">
@@ -2149,46 +2159,75 @@ const ElectionResults: React.FC = () => {
                       Tous les bureaux de vote avec leurs statistiques complètes
                     </p>
                   </div>
-                  <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    <table className="w-full min-w-[600px]">
+                  {/* Vue compacte mobile (liste) */}
+                  <div className="sm:hidden mt-3 space-y-1">
+                    {(getSortedAndGroupedData() as BureauData[]).map((b, idx) => (
+                      <div key={`${b.center_id}-${b.bureau_number}-m-${idx}`} className="flex items-center justify-between rounded-md border bg-white px-2.5 py-2 text-[12px]">
+                        <div className="min-w-0 mr-2">
+                          <div className="font-medium truncate">{b.center_name || centerNameById[b.center_id] || b.center_id} • {b.bureau_name}</div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-semibold text-blue-700">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes || '-'}</span>
+                          <span className={`px-1.5 py-0.5 rounded-full text-[11px] ${typeof b.participation_pct === 'number' && (100 - Math.min(Math.max(b.participation_pct, 0), 100)) >= 50 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {(getSortedAndGroupedData() as BureauData[]).length === 0 && (
+                      <div className="rounded-md border bg-white px-3 py-4 text-center text-gray-600">Aucun bureau à afficher</div>
+                    )}
+                  </div>
+
+                  {/* Tableau desktop/tablette */}
+                  <div className="hidden sm:block relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 rounded-lg border bg-white/50 p-1 sm:p-2">
+                    <table className="w-full bg-white rounded-md table-fixed">
                       <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                         <tr>
-                          <th className="text-left px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                          <th className="hidden sm:table-cell text-left px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs truncate">
                             <div className="flex items-center gap-1">
                               <Building className="w-2 h-2" />
                               <span className="hidden sm:inline">Centre</span>
                               <span className="sm:hidden">Cent.</span>
                             </div>
                           </th>
-                          <th className="text-left px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                          <th className="text-left px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs truncate">
                             <div className="flex items-center gap-1">
                               <Target className="w-2 h-2" />
                               <span className="hidden sm:inline">Bureau</span>
                               <span className="sm:hidden">Bur.</span>
                             </div>
                           </th>
-                          <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                          <th className="hidden sm:table-cell text-right px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs">
                             <div className="flex items-center justify-end gap-1">
                               <Users className="w-2 h-2" />
                               <span>Inscrits</span>
                             </div>
                           </th>
-                          <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                          <th className="hidden sm:table-cell text-right px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs">
                             <div className="flex items-center justify-end gap-1">
                               <Vote className="w-2 h-2" />
                               <span>Votants</span>
                             </div>
                           </th>
-                          <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                          <th className="text-right px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold text-[10px] sm:text-xs">
                             <div className="flex items-center justify-end gap-1">
                               <BarChart3 className="w-2 h-2" />
-                              <span>Suf. Exp</span>
+                              <span>Voix</span>
                             </div>
                           </th>
+                          {false && (
+                            <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1">
+                                <TrendingUp className="w-2 h-2" />
+                                <span>Participation</span>
+                              </div>
+                            </th>
+                          )}
                           <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
-                              <TrendingUp className="w-2 h-2" />
-                              <span>Participation</span>
+                              <TrendingDown className="w-2 h-2" />
+                              <span>Abstention</span>
                             </div>
                           </th>
                           {/* <th className="text-right px-3 sm:px-6 py-3 sm:py-4 font-semibold text-xs sm:text-sm">
@@ -2197,38 +2236,45 @@ const ElectionResults: React.FC = () => {
                            Score
                          </div>
                        </th> */}
-                        </tr>
-                      </thead>
+                  </tr>
+                </thead>
                       <tbody className="divide-y divide-gray-200">
                         {(getSortedAndGroupedData() as BureauData[]).map((b, idx) => (
                           <tr key={`${b.center_id}-${b.bureau_number}-${idx}`} className="hover:bg-blue-50 transition-colors duration-200">
-                            <td className="px-2 py-2 font-medium text-gray-800 text-[8px] sm:text-xs">
+                            <td className="hidden sm:table-cell px-1.5 sm:px-2 py-1.5 sm:py-2 font-medium text-gray-800 text-[10px] sm:text-xs truncate">
                               <div className="flex items-center gap-1">
                                 <Building className="w-2 h-2 text-blue-600" />
                                 <span className="truncate">{b.center_name || centerNameById[b.center_id] || b.center_id}</span>
                               </div>
                             </td>
-                            <td className="px-2 py-2 text-[8px] sm:text-xs">
+                            <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 text-[10px] sm:text-xs truncate">
                               <div className="flex items-center gap-1">
                                 <Target className="w-2 h-2 text-blue-600" />
                                 <span className="truncate whitespace-nowrap">{b.bureau_name}</span>
                               </div>
                             </td>
-                            <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
+                            <td className="hidden sm:table-cell px-1.5 sm:px-2 py-1.5 sm:py-2 text-right text-[10px] sm:text-xs">
                               <span className="font-bold text-gray-800">{b.total_registered?.toLocaleString() ?? '-'}</span>
                             </td>
-                            <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
+                            <td className="hidden sm:table-cell px-1.5 sm:px-2 py-1.5 sm:py-2 text-right text-[10px] sm:text-xs">
                               <span className="font-bold text-gray-800">{b.total_voters?.toLocaleString() ?? '-'}</span>
                             </td>
-                            <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
+                            <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 text-right text-[10px] sm:text-xs">
                               <span className="font-bold text-blue-600">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</span>
                             </td>
-                            <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
-                              <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
-                                typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
-                                }`}>
-                                {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : (b.participation_pct || '-')}
+                            {false && (
+                              <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
+                                <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
+                                  typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                                  }`}>
+                                  {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : (b.participation_pct || '-')}
+                                </span>
+                              </td>
+                            )}
+                            <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 text-right text-[10px] sm:text-xs">
+                              <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${typeof b.participation_pct === 'number' && (100 - Math.min(Math.max(b.participation_pct, 0), 100)) >= 50 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                                {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
                               </span>
                             </td>
                             {/* <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
@@ -2243,8 +2289,8 @@ const ElectionResults: React.FC = () => {
                              <span className="text-xs text-gray-500 mt-1 hidden sm:block">score</span>
                            </div>
                          </td> */}
-                          </tr>
-                        ))}
+                    </tr>
+                  ))}
                         {(getSortedAndGroupedData() as BureauData[]).length === 0 && (
                           <tr>
                             <td className="px-2 sm:px-6 py-6 sm:py-8 lg:py-12 text-center text-gray-500 text-[10px] sm:text-sm lg:text-base" colSpan={6}>
@@ -2254,14 +2300,14 @@ const ElectionResults: React.FC = () => {
                                 <span className="text-[10px] sm:text-xs lg:text-sm">Les données des bureaux ne sont pas encore disponibles</span>
                               </div>
                             </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
                   </div>
-                </div>
-              )}
             </div>
+          )}
+        </div>
           ) : (
             /* Message d'état vide quand pas de données */
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -2307,7 +2353,7 @@ const ElectionResults: React.FC = () => {
                   <div className="text-center">
                     <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 mx-auto mb-3 sm:mb-4 lg:mb-6 bg-gray-100 rounded-full flex items-center justify-center">
                       <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-gray-400" />
-                    </div>
+              </div>
                     <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-800 mb-2 sm:mb-3">
                       Données en cours de préparation
                     </h3>
@@ -2315,17 +2361,12 @@ const ElectionResults: React.FC = () => {
                       Les données détaillées des centres et bureaux de vote ne sont pas encore disponibles.
                       Elles seront affichées dès que les résultats seront publiés.
                     </p>
-                  </div>
+            </div>
                 </div>
               </div>
             </div>
           )}
         </section>
-
-        {/* Nouvelle section : Analyse croisée */}
-        {results?.election?.id && (
-          <CrossAnalysisSection electionId={String(results.election.id)} />
-        )}
 
         {/* Section de navigation vers autre élection */}
         {getAlternativeElection() && (
@@ -2372,11 +2413,11 @@ const ElectionResults: React.FC = () => {
                             <div className="flex items-center justify-center">
                               <span>Voir Élections {currentType}s</span>
                               <ArrowRightLeft className="w-4 h-4 ml-2" />
-                            </div>
-                          )}
-                        </Button>
                       </div>
-                    </div>
+                    )}
+                        </Button>
+                  </div>
+            </div>
                   );
                 })()}
               </div>
@@ -2418,7 +2459,7 @@ const ElectionResults: React.FC = () => {
                 </ul>
               </div >
 
-              {/* Partage */}
+            {/* Partage */}
               < div className="order-2 lg:order-3 text-[10px] sm:text-xs lg:text-sm text-white/90 lg:justify-self-end max-w-xs sm:max-w-sm" >
                 <h4 className="font-semibold text-white mb-1.5 sm:mb-2 lg:mb-3 flex items-center gap-1.5 sm:gap-2">
                   <Share2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
@@ -2427,18 +2468,18 @@ const ElectionResults: React.FC = () => {
                 <div className="flex flex-row flex-wrap gap-2 sm:gap-3 lg:gap-4 items-center">
                   <button aria-label="Partager sur WhatsApp" onClick={() => handleShare('whatsapp')} className="p-1.5 sm:p-2 bg-white/10 rounded hover:bg-white/20 transition-colors" title="WhatsApp">
                     <WhatsAppIcon width={20} height={20} className="sm:w-6 sm:h-6 lg:w-7 lg:h-7" />
-                  </button>
+                </button>
                   <button aria-label="Partager sur Facebook" onClick={() => handleShare('facebook')} className="p-1.5 sm:p-2 bg-white/10 rounded hover:bg-white/20 transition-colors" title="Facebook">
                     <Facebook className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7" />
-                  </button>
+                </button>
                   <button aria-label="Copier le lien" onClick={() => handleShare('copy')} className="p-1.5 sm:p-2 bg-white/10 rounded hover:bg-white/20 transition-colors" title="Copier le lien">
                     <LinkIcon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7" />
-                  </button>
-                </div>
+                </button>
+              </div>
               </div >
             </div >
 
-            {/* Copyright */}
+          {/* Copyright */}
             < div className="mt-6 sm:mt-8 lg:mt-12 text-center font-semibold text-[10px] sm:text-xs lg:text-sm whitespace-nowrap" >© {new Date(results.last_updated).getFullYear()} o'Hitu. Tous droits réservés.</div>
           </div >
         </footer >
