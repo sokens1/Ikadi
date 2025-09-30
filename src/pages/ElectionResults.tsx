@@ -968,7 +968,8 @@ const ElectionResults: React.FC = () => {
     const election = results.election;
     const winner = results.candidates.find(c => c.rank === 1);
     const winnerName = normalizeCandidateName(winner?.candidate_name);
-    const participation = results.participation_rate ? `${results.participation_rate.toFixed(1)}%` : 'En cours';
+    const abstentionVal = typeof results.participation_rate === 'number' ? (100 - results.participation_rate) : undefined;
+    const participation = abstentionVal !== undefined ? `${abstentionVal.toFixed(1)}%` : 'En cours';
 
     // Titre optimisé pour WhatsApp
     const title = winnerName
@@ -983,7 +984,7 @@ const ElectionResults: React.FC = () => {
       description += `📊 ${winner.total_votes.toLocaleString()} voix (${winner.percentage.toFixed(1)}%)\n`;
     }
 
-    description += `📈 Participation: ${participation}\n`;
+    description += `📉 Abstention: ${participation}\n`;
     description += `📱 Suivez les résultats en temps réel sur o'Hitu\n`;
     description += `🌍 République Gabonaise`;
 
@@ -1217,11 +1218,11 @@ const ElectionResults: React.FC = () => {
                 animated={true}
               />
               <MetricCard
-                title="Taux de participation"
-                value={results.participation_rate ? results.participation_rate : 0}
+                title="Taux d'abstention"
+                value={typeof results.participation_rate === 'number' ? 100 - results.participation_rate : 0}
                 icon={<div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><span className="text-blue-600 font-bold text-lg">%</span></div>}
                 color="bg-gradient-to-br from-purple-500 to-purple-600"
-                subtitle="Pourcentage de participation"
+                subtitle="Pourcentage d'abstention"
                 animated={true}
                 showDecimals={true}
               />
@@ -1782,7 +1783,7 @@ const ElectionResults: React.FC = () => {
                             className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
                           >
                             <option value="center">Centre</option>
-                            <option value="participation">Participation</option>
+                            <option value="participation">Abstention</option>
                             <option value="score">Score</option>
                             <option value="votes">Voix</option>
                           </select>
@@ -1818,7 +1819,7 @@ const ElectionResults: React.FC = () => {
                                 <div className="grid grid-cols-3 gap-2 sm:gap-3 text-xs sm:text-sm">
                                   <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Voix</div><div className="font-semibold text-xs sm:text-sm">{row.candidate_votes}</div></div>
                                   <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Score</div><div className="font-semibold text-xs sm:text-sm">{typeof row.candidate_percentage === 'number' ? `${Math.min(Math.max(row.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</div></div>
-                                  <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Participation</div><div className="font-semibold text-xs sm:text-sm">{typeof row.candidate_participation_pct === 'number' ? `${Math.min(Math.max(row.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</div></div>
+                                  <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Abstention</div><div className="font-semibold text-xs sm:text-sm">{typeof row.candidate_participation_pct === 'number' ? `${(100 - Math.min(Math.max(row.candidate_participation_pct, 0), 100)).toFixed(2)}%` : '-'}</div></div>
                                 </div>
                               </summary>
                               <div className="px-0 sm:px-2 py-3">
@@ -1829,7 +1830,7 @@ const ElectionResults: React.FC = () => {
                                         <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm">Bureau</th>
                                         <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Voix</th>
                                         <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Score</th>
-                                        <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Participation</th>
+                                        <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Abstention</th>
                                       </tr>
                                     </thead>
                                     <tbody className="text-xs sm:text-sm">
@@ -1838,7 +1839,7 @@ const ElectionResults: React.FC = () => {
                                           <td className="px-2 sm:px-3 py-2 border">{b.bureau_name}</td>
                                           <td className="px-2 sm:px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
                                           <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</td>
-                                          <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</td>
+                                          <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.candidate_participation_pct, 0), 100)).toFixed(2)}%` : '-'}</td>
                                         </tr>
                                       ))}
                                       {getSortedCandidateBureaux().filter(b => b.center_id === row.center_id).length === 0 && (
@@ -1877,7 +1878,7 @@ const ElectionResults: React.FC = () => {
                                 <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm whitespace-nowrap">Bureau</th>
                                 <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Voix</th>
                                 <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Score</th>
-                                <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Participation</th>
+                                <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Abstention</th>
                               </tr>
                             </thead>
                             <tbody className="text-xs sm:text-sm">
@@ -1887,7 +1888,7 @@ const ElectionResults: React.FC = () => {
                                   <td className="px-2 sm:px-3 py-2 border whitespace-nowrap">{b.bureau_name}</td>
                                   <td className="px-2 sm:px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
                                   <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</td>
-                                  <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</td>
+                                  <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.candidate_participation_pct, 0), 100)).toFixed(2)}%` : '-'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1970,7 +1971,7 @@ const ElectionResults: React.FC = () => {
                         className="px-1.5 sm:px-2 lg:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-auto"
                       >
                         <option value="center">Centre</option>
-                        <option value="participation">Participation</option>
+                        <option value="participation">Abstention</option>
                         {/* <option value="score">Score</option> */}
                         <option value="votes">Votes</option>
                       </select>
@@ -2033,8 +2034,14 @@ const ElectionResults: React.FC = () => {
                          <div className="font-bold text-blue-600 text-sm sm:text-lg">{typeof c.score_pct === 'number' ? `${Math.min(Math.max(c.score_pct,0),100).toFixed(1)}%` : '-'}</div>
                        </div> */}
                             <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
-                              <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Participation</div>
-                              <div className="font-bold text-green-600 text-xs sm:text-sm lg:text-lg">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct, 0), 100).toFixed(2)}%` : '-'}</div>
+                              <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Abstention</div>
+                              <div className={`font-bold text-xs sm:text-sm lg:text-lg ${typeof c.participation_pct === 'number'
+                                ? ((100 - c.participation_pct) > 65
+                                  ? 'text-red-600'
+                                  : ( (100 - c.participation_pct) < 65 && (100 - c.participation_pct) >= 30 ? 'text-yellow-600' : 'text-green-600'))
+                                : 'text-green-600'}`}>
+                                {typeof c.participation_pct === 'number' ? `${(100 - Math.min(Math.max(c.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
+                              </div>
                             </div>
                           </div>
                         </summary>
@@ -2074,7 +2081,7 @@ const ElectionResults: React.FC = () => {
                                   <th className="text-right px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
                                     <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                                       <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
-                                      <span className="hidden sm:inline">Participation</span>
+                                      <span className="hidden sm:inline">Abstention</span>
                                       <span className="sm:hidden">Part.</span>
                                     </div>
                                   </th>
@@ -2099,11 +2106,11 @@ const ElectionResults: React.FC = () => {
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_voters?.toLocaleString() ?? '-'}</td>
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_expressed_votes?.toLocaleString() ?? '-'}</td>
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right">
-                                      <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
-                                        typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                                          'bg-red-100 text-red-800'
+                                      <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${typeof b.participation_pct === 'number' && (100 - b.participation_pct) > 65 ? 'bg-red-100 text-red-800' :
+                                        typeof b.participation_pct === 'number' && (100 - b.participation_pct) < 65 && (100 - b.participation_pct) >= 30 ? 'bg-yellow-100 text-yellow-800' :
+                                          'bg-green-100 text-green-800'
                                         }`}>
-                                        {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : '-'}
+                                        {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
                                       </span>
                                     </td>
                                     {/* <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
@@ -2188,7 +2195,7 @@ const ElectionResults: React.FC = () => {
                           <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
                               <TrendingUp className="w-2 h-2" />
-                              <span>Participation</span>
+                              <span>Abstention</span>
                             </div>
                           </th>
                           {/* <th className="text-right px-3 sm:px-6 py-3 sm:py-4 font-semibold text-xs sm:text-sm">
@@ -2224,11 +2231,11 @@ const ElectionResults: React.FC = () => {
                               <span className="font-bold text-blue-600">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</span>
                             </td>
                             <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
-                              <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
-                                typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
+                              <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${typeof b.participation_pct === 'number' && (100 - b.participation_pct) > 65 ? 'bg-red-100 text-red-800' :
+                                typeof b.participation_pct === 'number' && (100 - b.participation_pct) < 65 && (100 - b.participation_pct) >= 30 ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-green-100 text-green-800'
                                 }`}>
-                                {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : (b.participation_pct || '-')}
+                                {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : (b.participation_pct || '-')}
                               </span>
                             </td>
                             {/* <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
