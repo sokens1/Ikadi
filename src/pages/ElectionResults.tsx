@@ -11,6 +11,7 @@ import { fetchElectionById, fetchAllElections } from '../api/elections';
 import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCenterSummaryByCandidate, fetchBureauSummaryByCandidate } from '../api/results';
 import { toast } from 'sonner';
 import SEOHead from '@/components/SEOHead';
+import CrossAnalysisSection from '@/components/results/CrossAnalysisSection';
 
 // Icone WhatsApp (SVG minimal)
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -1111,7 +1112,7 @@ const ElectionResults: React.FC = () => {
           <div className="absolute inset-0 bg-blue-800/20" />
 
 
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-14 xl:py-20 relative">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 xl:py-14 relative">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 xl:gap-16 items-center">
               {/* Colonne gauche: contenu */}
               <div className="order-2 lg:order-1">
@@ -1165,15 +1166,9 @@ const ElectionResults: React.FC = () => {
                     {new Date(results.election?.election_date || '').toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </span>
 
-                  {/* Texte d'information sur les résultats provisoires - En miniature avec astérisque */}
-                  <div className="text-center mt-2">
-                    <p className="text-xs text-gray-500">
-                      * Résultats provisoires (à confirmer par le Ministère de l'Intérieur).
-                    </p>
-                  </div>
-                  {/* Copyright mobile sous le texte provisoire */}
-                  <div className="sm:hidden w-full text-center mt-2 text-gray-600 text-[10px]">
-                    © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
+                  {/* Texte d'information sur les résultats provisoires */}
+                  <div className="w-full mt-2">
+                    <p className="text-xs text-gray-500">* Résultats provisoires (à confirmer par le Ministère de l'Intérieur).</p>
                   </div>
                   {results.election?.localisation && (
                     <span className="flex items-center gap-1.5 sm:gap-2 text-gray-700 bg-white rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border text-xs sm:text-sm w-full sm:w-auto justify-center">
@@ -1192,10 +1187,11 @@ const ElectionResults: React.FC = () => {
                 </div>
               </div>
             </div>
-            {/* Copyright desktop centré en bas de la section héro */}
-            <div className="hidden lg:block absolute bottom-12 left-0 right-0 text-center text-gray-500 text-xs z-20">
+            {/* Copyright aligné à gauche, léger décalage à droite et police légèrement agrandie */}
+            <div className="mt-3 sm:mt-2 lg:mt-2 pl-1 sm:pl-2 text-gray-600 text-[11px] leading-none text-left">
               © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
             </div>
+            {/* Supprimé: copyright dupliqué en desktop */}
           </div>
         </section>
 
@@ -2325,6 +2321,11 @@ const ElectionResults: React.FC = () => {
             </div>
           )}
         </section>
+
+        {/* Nouvelle section : Analyse croisée */}
+        {results?.election?.id && (
+          <CrossAnalysisSection electionId={String(results.election.id)} />
+        )}
 
         {/* Section de navigation vers autre élection */}
         {getAlternativeElection() && (
