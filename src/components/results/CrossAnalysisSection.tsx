@@ -56,6 +56,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
   const [bureauCandidateRows, setBureauCandidateRows] = useState<BureauCandidateSummaryRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingBureaux, setLoadingBureaux] = useState(false);
 
   // Charger centres rattachés à l'élection (via election_centers),
   // + préparer une liste spécifique des centres d'une élection "Locale" dans la même commune (pour la zone Commune)
@@ -266,58 +267,24 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
         return;
       }
       try {
+        setLoadingBureaux(true);
         // Déterminer l'élection liée à la sélection courante
         const selectionElectionId = zoneType === 'commune'
           ? (localElectionId || electionId)
           : (legislativeElectionId || electionId);
 
-        // Tentative A: colonne center_id (souvent utilisée)
-        let query = supabase
+        // Requête OR sur center_id ou voting_center_id, avec filtre election_id si dispo
+        // Note: PostgREST or() nécessite des colonnes valides, on tente la version la plus générale
+        const { data: orData, error: orErr } = await supabase
           .from('voting_bureaux')
-          .select('id, name')
-          .eq('center_id', selectedCenterId)
+          .select('id, name, center_id, voting_center_id, election_id')
+          .or(`center_id.eq.${selectedCenterId},voting_center_id.eq.${selectedCenterId}`)
           .order('name');
-         let { data, error } = await query;
 
-        if (!error && Array.isArray(data) && data.length > 0) {
-          const list: BureauRow[] = data.map((b: any) => ({ id: String(b.id), name: b.name }));
-          setBureaux(list);
-          return;
-        }
-
-        // Tentative B: colonne voting_center_id
-        const byVotingCenter = await supabase
-          .from('voting_bureaux')
-          .select('id, name')
-          .eq('voting_center_id', selectedCenterId)
-          .order('name');
-        if (!byVotingCenter.error && Array.isArray(byVotingCenter.data) && byVotingCenter.data.length > 0) {
-          const list: BureauRow[] = byVotingCenter.data.map((b: any) => ({ id: String(b.id), name: b.name }));
-          setBureaux(list);
-          return;
-        }
-
-        // Tentative C: jointure avec voting_centers et filtre par id de centre
-        const byJoin = await supabase
-          .from('voting_bureaux')
-          .select('id, name, voting_centers!inner(id)')
-          .eq('voting_centers.id', selectedCenterId)
-          .order('name');
-        if (!byJoin.error && Array.isArray(byJoin.data) && byJoin.data.length > 0) {
-          const list: BureauRow[] = byJoin.data.map((b: any) => ({ id: String(b.id), name: b.name }));
-          setBureaux(list);
-          return;
-        }
-
-        // Tentative D: filtrage additionnel par election_id si présent dans la table
-        const byElection = await supabase
-          .from('voting_bureaux')
-          .select('id, name')
-          .eq('center_id', selectedCenterId)
-          .eq('election_id', selectionElectionId)
-          .order('name');
-        if (!byElection.error && Array.isArray(byElection.data) && byElection.data.length > 0) {
-          const list: BureauRow[] = byElection.data.map((b: any) => ({ id: String(b.id), name: b.name }));
+        if (!orErr && Array.isArray(orData) && orData.length > 0) {
+          // Si election_id présent, filtrer côté client pour l'élection en cours selon la zone
+          const filtered = orData.filter((b: any) => !b.election_id || String(b.election_id) === String(selectionElectionId));
+          const list: BureauRow[] = (filtered.length > 0 ? filtered : orData).map((b: any) => ({ id: String(b.id), name: b.name }));
           setBureaux(list);
           return;
         }
@@ -325,6 +292,8 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
         setBureaux([]);
       } catch (_) {
         setBureaux([]);
+      } finally {
+        setLoadingBureaux(false);
       }
     };
     loadBureaux();
