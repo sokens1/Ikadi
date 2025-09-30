@@ -435,7 +435,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                 <Label>{zoneType ? `Centre (${zoneType === 'departement' ? '6 max' : '10 max'})` : 'Centre'}</Label>
                 <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); setSelectedCandidateIds([]); }} disabled={!zoneType || filteredCenters.length === 0}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d'abord'} />
+                    <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d\'abord'} />
                   </SelectTrigger>
                   <SelectContent className="z-[100]" position="popper">
                     {filteredCenters.map((c) => (
