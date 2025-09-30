@@ -273,6 +273,14 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           ? (localElectionId || electionId)
           : (legislativeElectionId || electionId);
 
+        console.log('[Analyse croisée] Chargement bureaux...', { 
+          selectedCenterId, 
+          selectedCenterName, 
+          selectionElectionId, 
+          zoneType,
+          isMobile: window.innerWidth < 768 
+        });
+
         // Requête OR sur center_id ou voting_center_id, avec filtre election_id si dispo
         // Note: PostgREST or() nécessite des colonnes valides, on tente la version la plus générale
         const { data: orData, error: orErr } = await supabase
@@ -287,6 +295,44 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           const list: BureauRow[] = (filtered.length > 0 ? filtered : orData).map((b: any) => ({ id: String(b.id), name: b.name }));
           setBureaux(list);
           return;
+        }
+
+        // Fallback: jointure par id de centre
+        const byJoinId = await supabase
+          .from('voting_bureaux')
+          .select('id, name, voting_centers!inner(id)')
+          .eq('voting_centers.id', selectedCenterId)
+          .order('name');
+        if (!byJoinId.error && Array.isArray(byJoinId.data) && byJoinId.data.length > 0) {
+          const list: BureauRow[] = byJoinId.data.map((b: any) => ({ id: String(b.id), name: b.name }));
+          setBureaux(list);
+          return;
+        }
+
+        // Fallback: jointure par nom de centre strict
+        if (selectedCenterName) {
+          const byJoinName = await supabase
+            .from('voting_bureaux')
+            .select('id, name, voting_centers!inner(id, name)')
+            .eq('voting_centers.name', selectedCenterName)
+            .order('name');
+          if (!byJoinName.error && Array.isArray(byJoinName.data) && byJoinName.data.length > 0) {
+            const list: BureauRow[] = byJoinName.data.map((b: any) => ({ id: String(b.id), name: b.name }));
+            setBureaux(list);
+            return;
+          }
+
+          // Fallback: jointure par nom ilike (tolérant)
+          const byJoinNameIlike = await supabase
+            .from('voting_bureaux')
+            .select('id, name, voting_centers!inner(id, name)')
+            .ilike('voting_centers.name', selectedCenterName)
+            .order('name');
+          if (!byJoinNameIlike.error && Array.isArray(byJoinNameIlike.data) && byJoinNameIlike.data.length > 0) {
+            const list: BureauRow[] = byJoinNameIlike.data.map((b: any) => ({ id: String(b.id), name: b.name }));
+            setBureaux(list);
+            return;
+          }
         }
 
         setBureaux([]);
@@ -371,14 +417,14 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Zone</Label>
                 <Select value={zoneType} onValueChange={(v) => { setZoneType(v as ZoneType); setZoneKey(''); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Sélectionner une zone" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]" position="popper">
                     <SelectItem value="departement">Département</SelectItem>
                     <SelectItem value="commune">Commune</SelectItem>
                   </SelectContent>
@@ -388,10 +434,10 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
               <div className="space-y-2">
                 <Label>{zoneType ? `Centre (${zoneType === 'departement' ? '6 max' : '10 max'})` : 'Centre'}</Label>
                 <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); setSelectedCandidateIds([]); }} disabled={!zoneType || filteredCenters.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d’abord'} />
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d'abord'} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]" position="popper">
                     {filteredCenters.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
@@ -401,21 +447,35 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
               <div className="space-y-2">
                 <Label>Bureau</Label>
-                <Select value={selectedBureauId} onValueChange={(v) => { setSelectedBureauId(String(v)); setSelectedCandidateIds([]); }} disabled={!selectedCenterId || bureaux.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={!selectedCenterId ? 'Choisir un centre' : (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau')} />
+                <Select value={selectedBureauId} onValueChange={(v) => { setSelectedBureauId(String(v)); setSelectedCandidateIds([]); }} disabled={!selectedCenterId || bureaux.length === 0 || loadingBureaux}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={
+                      loadingBureaux ? 'Chargement...' :
+                      !selectedCenterId ? 'Choisir un centre' : 
+                      (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau trouvé')
+                    } />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]" position="popper">
                     {bureaux.map((b) => (
                       <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {loadingBureaux && (
+                  <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                    Chargement des bureaux...
+                  </div>
+                )}
+                {!loadingBureaux && selectedCenterId && bureaux.length === 0 && (
+                  <div className="text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded px-2 py-1">
+                    Aucun bureau trouvé pour ce centre
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label>Candidats (min. 2)</Label>
-                <div className="max-h-40 overflow-auto rounded border border-gray-200 p-2 bg-white">
+                <div className="max-h-40 overflow-auto rounded border border-gray-200 p-2 bg-white min-h-[120px]">
                   {loading && <div className="text-sm text-gray-500 px-1 py-0.5">Chargement…</div>}
                   {!loading && bureauCandidateRows.length === 0 && (
                     <div className="text-sm text-gray-500 px-1 py-0.5">Aucun candidat pour ce bureau</div>
@@ -424,7 +484,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                     const id = String(row.candidate_id);
                     const checked = selectedCandidateIds.includes(id);
                     return (
-                      <label key={id} className="flex items-center gap-2 py-1 cursor-pointer">
+                      <label key={id} className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-50 rounded px-1 transition-colors">
                         <Checkbox checked={checked} onCheckedChange={(v) => {
                           const isChecked = Boolean(v);
                           setSelectedCandidateIds(prev => {
@@ -432,7 +492,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                             return prev.filter(x => x !== id);
                           });
                         }} />
-                        <span className="text-sm text-gray-800">{row.candidate_name}</span>
+                        <span className="text-sm text-gray-800 flex-1">{row.candidate_name}</span>
                       </label>
                     );
                   })}
@@ -453,33 +513,65 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                   {selectedCandidateIds.length < 2 ? (
                     <div className="text-sm text-gray-500">Sélectionnez au moins 2 candidats pour afficher le comparatif.</div>
                   ) : (
-                    <div className="relative overflow-x-auto">
-                      <table className="min-w-full text-xs sm:text-sm">
-                        <thead>
-                          <tr className="bg-gray-50">
-                            <th className="text-left px-3 py-2 border">Candidat</th>
-                            <th className="text-left px-3 py-2 border">Parti</th>
-                            <th className="text-right px-3 py-2 border">Voix</th>
-                            <th className="text-right px-3 py-2 border">Score</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {displayedRows.map((row) => {
-                            const party = candidateIdToParty.get(String(row.candidate_id));
-                            const scorePct = typeof row.candidate_percentage === 'number' ? Math.min(Math.max(row.candidate_percentage, 0), 100) : undefined;
-                            return (
-                              <tr key={String(row.candidate_id)} className="odd:bg-white even:bg-gray-50">
-                                <td className="px-3 py-2 border font-medium text-gray-800">{row.candidate_name}</td>
-                                <td className="px-3 py-2 border text-gray-700">{party || '-'}</td>
-                                <td className="px-3 py-2 border text-right font-semibold">{(row.candidate_votes ?? 0).toLocaleString()}</td>
-                                <td className="px-3 py-2 border text-right">
-                                  {typeof scorePct === 'number' ? `${scorePct.toFixed(2)}%` : '-'}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                    <div className="space-y-4">
+                      {/* Version mobile - cartes */}
+                      <div className="block sm:hidden">
+                        {displayedRows.map((row) => {
+                          const party = candidateIdToParty.get(String(row.candidate_id));
+                          const scorePct = typeof row.candidate_percentage === 'number' ? Math.min(Math.max(row.candidate_percentage, 0), 100) : undefined;
+                          return (
+                            <div key={String(row.candidate_id)} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                              <h3 className="font-semibold text-gray-800 text-sm mb-2">{row.candidate_name}</h3>
+                              <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                  <span className="text-gray-500">Parti:</span>
+                                  <p className="font-medium text-gray-700">{party || '-'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Score:</span>
+                                  <p className="font-medium text-gray-700">
+                                    {typeof scorePct === 'number' ? `${scorePct.toFixed(2)}%` : '-'}
+                                  </p>
+                                </div>
+                                <div className="col-span-2">
+                                  <span className="text-gray-500">Voix:</span>
+                                  <p className="font-bold text-lg text-gray-800">{(row.candidate_votes ?? 0).toLocaleString()}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Version desktop - tableau */}
+                      <div className="hidden sm:block relative overflow-x-auto">
+                        <table className="min-w-full text-xs sm:text-sm">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th className="text-left px-3 py-2 border">Candidat</th>
+                              <th className="text-left px-3 py-2 border">Parti</th>
+                              <th className="text-right px-3 py-2 border">Voix</th>
+                              <th className="text-right px-3 py-2 border">Score</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {displayedRows.map((row) => {
+                              const party = candidateIdToParty.get(String(row.candidate_id));
+                              const scorePct = typeof row.candidate_percentage === 'number' ? Math.min(Math.max(row.candidate_percentage, 0), 100) : undefined;
+                              return (
+                                <tr key={String(row.candidate_id)} className="odd:bg-white even:bg-gray-50">
+                                  <td className="px-3 py-2 border font-medium text-gray-800">{row.candidate_name}</td>
+                                  <td className="px-3 py-2 border text-gray-700">{party || '-'}</td>
+                                  <td className="px-3 py-2 border text-right font-semibold">{(row.candidate_votes ?? 0).toLocaleString()}</td>
+                                  <td className="px-3 py-2 border text-right">
+                                    {typeof scorePct === 'number' ? `${scorePct.toFixed(2)}%` : '-'}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </CardContent>
