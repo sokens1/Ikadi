@@ -614,7 +614,7 @@ const FilterPanel: React.FC<{
             className={filterState.comparisonMode ? "bg-yellow-600 hover:bg-yellow-700" : ""}
           >
             <BarChart3 className="w-4 h-4 mr-1" />
-            {filterState.comparisonMode ? 'Désactiver l\'analyse' : 'Voir l\'analyse'}
+            {filterState.comparisonMode ? 'Désactiver l\'analyse ' : 'Voir l\'analyse'}
           </Button>
         </div>
       </CardContent>
