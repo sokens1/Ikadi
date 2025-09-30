@@ -1423,6 +1423,38 @@ const ElectionResults: React.FC = () => {
 
   // Générer les meta tags dynamiques pour le partage
   const generateSEOData = () => {
+    const normalizeCandidateName = (name?: string) => {
+      if (!name) return name;
+      let fixed = name;
+      
+      // Normaliser les espaces
+      fixed = fixed.replace(/\s+/g, ' ').trim();
+      
+      // Corrections spécifiques pour LEBOMO
+      if (/LEBOMO/i.test(fixed)) {
+        // Remplacer Albert par Arnauld (priorité haute)
+        fixed = fixed.replace(/\bAlbert\b/gi, 'Arnauld');
+        // Remplacer Arnaud par Arnauld
+        fixed = fixed.replace(/\bArnaud\b/gi, 'Arnauld');
+        // Remplacer Claubert par Clobert
+        fixed = fixed.replace(/\bClaubert\b/gi, 'Clobert');
+        
+        // Forcer la correction pour LEBOMO spécifiquement
+        const parts = fixed.split(' ');
+        if (parts.length >= 3 && /^(LEBOMO)$/i.test(parts[0])) {
+          parts[1] = 'Arnauld';
+          parts[2] = 'Clobert';
+          fixed = parts.join(' ');
+        }
+      } else {
+        // Corrections générales pour tous les autres candidats
+        fixed = fixed.replace(/\bAlbert\b/gi, 'Arnauld');
+        fixed = fixed.replace(/\bArnaud\b/gi, 'Arnauld');
+        fixed = fixed.replace(/\bClaubert\b/gi, 'Clobert');
+      }
+      
+      return fixed;
+    };
     if (!results?.election) {
       return {
         title: 'Résultats d\'élection | o\'Hitu',
@@ -1433,18 +1465,19 @@ const ElectionResults: React.FC = () => {
 
     const election = results.election;
     const winner = results.candidates.find(c => c.rank === 1);
+    const winnerName = normalizeCandidateName(winner?.candidate_name);
     const participation = results.participation_rate ? `${results.participation_rate.toFixed(1)}%` : 'En cours';
 
     // Titre optimisé pour WhatsApp
-    const title = winner?.candidate_name
-      ? `${winner.candidate_name} en tête | Résultats Élections Moanda (1er Arr.)`
+    const title = winnerName
+      ? `${winnerName} en tête | Résultats Élections Moanda (1er Arr.)`
       : `Résultats des Élections Locales et Législatives Moanda, 1er Arr.`;
 
     // Description optimisée pour le partage
     let description = `🗳️ Résultats des Élections Locales et Législatives Moanda, 1 Arr.\n\n`;
 
     if (winner) {
-      description += `🏆 ${winner.candidate_name} en tête\n`;
+      description += `🏆 ${winnerName || winner.candidate_name} en tête\n`;
       description += `📊 ${winner.total_votes.toLocaleString()} voix (${winner.percentage.toFixed(1)}%)\n`;
     }
 
