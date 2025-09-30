@@ -241,22 +241,39 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
       setSelectedCenterId('');
       return;
     }
+    
+    console.log('[Analyse croisée] Filtrage centres par zone:', { 
+      zoneType, 
+      localElectionCentersCount: localElectionCenters.length,
+      legislativeElectionCentersCount: legislativeElectionCenters.length 
+    });
+
     if (zoneType === 'commune') {
       // Commune: 10 centres issus d'une élection Locale
-      setFilteredCenters(localElectionCenters.slice(0, 10));
+      if (localElectionCenters.length > 0) {
+        setFilteredCenters(localElectionCenters.slice(0, 10));
+      } else {
+        console.log('[Analyse croisée] Aucun centre local disponible, utilisation des centres généraux');
+        setFilteredCenters(centers.slice(0, 10));
+      }
     } else {
       // Département: prendre 16 centres des Législatives moins les 10 des Locales → 6 restants
-      const localIds = new Set(localElectionCenters.map(c => c.id));
-      const legFirst16 = legislativeElectionCenters.slice(0, 16);
-      const remaining = legFirst16.filter(c => !localIds.has(c.id));
-      // Si pas assez (moins de 6), fallback en complétant avec d'autres centres légis
-      const final = remaining.length >= 6
-        ? remaining.slice(0, 6)
-        : [...remaining, ...legislativeElectionCenters.slice(16)].slice(0, 6);
-      setFilteredCenters(final);
+      if (legislativeElectionCenters.length > 0) {
+        const localIds = new Set(localElectionCenters.map(c => c.id));
+        const legFirst16 = legislativeElectionCenters.slice(0, 16);
+        const remaining = legFirst16.filter(c => !localIds.has(c.id));
+        // Si pas assez (moins de 6), fallback en complétant avec d'autres centres légis
+        const final = remaining.length >= 6
+          ? remaining.slice(0, 6)
+          : [...remaining, ...legislativeElectionCenters.slice(16)].slice(0, 6);
+        setFilteredCenters(final);
+      } else {
+        console.log('[Analyse croisée] Aucun centre législatif disponible, utilisation des centres généraux');
+        setFilteredCenters(centers.slice(0, 6));
+      }
     }
     setSelectedCenterId('');
-  }, [zoneType, centers, localElectionCenters]);
+  }, [zoneType, localElectionCenters, legislativeElectionCenters, centers]);
 
   // Charger bureaux du centre (en essayant de filtrer par election_id quand possible)
   useEffect(() => {
@@ -278,63 +295,136 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           selectedCenterName, 
           selectionElectionId, 
           zoneType,
-          isMobile: window.innerWidth < 768 
+          isMobile: window.innerWidth < 768,
+          filteredCentersCount: filteredCenters.length,
+          localElectionCentersCount: localElectionCenters.length,
+          legislativeElectionCentersCount: legislativeElectionCenters.length
         });
 
-        // Requête OR sur center_id ou voting_center_id, avec filtre election_id si dispo
-        // Note: PostgREST or() nécessite des colonnes valides, on tente la version la plus générale
-        const { data: orData, error: orErr } = await supabase
-          .from('voting_bureaux')
-          .select('id, name, center_id, voting_center_id, election_id')
-          .or(`center_id.eq.${selectedCenterId},voting_center_id.eq.${selectedCenterId}`)
-          .order('name');
+        // Vérifier d'abord que le centre existe dans voting_centers
+        const { data: centerCheck, error: centerCheckError } = await supabase
+          .from('voting_centers')
+          .select('id, name')
+          .eq('id', selectedCenterId)
+          .single();
 
-        if (!orErr && Array.isArray(orData) && orData.length > 0) {
-          // Si election_id présent, filtrer côté client pour l'élection en cours selon la zone
-          const filtered = orData.filter((b: any) => !b.election_id || String(b.election_id) === String(selectionElectionId));
-          const list: BureauRow[] = (filtered.length > 0 ? filtered : orData).map((b: any) => ({ id: String(b.id), name: b.name }));
-          setBureaux(list);
+        console.log('[Analyse croisée] Vérification centre:', { centerCheck, centerCheckError, selectedCenterId });
+
+        if (centerCheckError || !centerCheck) {
+          console.log('[Analyse croisée] Centre non trouvé dans voting_centers:', selectedCenterId);
+          setBureaux([]);
           return;
         }
 
-        // Fallback: jointure par id de centre
-        const byJoinId = await supabase
+        // Méthode 1: rechercher par center_id directement
+        const { data: bureauData, error: bureauError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, center_id')
+          .eq('center_id', selectedCenterId)
+          .order('name');
+
+        console.log('[Analyse croisée] Méthode 1 - center_id:', { bureauData, bureauError, selectedCenterId });
+
+        if (!bureauError && Array.isArray(bureauData) && bureauData.length > 0) {
+          const list: BureauRow[] = bureauData.map((b: any) => ({ id: String(b.id), name: b.name }));
+          setBureaux(list);
+          console.log('[Analyse croisée] Bureaux trouvés via center_id:', list);
+          return;
+        }
+
+        // Méthode 2: rechercher par voting_center_id
+        const { data: votingCenterData, error: votingCenterError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, voting_center_id')
+          .eq('voting_center_id', selectedCenterId)
+          .order('name');
+
+        console.log('[Analyse croisée] Méthode 2 - voting_center_id:', { votingCenterData, votingCenterError, selectedCenterId });
+
+        if (!votingCenterError && Array.isArray(votingCenterData) && votingCenterData.length > 0) {
+          const list: BureauRow[] = votingCenterData.map((b: any) => ({ id: String(b.id), name: b.name }));
+          setBureaux(list);
+          console.log('[Analyse croisée] Bureaux trouvés via voting_center_id:', list);
+          return;
+        }
+
+        // Méthode 3: Recherche par jointure avec voting_centers
+        const { data: joinData, error: joinError } = await supabase
           .from('voting_bureaux')
           .select('id, name, voting_centers!inner(id)')
           .eq('voting_centers.id', selectedCenterId)
           .order('name');
-        if (!byJoinId.error && Array.isArray(byJoinId.data) && byJoinId.data.length > 0) {
-          const list: BureauRow[] = byJoinId.data.map((b: any) => ({ id: String(b.id), name: b.name }));
+
+        console.log('[Analyse croisée] Méthode 3 - jointure:', { joinData, joinError });
+
+        if (!joinError && Array.isArray(joinData) && joinData.length > 0) {
+          const list: BureauRow[] = joinData.map((b: any) => ({ id: String(b.id), name: b.name }));
           setBureaux(list);
+          console.log('[Analyse croisée] Bureaux trouvés via jointure:', list);
           return;
         }
 
-        // Fallback: jointure par nom de centre strict
+        // Méthode 4: Recherche par election_id et center_id
+        const { data: electionData, error: electionError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, election_id, center_id, voting_center_id')
+          .eq('election_id', selectionElectionId)
+          .or(`center_id.eq.${selectedCenterId},voting_center_id.eq.${selectedCenterId}`)
+          .order('name');
+
+        console.log('[Analyse croisée] Méthode 4 - election_id:', { electionData, electionError, selectionElectionId });
+
+        if (!electionError && Array.isArray(electionData) && electionData.length > 0) {
+          const list: BureauRow[] = electionData.map((b: any) => ({ id: String(b.id), name: b.name }));
+          setBureaux(list);
+          console.log('[Analyse croisée] Bureaux trouvés via election_id:', list);
+          return;
+        }
+
+
+        // Méthode 5: Explorer la structure de la table voting_bureaux
+        const { data: allBureaux, error: allBureauxError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, center_id, voting_center_id, election_id')
+          .limit(10);
+
+        console.log('[Analyse croisée] Structure table voting_bureaux:', { allBureaux, allBureauxError });
+
+        // Méthode 6: Recherche par nom de centre (si disponible)
         if (selectedCenterName) {
-          const byJoinName = await supabase
+          const { data: nameData, error: nameError } = await supabase
             .from('voting_bureaux')
             .select('id, name, voting_centers!inner(id, name)')
             .eq('voting_centers.name', selectedCenterName)
             .order('name');
-          if (!byJoinName.error && Array.isArray(byJoinName.data) && byJoinName.data.length > 0) {
-            const list: BureauRow[] = byJoinName.data.map((b: any) => ({ id: String(b.id), name: b.name }));
+
+          console.log('[Analyse croisée] Méthode 6 - recherche par nom:', { nameData, nameError, selectedCenterName });
+
+          if (!nameError && Array.isArray(nameData) && nameData.length > 0) {
+            const list: BureauRow[] = nameData.map((b: any) => ({ id: String(b.id), name: b.name }));
             setBureaux(list);
+            console.log('[Analyse croisée] Bureaux trouvés via nom:', list);
             return;
           }
 
-          // Fallback: jointure par nom ilike (tolérant)
-          const byJoinNameIlike = await supabase
+          // Méthode 7: Recherche par nom ilike (tolérant)
+          const { data: nameIlikeData, error: nameIlikeError } = await supabase
             .from('voting_bureaux')
             .select('id, name, voting_centers!inner(id, name)')
             .ilike('voting_centers.name', selectedCenterName)
             .order('name');
-          if (!byJoinNameIlike.error && Array.isArray(byJoinNameIlike.data) && byJoinNameIlike.data.length > 0) {
-            const list: BureauRow[] = byJoinNameIlike.data.map((b: any) => ({ id: String(b.id), name: b.name }));
+
+          console.log('[Analyse croisée] Méthode 7 - recherche par nom ilike:', { nameIlikeData, nameIlikeError, selectedCenterName });
+
+          if (!nameIlikeError && Array.isArray(nameIlikeData) && nameIlikeData.length > 0) {
+            const list: BureauRow[] = nameIlikeData.map((b: any) => ({ id: String(b.id), name: b.name }));
             setBureaux(list);
+            console.log('[Analyse croisée] Bureaux trouvés via nom ilike:', list);
             return;
           }
         }
 
+        console.log('[Analyse croisée] Aucun bureau trouvé pour le centre:', { selectedCenterId, selectedCenterName });
         setBureaux([]);
       } catch (_) {
         setBureaux([]);
@@ -343,7 +433,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
       }
     };
     loadBureaux();
-  }, [selectedCenterId, zoneType, localElectionId, legislativeElectionId]);
+  }, [selectedCenterId, selectedCenterName, zoneType, localElectionId, legislativeElectionId, electionId]);
 
   // Charger résultats candidats pour le bureau sélectionné (pour constituer la liste à cocher et les métriques)
   useEffect(() => {
@@ -359,22 +449,31 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           ? (localElectionId || electionId)
           : (legislativeElectionId || electionId);
 
+        console.log('[Analyse croisée] Chargement candidats pour bureau:', { selectedBureauId, targetElectionId, zoneType });
+
         const { data, error } = await supabase
           .from('bureau_candidate_results_summary')
           .select('election_id, bureau_id, center_id, candidate_id, candidate_name, candidate_votes, candidate_percentage, candidate_participation_pct')
           .eq('election_id', targetElectionId)
           .eq('bureau_id', selectedBureauId as any)
           .order('candidate_votes', { ascending: false });
-        if (error) throw error;
-        setBureauCandidateRows((data || []) as BureauCandidateSummaryRow[]);
-      } catch (_) {
+        
+        console.log('[Analyse croisée] Résultat candidats:', { data, error, selectedBureauId, targetElectionId });
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          setBureauCandidateRows((data || []) as BureauCandidateSummaryRow[]);
+        } else {
+          setBureauCandidateRows([]);
+        }
+      } catch (err) {
+        console.log('[Analyse croisée] Erreur chargement candidats:', err);
         setBureauCandidateRows([]);
       } finally {
         setLoading(false);
       }
     };
     loadBureauCandidateRows();
-  }, [selectedBureauId, electionId]);
+  }, [selectedBureauId, electionId, candidates, selectedCenterId]);
 
   const candidateIdToParty = useMemo(() => {
     const map = new Map<string, string | undefined>();
