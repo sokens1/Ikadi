@@ -217,11 +217,13 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
     const loadScopedCandidates = async () => {
       try {
         // Déterminer l'élection cible selon la zone
+        // CORRECTION: Pour les élections législatives, toujours utiliser l'élection courante
+        // même quand on sélectionne "commune" comme zone d'analyse
         const targetElectionId = zoneType === 'commune'
-          ? (localElectionId || null)
+          ? (isLocalElection ? (localElectionId || null) : electionId)
           : zoneType === 'departement'
-            ? (legislativeElectionId || null)
-            : null;
+            ? (isLocalElection ? (legislativeElectionId || null) : electionId)
+            : electionId;
 
         if (!targetElectionId) {
           setScopedCandidates([]);
@@ -346,9 +348,11 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
       try {
         setLoadingBureaux(true);
         // Déterminer l'élection liée à la sélection courante
+        // CORRECTION: Pour les élections législatives, toujours utiliser l'élection courante
+        // même quand on sélectionne "commune" comme zone d'analyse
         const selectionElectionId = zoneType === 'commune'
-          ? (localElectionId || electionId)
-          : (legislativeElectionId || electionId);
+          ? (isLocalElection ? (localElectionId || electionId) : electionId)
+          : (isLocalElection ? (legislativeElectionId || electionId) : electionId);
 
         console.log('[Analyse croisée] Chargement bureaux...', { 
           selectedCenterId, 
@@ -554,9 +558,20 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
       }
       try {
         setLoading(true);
+        // CORRECTION: Pour les élections législatives, toujours utiliser l'élection courante
+        // même quand on sélectionne "commune" comme zone d'analyse
         const targetElectionId = zoneType === 'commune'
-          ? (localElectionId || electionId)
-          : (legislativeElectionId || electionId);
+          ? (isLocalElection ? (localElectionId || electionId) : electionId)
+          : (isLocalElection ? (legislativeElectionId || electionId) : electionId);
+        
+        console.log('[Analyse croisée] Élection cible pour candidats:', {
+          zoneType,
+          isLocalElection,
+          electionId,
+          localElectionId,
+          legislativeElectionId,
+          targetElectionId
+        });
 
         // Base query
         let query = supabase
