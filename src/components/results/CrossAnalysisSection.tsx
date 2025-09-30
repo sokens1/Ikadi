@@ -54,8 +54,11 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
   const [bureaux, setBureaux] = useState<BureauRow[]>([]);
   const [selectedBureauId, setSelectedBureauId] = useState<string>('');
   const [candidates, setCandidates] = useState<CandidateRow[]>([]);
+  const [scopedCandidates, setScopedCandidates] = useState<CandidateRow[]>([]);
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
   const [bureauCandidateRows, setBureauCandidateRows] = useState<BureauCandidateSummaryRow[]>([]);
+  const [hasAutoSelectedCandidates, setHasAutoSelectedCandidates] = useState<boolean>(false);
+  const [userTouchedCandidates, setUserTouchedCandidates] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [loadingBureaux, setLoadingBureaux] = useState(false);
 
@@ -206,6 +209,42 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
     loadCenters();
   }, [electionId]);
 
+  // Charger candidats pour le périmètre (zone) courant afin d'afficher le parti au bon niveau
+  useEffect(() => {
+    const loadScopedCandidates = async () => {
+      try {
+        // Déterminer l'élection cible selon la zone
+        const targetElectionId = zoneType === 'commune'
+          ? (localElectionId || null)
+          : zoneType === 'departement'
+            ? (legislativeElectionId || null)
+            : null;
+
+        if (!targetElectionId) {
+          setScopedCandidates([]);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('election_candidates')
+          .select('candidate_id, candidates!inner(id, name, party)')
+          .eq('election_id', targetElectionId);
+        if (error) {
+          setScopedCandidates([]);
+          return;
+        }
+        const list: CandidateRow[] = (data || [])
+          .map((row: any) => row.candidates)
+          .filter((c: any) => c && c.id)
+          .map((c: any) => ({ id: String(c.id), name: c.name, party: c.party || undefined }));
+        setScopedCandidates(list);
+      } catch (_) {
+        setScopedCandidates([]);
+      }
+    };
+    loadScopedCandidates();
+  }, [zoneType, localElectionId, legislativeElectionId]);
+
   // Charger candidats rattachés à l'élection (pour récupérer le parti), fallback global
   useEffect(() => {
     const loadCandidates = async () => {
@@ -239,6 +278,18 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
     };
     loadCandidates();
   }, [electionId]);
+
+  // Auto-sélectionner 2 candidats par défaut en locale (une seule fois)
+  useEffect(() => {
+    if (!isLocalElection) return;
+    if (userTouchedCandidates) return;
+    if (hasAutoSelectedCandidates) return;
+    if (selectedCandidateIds.length >= 2) { setHasAutoSelectedCandidates(true); return; }
+    if (candidates.length >= 2) {
+      setSelectedCandidateIds([String(candidates[0].id), String(candidates[1].id)]);
+      setHasAutoSelectedCandidates(true);
+    }
+  }, [isLocalElection, candidates, selectedCandidateIds.length, hasAutoSelectedCandidates, userTouchedCandidates]);
 
   // Filtrer centres selon zone
   useEffect(() => {
@@ -482,57 +533,167 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
     loadBureaux();
   }, [selectedCenterId, selectedCenterName, zoneType, localElectionId, legislativeElectionId, electionId]);
 
-  // Charger résultats candidats pour le bureau sélectionné (pour constituer la liste à cocher et les métriques)
+  // Charger résultats candidats selon le périmètre: bureau > centre > zone (Commune/Dept)
   useEffect(() => {
-    const loadBureauCandidateRows = async () => {
-      if (!selectedBureauId || !electionId) {
+    const loadScopeCandidateRows = async () => {
+      if (!electionId) {
         setBureauCandidateRows([]);
         return;
       }
       try {
         setLoading(true);
-        // Choisir l'élection en fonction de la zone sélectionnée
         const targetElectionId = zoneType === 'commune'
           ? (localElectionId || electionId)
           : (legislativeElectionId || electionId);
 
-        console.log('[Analyse croisée] Chargement candidats pour bureau:', { selectedBureauId, targetElectionId, zoneType });
-
-        const { data, error } = await supabase
+        // Base query
+        let query = supabase
           .from('bureau_candidate_results_summary')
           .select('election_id, bureau_id, center_id, candidate_id, candidate_name, candidate_votes, candidate_percentage, candidate_participation_pct')
-          .eq('election_id', targetElectionId)
-          .eq('bureau_id', selectedBureauId as any)
-          .order('candidate_votes', { ascending: false });
-        
-        console.log('[Analyse croisée] Résultat candidats:', { data, error, selectedBureauId, targetElectionId });
+          .eq('election_id', targetElectionId);
 
-        if (!error && Array.isArray(data) && data.length > 0) {
-          setBureauCandidateRows((data || []) as BureauCandidateSummaryRow[]);
+        if (selectedBureauId) {
+          // Niveau bureau
+          query = query.eq('bureau_id', selectedBureauId as any);
+          const { data, error } = await query.order('candidate_votes', { ascending: false });
+          if (!error && Array.isArray(data)) {
+            setBureauCandidateRows(data as BureauCandidateSummaryRow[]);
+          } else {
+            setBureauCandidateRows([]);
+          }
+          return;
+        }
+
+        if (selectedCenterId) {
+          // Niveau centre
+          const { data, error } = await query
+            .eq('center_id', selectedCenterId as any)
+          .order('candidate_votes', { ascending: false });
+          if (!error && Array.isArray(data)) {
+            // agrégation par candidat
+            const byCand = new Map<string, { candidate_id: string; candidate_name: string; candidate_votes: number }>();
+            for (const row of data as any[]) {
+              const id = String(row.candidate_id);
+              const prev = byCand.get(id) || { candidate_id: id, candidate_name: row.candidate_name, candidate_votes: 0 };
+              prev.candidate_votes += Number(row.candidate_votes) || 0;
+              prev.candidate_name = row.candidate_name;
+              byCand.set(id, prev);
+            }
+            const aggregated = Array.from(byCand.values());
+            const totalVotes = aggregated.reduce((s, r) => s + r.candidate_votes, 0) || 0;
+            const rows: BureauCandidateSummaryRow[] = aggregated
+              .map(r => ({
+                election_id: targetElectionId,
+                bureau_id: '',
+                center_id: selectedCenterId,
+                candidate_id: r.candidate_id,
+                candidate_name: r.candidate_name,
+                candidate_votes: r.candidate_votes,
+                candidate_percentage: totalVotes > 0 ? (100 * r.candidate_votes) / totalVotes : 0,
+                candidate_participation_pct: undefined,
+              }))
+              .sort((a, b) => (b.candidate_votes - a.candidate_votes));
+            setBureauCandidateRows(rows);
+          } else {
+            setBureauCandidateRows([]);
+          }
+          return;
+        }
+
+        // Niveau zone (Commune/Departement)
+        let centerIds: string[] = [];
+        if (zoneType === 'commune') {
+          centerIds = (localElectionCenters || []).map(c => String(c.id));
+        } else if (zoneType === 'departement') {
+          centerIds = (legislativeElectionCenters || []).map(c => String(c.id));
+        }
+
+        let data: any[] | null = null;
+        let error: any = null;
+        if (centerIds.length > 0) {
+          const res = await query.in('center_id', centerIds).order('candidate_votes', { ascending: false });
+          data = res.data as any[] | null;
+          error = res.error;
+        } else {
+          const res = await query.order('candidate_votes', { ascending: false });
+          data = res.data as any[] | null;
+          error = res.error;
+        }
+
+        if (!error && Array.isArray(data)) {
+          const byCand = new Map<string, { candidate_id: string; candidate_name: string; candidate_votes: number }>();
+          for (const row of data) {
+            const id = String(row.candidate_id);
+            const prev = byCand.get(id) || { candidate_id: id, candidate_name: row.candidate_name, candidate_votes: 0 };
+            prev.candidate_votes += Number(row.candidate_votes) || 0;
+            prev.candidate_name = row.candidate_name;
+            byCand.set(id, prev);
+          }
+          const aggregated = Array.from(byCand.values());
+          const totalVotes = aggregated.reduce((s, r) => s + r.candidate_votes, 0) || 0;
+          const rows: BureauCandidateSummaryRow[] = aggregated
+            .map(r => ({
+              election_id: targetElectionId,
+              bureau_id: '',
+              center_id: '',
+              candidate_id: r.candidate_id,
+              candidate_name: r.candidate_name,
+              candidate_votes: r.candidate_votes,
+              candidate_percentage: totalVotes > 0 ? (100 * r.candidate_votes) / totalVotes : 0,
+              candidate_participation_pct: undefined,
+            }))
+            .sort((a, b) => (b.candidate_votes - a.candidate_votes));
+          setBureauCandidateRows(rows);
         } else {
           setBureauCandidateRows([]);
         }
       } catch (err) {
-        console.log('[Analyse croisée] Erreur chargement candidats:', err);
+        console.log('[Analyse croisée] Erreur chargement périmètre:', err);
         setBureauCandidateRows([]);
       } finally {
         setLoading(false);
       }
     };
-    loadBureauCandidateRows();
-  }, [selectedBureauId, electionId, candidates, selectedCenterId]);
+    // Charger quand zone/centre/bureau ou listes de centres changent
+    loadScopeCandidateRows();
+  }, [electionId, zoneType, localElectionId, legislativeElectionId, selectedCenterId, selectedBureauId, localElectionCenters, legislativeElectionCenters]);
 
   const candidateIdToParty = useMemo(() => {
     const map = new Map<string, string | undefined>();
-    candidates.forEach(c => map.set(c.id, c.party));
+    const source = (scopedCandidates && scopedCandidates.length > 0) ? scopedCandidates : candidates;
+    source.forEach(c => map.set(c.id, c.party));
     return map;
-  }, [candidates]);
+  }, [candidates, scopedCandidates]);
 
   const displayedRows = useMemo(() => {
     if (selectedCandidateIds.length < 2) return [] as BureauCandidateSummaryRow[];
+    // En législatives: exiger que la zone soit choisie avant d'afficher
+    if (!isLocalElection && !zoneType) return [] as BureauCandidateSummaryRow[];
     const setIds = new Set(selectedCandidateIds);
     return bureauCandidateRows.filter(row => setIds.has(String(row.candidate_id)));
-  }, [bureauCandidateRows, selectedCandidateIds]);
+  }, [bureauCandidateRows, selectedCandidateIds, isLocalElection, zoneType]);
+
+  // Préserver la sélection de candidats lors des changements de périmètre
+  useEffect(() => {
+    if (!Array.isArray(bureauCandidateRows)) return;
+    const availableIds = new Set(bureauCandidateRows.map(r => String(r.candidate_id)));
+    const intersection = selectedCandidateIds.filter(id => availableIds.has(id));
+    // Si l'utilisateur a choisi manuellement, ne pas écraser sa sélection sauf si elle devient vide
+    if (userTouchedCandidates && intersection.length >= Math.min(2, selectedCandidateIds.length)) return;
+    // Si certains candidats ne sont plus dans le périmètre, garder ceux qui restent et compléter avec les premiers candidats disponibles
+    const next: string[] = [...intersection];
+    if (next.length < 2) {
+      for (const r of bureauCandidateRows) {
+        const id = String(r.candidate_id);
+        if (!next.includes(id)) next.push(id);
+        if (next.length >= 2) break;
+      }
+    }
+    // Ne pas boucler si aucune amélioration possible
+    if (next.length && next.join(',') !== selectedCandidateIds.join(',')) {
+      setSelectedCandidateIds(next);
+    }
+  }, [bureauCandidateRows, userTouchedCandidates, selectedCandidateIds]);
 
   return (
     <section id="cross-analysis" className="py-6 sm:py-8 lg:py-12">
@@ -546,9 +707,19 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setZoneType('');
+                  // Si élection locale, forcer la zone à "commune" pour réactiver les champs
+                  const resetZone: ZoneType | '' = isLocalElection ? 'commune' : '';
+                  setZoneType(resetZone);
                   setZoneKey('');
+                  // Recalcule immédiat des centres pour éviter l'état inactif
+                  if (isLocalElection) {
+                    const list = (localElectionCenters && localElectionCenters.length > 0)
+                      ? localElectionCenters.slice(0, 10)
+                      : centers.slice(0, 10);
+                    setFilteredCenters(list);
+                  } else {
                   setFilteredCenters([]);
+                  }
                   setSelectedCenterId('');
                   setSelectedCenterName('');
                   setBureaux([]);
@@ -564,9 +735,9 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 order-2">
                 <Label>Zone</Label>
-                <Select value={zoneType} onValueChange={(v) => { setZoneType(v as ZoneType); setZoneKey(''); }} disabled={isLocalElection}>
+                <Select value={zoneType} onValueChange={(v) => { setZoneType(v as ZoneType); /* ne pas toucher aux candidats ici */ setZoneKey(''); }} disabled={isLocalElection}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={isLocalElection ? 'Commune' : 'Sélectionner une zone'} />
                   </SelectTrigger>
@@ -575,17 +746,22 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                       <SelectItem value="commune">Commune</SelectItem>
                     ) : (
                       <>
-                        <SelectItem value="departement">Département</SelectItem>
-                        <SelectItem value="commune">Commune</SelectItem>
+                    <SelectItem value="departement">Département</SelectItem>
+                    <SelectItem value="commune">Commune</SelectItem>
                       </>
                     )}
                   </SelectContent>
                 </Select>
+                {!isLocalElection && !zoneType && (
+                  <div className="text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-1">
+                    Sélectionnez une zone pour afficher les résultats
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 order-3">
                 <Label>{zoneType ? `Centre (${zoneType === 'departement' ? '6 max' : '10 max'})` : 'Centre'}</Label>
-                <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); setSelectedCandidateIds([]); }} disabled={!zoneType || filteredCenters.length === 0}>
+                <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!zoneType || filteredCenters.length === 0}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d\'abord'} />
                   </SelectTrigger>
@@ -597,9 +773,9 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 order-4">
                 <Label>Bureau</Label>
-                <Select value={selectedBureauId} onValueChange={(v) => { setSelectedBureauId(String(v)); setSelectedCandidateIds([]); }} disabled={!selectedCenterId || bureaux.length === 0 || loadingBureaux}>
+                <Select value={selectedBureauId} onValueChange={(v) => { setSelectedBureauId(String(v)); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!selectedCenterId || bureaux.length === 0 || loadingBureaux}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={
                       loadingBureaux ? 'Chargement...' :
@@ -625,12 +801,12 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 order-1">
                 <Label>Candidats (min. 2)</Label>
                 <div className="max-h-40 overflow-auto rounded border border-gray-200 p-2 bg-white min-h-[120px]">
                   {loading && <div className="text-sm text-gray-500 px-1 py-0.5">Chargement…</div>}
                   {!loading && bureauCandidateRows.length === 0 && (
-                    <div className="text-sm text-gray-500 px-1 py-0.5">Aucun candidat pour ce bureau</div>
+                    <div className="text-sm text-gray-500 px-1 py-0.5">Aucun candidat pour ce périmètre</div>
                   )}
                   {!loading && bureauCandidateRows.map(row => {
                     const id = String(row.candidate_id);
@@ -638,19 +814,21 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                     return (
                       <label key={id} className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-50 rounded px-1 transition-colors">
                         <Checkbox checked={checked} onCheckedChange={(v) => {
+                          setUserTouchedCandidates(true);
                           const isChecked = Boolean(v);
-                          setSelectedCandidateIds(prev => {
-                            if (isChecked) return Array.from(new Set([...prev, id]));
-                            return prev.filter(x => x !== id);
-                          });
+                          setSelectedCandidateIds(prev => (
+                            isChecked
+                              ? Array.from(new Set([...prev, id]))
+                              : prev.filter(x => x !== id)
+                          ));
                         }} />
                         <span className="text-sm text-gray-800 flex-1">{row.candidate_name}</span>
                       </label>
                     );
                   })}
                 </div>
-                {selectedCandidateIds.length > 0 && selectedCandidateIds.length < 2 && (
-                  <div className="text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-1">Veuillez sélectionner au moins 2 candidats</div>
+                {selectedCandidateIds.length < 2 && (
+                  <div className="text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-1 mt-2">Veuillez sélectionner au moins 2 candidats</div>
                 )}
               </div>
             </div>
