@@ -241,22 +241,39 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
       setSelectedCenterId('');
       return;
     }
+    
+    console.log('[Analyse croisée] Filtrage centres par zone:', { 
+      zoneType, 
+      localElectionCentersCount: localElectionCenters.length,
+      legislativeElectionCentersCount: legislativeElectionCenters.length 
+    });
+
     if (zoneType === 'commune') {
       // Commune: 10 centres issus d'une élection Locale
-      setFilteredCenters(localElectionCenters.slice(0, 10));
+      if (localElectionCenters.length > 0) {
+        setFilteredCenters(localElectionCenters.slice(0, 10));
+      } else {
+        console.log('[Analyse croisée] Aucun centre local disponible, utilisation des centres généraux');
+        setFilteredCenters(centers.slice(0, 10));
+      }
     } else {
       // Département: prendre 16 centres des Législatives moins les 10 des Locales → 6 restants
-      const localIds = new Set(localElectionCenters.map(c => c.id));
-      const legFirst16 = legislativeElectionCenters.slice(0, 16);
-      const remaining = legFirst16.filter(c => !localIds.has(c.id));
-      // Si pas assez (moins de 6), fallback en complétant avec d'autres centres légis
-      const final = remaining.length >= 6
-        ? remaining.slice(0, 6)
-        : [...remaining, ...legislativeElectionCenters.slice(16)].slice(0, 6);
-      setFilteredCenters(final);
+      if (legislativeElectionCenters.length > 0) {
+        const localIds = new Set(localElectionCenters.map(c => c.id));
+        const legFirst16 = legislativeElectionCenters.slice(0, 16);
+        const remaining = legFirst16.filter(c => !localIds.has(c.id));
+        // Si pas assez (moins de 6), fallback en complétant avec d'autres centres légis
+        const final = remaining.length >= 6
+          ? remaining.slice(0, 6)
+          : [...remaining, ...legislativeElectionCenters.slice(16)].slice(0, 6);
+        setFilteredCenters(final);
+      } else {
+        console.log('[Analyse croisée] Aucun centre législatif disponible, utilisation des centres généraux');
+        setFilteredCenters(centers.slice(0, 6));
+      }
     }
     setSelectedCenterId('');
-  }, [zoneType, centers, localElectionCenters]);
+  }, [zoneType, localElectionCenters, legislativeElectionCenters, centers]);
 
   // Charger bureaux du centre (en essayant de filtrer par election_id quand possible)
   useEffect(() => {
@@ -273,22 +290,182 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           ? (localElectionId || electionId)
           : (legislativeElectionId || electionId);
 
-        // Requête OR sur center_id ou voting_center_id, avec filtre election_id si dispo
-        // Note: PostgREST or() nécessite des colonnes valides, on tente la version la plus générale
-        const { data: orData, error: orErr } = await supabase
-          .from('voting_bureaux')
-          .select('id, name, center_id, voting_center_id, election_id')
-          .or(`center_id.eq.${selectedCenterId},voting_center_id.eq.${selectedCenterId}`)
-          .order('name');
+        console.log('[Analyse croisée] Chargement bureaux...', { 
+          selectedCenterId, 
+          selectedCenterName, 
+          selectionElectionId, 
+          zoneType,
+          isMobile: window.innerWidth < 768,
+          filteredCentersCount: filteredCenters.length,
+          localElectionCentersCount: localElectionCenters.length,
+          legislativeElectionCentersCount: legislativeElectionCenters.length
+        });
 
-        if (!orErr && Array.isArray(orData) && orData.length > 0) {
-          // Si election_id présent, filtrer côté client pour l'élection en cours selon la zone
-          const filtered = orData.filter((b: any) => !b.election_id || String(b.election_id) === String(selectionElectionId));
-          const list: BureauRow[] = (filtered.length > 0 ? filtered : orData).map((b: any) => ({ id: String(b.id), name: b.name }));
-          setBureaux(list);
+        // Méthode 0: Vérifier d'abord s'il y a des bureaux dans la table
+        const { data: allBureauxCount, error: countError } = await supabase
+          .from('voting_bureaux')
+          .select('id', { count: 'exact' });
+
+        console.log('[Analyse croisée] Nombre total de bureaux dans la table:', { allBureauxCount, countError });
+
+        // Vérifier d'abord que le centre existe dans voting_centers
+        const { data: centerCheck, error: centerCheckError } = await supabase
+          .from('voting_centers')
+          .select('id, name')
+          .eq('id', selectedCenterId)
+          .single();
+
+        console.log('[Analyse croisée] Vérification centre:', { centerCheck, centerCheckError, selectedCenterId });
+
+        if (centerCheckError || !centerCheck) {
+          console.log('[Analyse croisée] Centre non trouvé dans voting_centers:', selectedCenterId);
+          
+          // Essayer de trouver le centre par nom si l'ID ne fonctionne pas
+          if (selectedCenterName) {
+            console.log('[Analyse croisée] Tentative de recherche du centre par nom:', selectedCenterName);
+            const { data: centerByName, error: centerByNameError } = await supabase
+              .from('voting_centers')
+              .select('id, name')
+              .ilike('name', selectedCenterName)
+              .limit(1);
+            
+            console.log('[Analyse croisée] Centre trouvé par nom:', { centerByName, centerByNameError });
+            
+            if (centerByName && centerByName.length > 0) {
+              console.log('[Analyse croisée] Utilisation du centre trouvé par nom:', centerByName[0]);
+              // Mettre à jour l'ID du centre pour les recherches suivantes
+              const foundCenterId = centerByName[0].id;
+              // Recharger les bureaux avec le bon ID
+              const { data: bureauData, error: bureauError } = await supabase
+                .from('voting_bureaux')
+                .select('id, name, center_id, voting_center_id')
+                .or(`center_id.eq.${foundCenterId},voting_center_id.eq.${foundCenterId}`)
+                .order('name');
+              
+              console.log('[Analyse croisée] Bureaux avec centre corrigé:', { bureauData, bureauError, foundCenterId });
+              
+              if (!bureauError && Array.isArray(bureauData) && bureauData.length > 0) {
+                const list: BureauRow[] = bureauData.map((b: any) => ({ id: String(b.id), name: b.name }));
+                setBureaux(list);
+                console.log('[Analyse croisée] Bureaux trouvés avec centre corrigé:', list);
+                return;
+              }
+            }
+          }
+          
+          setBureaux([]);
           return;
         }
 
+        // Méthode 1: rechercher par center_id directement
+        const { data: bureauData, error: bureauError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, center_id')
+          .eq('center_id', selectedCenterId)
+          .order('name');
+
+        console.log('[Analyse croisée] Méthode 1 - center_id:', { bureauData, bureauError, selectedCenterId });
+
+        if (!bureauError && Array.isArray(bureauData) && bureauData.length > 0) {
+          const list: BureauRow[] = bureauData.map((b: any) => ({ id: String(b.id), name: b.name }));
+          setBureaux(list);
+          console.log('[Analyse croisée] Bureaux trouvés via center_id:', list);
+          return;
+        }
+
+        // Méthode 2: rechercher par voting_center_id
+        const { data: votingCenterData, error: votingCenterError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, voting_center_id')
+          .eq('voting_center_id', selectedCenterId)
+          .order('name');
+
+        console.log('[Analyse croisée] Méthode 2 - voting_center_id:', { votingCenterData, votingCenterError, selectedCenterId });
+
+        if (!votingCenterError && Array.isArray(votingCenterData) && votingCenterData.length > 0) {
+          const list: BureauRow[] = votingCenterData.map((b: any) => ({ id: String(b.id), name: b.name }));
+          setBureaux(list);
+          console.log('[Analyse croisée] Bureaux trouvés via voting_center_id:', list);
+          return;
+        }
+
+        // Méthode 3: Recherche par jointure avec voting_centers
+        const { data: joinData, error: joinError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, voting_centers!inner(id)')
+          .eq('voting_centers.id', selectedCenterId)
+          .order('name');
+
+        console.log('[Analyse croisée] Méthode 3 - jointure:', { joinData, joinError });
+
+        if (!joinError && Array.isArray(joinData) && joinData.length > 0) {
+          const list: BureauRow[] = joinData.map((b: any) => ({ id: String(b.id), name: b.name }));
+          setBureaux(list);
+          console.log('[Analyse croisée] Bureaux trouvés via jointure:', list);
+          return;
+        }
+
+        // Méthode 4: Recherche par election_id et center_id
+        const { data: electionData, error: electionError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, election_id, center_id, voting_center_id')
+          .eq('election_id', selectionElectionId)
+          .or(`center_id.eq.${selectedCenterId},voting_center_id.eq.${selectedCenterId}`)
+          .order('name');
+
+        console.log('[Analyse croisée] Méthode 4 - election_id:', { electionData, electionError, selectionElectionId });
+
+        if (!electionError && Array.isArray(electionData) && electionData.length > 0) {
+          const list: BureauRow[] = electionData.map((b: any) => ({ id: String(b.id), name: b.name }));
+          setBureaux(list);
+          console.log('[Analyse croisée] Bureaux trouvés via election_id:', list);
+          return;
+        }
+
+
+        // Méthode 5: Explorer la structure de la table voting_bureaux
+        const { data: allBureaux, error: allBureauxError } = await supabase
+          .from('voting_bureaux')
+          .select('id, name, center_id, voting_center_id, election_id')
+          .limit(10);
+
+        console.log('[Analyse croisée] Structure table voting_bureaux:', { allBureaux, allBureauxError });
+
+        // Méthode 6: Recherche par nom de centre (si disponible)
+        if (selectedCenterName) {
+          const { data: nameData, error: nameError } = await supabase
+            .from('voting_bureaux')
+            .select('id, name, voting_centers!inner(id, name)')
+            .eq('voting_centers.name', selectedCenterName)
+            .order('name');
+
+          console.log('[Analyse croisée] Méthode 6 - recherche par nom:', { nameData, nameError, selectedCenterName });
+
+          if (!nameError && Array.isArray(nameData) && nameData.length > 0) {
+            const list: BureauRow[] = nameData.map((b: any) => ({ id: String(b.id), name: b.name }));
+            setBureaux(list);
+            console.log('[Analyse croisée] Bureaux trouvés via nom:', list);
+            return;
+          }
+
+          // Méthode 7: Recherche par nom ilike (tolérant)
+          const { data: nameIlikeData, error: nameIlikeError } = await supabase
+            .from('voting_bureaux')
+            .select('id, name, voting_centers!inner(id, name)')
+            .ilike('voting_centers.name', selectedCenterName)
+            .order('name');
+
+          console.log('[Analyse croisée] Méthode 7 - recherche par nom ilike:', { nameIlikeData, nameIlikeError, selectedCenterName });
+
+          if (!nameIlikeError && Array.isArray(nameIlikeData) && nameIlikeData.length > 0) {
+            const list: BureauRow[] = nameIlikeData.map((b: any) => ({ id: String(b.id), name: b.name }));
+            setBureaux(list);
+            console.log('[Analyse croisée] Bureaux trouvés via nom ilike:', list);
+            return;
+          }
+        }
+
+        console.log('[Analyse croisée] Aucun bureau trouvé pour le centre:', { selectedCenterId, selectedCenterName });
         setBureaux([]);
       } catch (_) {
         setBureaux([]);
@@ -297,7 +474,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
       }
     };
     loadBureaux();
-  }, [selectedCenterId, zoneType, localElectionId, legislativeElectionId]);
+  }, [selectedCenterId, selectedCenterName, zoneType, localElectionId, legislativeElectionId, electionId]);
 
   // Charger résultats candidats pour le bureau sélectionné (pour constituer la liste à cocher et les métriques)
   useEffect(() => {
@@ -313,22 +490,31 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           ? (localElectionId || electionId)
           : (legislativeElectionId || electionId);
 
+        console.log('[Analyse croisée] Chargement candidats pour bureau:', { selectedBureauId, targetElectionId, zoneType });
+
         const { data, error } = await supabase
           .from('bureau_candidate_results_summary')
           .select('election_id, bureau_id, center_id, candidate_id, candidate_name, candidate_votes, candidate_percentage, candidate_participation_pct')
           .eq('election_id', targetElectionId)
           .eq('bureau_id', selectedBureauId as any)
           .order('candidate_votes', { ascending: false });
-        if (error) throw error;
-        setBureauCandidateRows((data || []) as BureauCandidateSummaryRow[]);
-      } catch (_) {
+        
+        console.log('[Analyse croisée] Résultat candidats:', { data, error, selectedBureauId, targetElectionId });
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          setBureauCandidateRows((data || []) as BureauCandidateSummaryRow[]);
+        } else {
+          setBureauCandidateRows([]);
+        }
+      } catch (err) {
+        console.log('[Analyse croisée] Erreur chargement candidats:', err);
         setBureauCandidateRows([]);
       } finally {
         setLoading(false);
       }
     };
     loadBureauCandidateRows();
-  }, [selectedBureauId, electionId]);
+  }, [selectedBureauId, electionId, candidates, selectedCenterId]);
 
   const candidateIdToParty = useMemo(() => {
     const map = new Map<string, string | undefined>();
@@ -371,14 +557,14 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Zone</Label>
                 <Select value={zoneType} onValueChange={(v) => { setZoneType(v as ZoneType); setZoneKey(''); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Sélectionner une zone" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]" position="popper">
                     <SelectItem value="departement">Département</SelectItem>
                     <SelectItem value="commune">Commune</SelectItem>
                   </SelectContent>
@@ -388,10 +574,10 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
               <div className="space-y-2">
                 <Label>{zoneType ? `Centre (${zoneType === 'departement' ? '6 max' : '10 max'})` : 'Centre'}</Label>
                 <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); setSelectedCandidateIds([]); }} disabled={!zoneType || filteredCenters.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d’abord'} />
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d\'abord'} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]" position="popper">
                     {filteredCenters.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
@@ -401,21 +587,35 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
               <div className="space-y-2">
                 <Label>Bureau</Label>
-                <Select value={selectedBureauId} onValueChange={(v) => { setSelectedBureauId(String(v)); setSelectedCandidateIds([]); }} disabled={!selectedCenterId || bureaux.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={!selectedCenterId ? 'Choisir un centre' : (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau')} />
+                <Select value={selectedBureauId} onValueChange={(v) => { setSelectedBureauId(String(v)); setSelectedCandidateIds([]); }} disabled={!selectedCenterId || bureaux.length === 0 || loadingBureaux}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={
+                      loadingBureaux ? 'Chargement...' :
+                      !selectedCenterId ? 'Choisir un centre' : 
+                      (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau trouvé')
+                    } />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]" position="popper">
                     {bureaux.map((b) => (
                       <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {loadingBureaux && (
+                  <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                    Chargement des bureaux...
+                  </div>
+                )}
+                {!loadingBureaux && selectedCenterId && bureaux.length === 0 && (
+                  <div className="text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded px-2 py-1">
+                    Aucun bureau trouvé pour ce centre
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label>Candidats (min. 2)</Label>
-                <div className="max-h-40 overflow-auto rounded border border-gray-200 p-2 bg-white">
+                <div className="max-h-40 overflow-auto rounded border border-gray-200 p-2 bg-white min-h-[120px]">
                   {loading && <div className="text-sm text-gray-500 px-1 py-0.5">Chargement…</div>}
                   {!loading && bureauCandidateRows.length === 0 && (
                     <div className="text-sm text-gray-500 px-1 py-0.5">Aucun candidat pour ce bureau</div>
@@ -424,7 +624,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                     const id = String(row.candidate_id);
                     const checked = selectedCandidateIds.includes(id);
                     return (
-                      <label key={id} className="flex items-center gap-2 py-1 cursor-pointer">
+                      <label key={id} className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-50 rounded px-1 transition-colors">
                         <Checkbox checked={checked} onCheckedChange={(v) => {
                           const isChecked = Boolean(v);
                           setSelectedCandidateIds(prev => {
@@ -432,7 +632,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                             return prev.filter(x => x !== id);
                           });
                         }} />
-                        <span className="text-sm text-gray-800">{row.candidate_name}</span>
+                        <span className="text-sm text-gray-800 flex-1">{row.candidate_name}</span>
                       </label>
                     );
                   })}
@@ -453,33 +653,65 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
                   {selectedCandidateIds.length < 2 ? (
                     <div className="text-sm text-gray-500">Sélectionnez au moins 2 candidats pour afficher le comparatif.</div>
                   ) : (
-                    <div className="relative overflow-x-auto">
-                      <table className="min-w-full text-xs sm:text-sm">
-                        <thead>
-                          <tr className="bg-gray-50">
-                            <th className="text-left px-3 py-2 border">Candidat</th>
-                            <th className="text-left px-3 py-2 border">Parti</th>
-                            <th className="text-right px-3 py-2 border">Voix</th>
-                            <th className="text-right px-3 py-2 border">Score</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {displayedRows.map((row) => {
-                            const party = candidateIdToParty.get(String(row.candidate_id));
-                            const scorePct = typeof row.candidate_percentage === 'number' ? Math.min(Math.max(row.candidate_percentage, 0), 100) : undefined;
-                            return (
-                              <tr key={String(row.candidate_id)} className="odd:bg-white even:bg-gray-50">
-                                <td className="px-3 py-2 border font-medium text-gray-800">{row.candidate_name}</td>
-                                <td className="px-3 py-2 border text-gray-700">{party || '-'}</td>
-                                <td className="px-3 py-2 border text-right font-semibold">{(row.candidate_votes ?? 0).toLocaleString()}</td>
-                                <td className="px-3 py-2 border text-right">
-                                  {typeof scorePct === 'number' ? `${scorePct.toFixed(2)}%` : '-'}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                    <div className="space-y-4">
+                      {/* Version mobile - cartes */}
+                      <div className="block sm:hidden">
+                        {displayedRows.map((row) => {
+                          const party = candidateIdToParty.get(String(row.candidate_id));
+                          const scorePct = typeof row.candidate_percentage === 'number' ? Math.min(Math.max(row.candidate_percentage, 0), 100) : undefined;
+                          return (
+                            <div key={String(row.candidate_id)} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                              <h3 className="font-semibold text-gray-800 text-sm mb-2">{row.candidate_name}</h3>
+                              <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                  <span className="text-gray-500">Parti:</span>
+                                  <p className="font-medium text-gray-700">{party || '-'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Score:</span>
+                                  <p className="font-medium text-gray-700">
+                                    {typeof scorePct === 'number' ? `${scorePct.toFixed(2)}%` : '-'}
+                                  </p>
+                                </div>
+                                <div className="col-span-2">
+                                  <span className="text-gray-500">Voix:</span>
+                                  <p className="font-bold text-lg text-gray-800">{(row.candidate_votes ?? 0).toLocaleString()}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Version desktop - tableau */}
+                      <div className="hidden sm:block relative overflow-x-auto">
+                        <table className="min-w-full text-xs sm:text-sm">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th className="text-left px-3 py-2 border">Candidat</th>
+                              <th className="text-left px-3 py-2 border">Parti</th>
+                              <th className="text-right px-3 py-2 border">Voix</th>
+                              <th className="text-right px-3 py-2 border">Score</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {displayedRows.map((row) => {
+                              const party = candidateIdToParty.get(String(row.candidate_id));
+                              const scorePct = typeof row.candidate_percentage === 'number' ? Math.min(Math.max(row.candidate_percentage, 0), 100) : undefined;
+                              return (
+                                <tr key={String(row.candidate_id)} className="odd:bg-white even:bg-gray-50">
+                                  <td className="px-3 py-2 border font-medium text-gray-800">{row.candidate_name}</td>
+                                  <td className="px-3 py-2 border text-gray-700">{party || '-'}</td>
+                                  <td className="px-3 py-2 border text-right font-semibold">{(row.candidate_votes ?? 0).toLocaleString()}</td>
+                                  <td className="px-3 py-2 border text-right">
+                                    {typeof scorePct === 'number' ? `${scorePct.toFixed(2)}%` : '-'}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </CardContent>
