@@ -18,7 +18,7 @@ interface CenterRow {
 }
 
 interface BureauRow {
-  id: string | number;
+  id: string;
   name: string;
 }
 
@@ -51,7 +51,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
   const [selectedCenterId, setSelectedCenterId] = useState<string>('');
   const [selectedCenterName, setSelectedCenterName] = useState<string>('');
   const [bureaux, setBureaux] = useState<BureauRow[]>([]);
-  const [selectedBureauId, setSelectedBureauId] = useState<string | number>('');
+  const [selectedBureauId, setSelectedBureauId] = useState<string>('');
   const [candidates, setCandidates] = useState<CandidateRow[]>([]);
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
   const [bureauCandidateRows, setBureauCandidateRows] = useState<BureauCandidateSummaryRow[]>([]);
@@ -277,10 +277,10 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           .select('id, name')
           .eq('center_id', selectedCenterId)
           .order('name');
-        let { data, error } = await query;
+         let { data, error } = await query;
 
         if (!error && Array.isArray(data) && data.length > 0) {
-          const list: BureauRow[] = data.map((b: any) => ({ id: b.id, name: b.name }));
+          const list: BureauRow[] = data.map((b: any) => ({ id: String(b.id), name: b.name }));
           setBureaux(list);
           return;
         }
@@ -292,7 +292,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           .eq('voting_center_id', selectedCenterId)
           .order('name');
         if (!byVotingCenter.error && Array.isArray(byVotingCenter.data) && byVotingCenter.data.length > 0) {
-          const list: BureauRow[] = byVotingCenter.data.map((b: any) => ({ id: b.id, name: b.name }));
+          const list: BureauRow[] = byVotingCenter.data.map((b: any) => ({ id: String(b.id), name: b.name }));
           setBureaux(list);
           return;
         }
@@ -304,7 +304,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           .eq('voting_centers.id', selectedCenterId)
           .order('name');
         if (!byJoin.error && Array.isArray(byJoin.data) && byJoin.data.length > 0) {
-          const list: BureauRow[] = byJoin.data.map((b: any) => ({ id: b.id, name: b.name }));
+          const list: BureauRow[] = byJoin.data.map((b: any) => ({ id: String(b.id), name: b.name }));
           setBureaux(list);
           return;
         }
@@ -317,7 +317,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           .eq('election_id', selectionElectionId)
           .order('name');
         if (!byElection.error && Array.isArray(byElection.data) && byElection.data.length > 0) {
-          const list: BureauRow[] = byElection.data.map((b: any) => ({ id: b.id, name: b.name }));
+          const list: BureauRow[] = byElection.data.map((b: any) => ({ id: String(b.id), name: b.name }));
           setBureaux(list);
           return;
         }
@@ -418,69 +418,30 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
               <div className="space-y-2">
                 <Label>{zoneType ? `Centre (${zoneType === 'departement' ? '6 max' : '10 max'})` : 'Centre'}</Label>
-                {/* Mobile natif */}
-                <select
-                  className="block sm:hidden w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white disabled:bg-gray-100"
-                  value={selectedCenterId}
-                  disabled={!zoneType}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setSelectedCenterId(v);
-                    setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || '');
-                    setSelectedBureauId('');
-                    setSelectedCandidateIds([]);
-                  }}
-                >
-                  <option value="" disabled>{zoneType ? 'Sélectionner un centre' : 'Choisir la zone d’abord'}</option>
-                  {filteredCenters.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                {/* Desktop shadcn */}
-                <div className="hidden sm:block">
-                  <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); setSelectedCandidateIds([]); }} disabled={!zoneType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d’abord'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCenters.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); setSelectedCandidateIds([]); }} disabled={!zoneType || filteredCenters.length === 0}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d’abord'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredCenters.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
                 <Label>Bureau</Label>
-                {/* Mobile natif */}
-                <select
-                  className="block sm:hidden w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white disabled:bg-gray-100"
-                  value={String(selectedBureauId)}
-                  disabled={!selectedCenterId}
-                  onChange={(e) => {
-                    setSelectedBureauId(e.target.value);
-                    setSelectedCandidateIds([]);
-                  }}
-                >
-                  <option value="" disabled>{!selectedCenterId ? 'Choisir un centre' : (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau')}</option>
-                  {bureaux.map((b) => (
-                    <option key={String(b.id)} value={String(b.id)}>{b.name}</option>
-                  ))}
-                </select>
-                {/* Desktop shadcn */}
-                <div className="hidden sm:block">
-                  <Select value={selectedBureauId as any} onValueChange={(v) => { setSelectedBureauId(v); setSelectedCandidateIds([]); }} disabled={!selectedCenterId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={!selectedCenterId ? 'Choisir un centre' : (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {bureaux.map((b) => (
-                        <SelectItem key={String(b.id)} value={String(b.id)}>{b.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select value={selectedBureauId} onValueChange={(v) => { setSelectedBureauId(String(v)); setSelectedCandidateIds([]); }} disabled={!selectedCenterId || bureaux.length === 0}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={!selectedCenterId ? 'Choisir un centre' : (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bureaux.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
