@@ -1221,7 +1221,7 @@ const ElectionResults: React.FC = () => {
                 title="Taux d'abstention"
                 value={typeof results.participation_rate === 'number' ? 100 - results.participation_rate : 0}
                 icon={<div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><span className="text-blue-600 font-bold text-lg">%</span></div>}
-                color="bg-gradient-to-br from-purple-500 to-purple-600"
+                color="bg-gradient-to-br from-red-500 to-red-600"
                 subtitle="Pourcentage d'abstention"
                 animated={true}
                 showDecimals={true}
