@@ -86,7 +86,9 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
             .filter((c: any) => c && c.id)
             .map((c: any) => ({ id: String(c.id), name: c.name }));
           setCenters(list);
+          console.log('[Analyse croisée] Centres chargés pour élection:', list.length);
         } else {
+          console.log('[Analyse croisée] Aucun centre trouvé pour élection, fallback vers tous les centres');
           // 2) Fallback: tous les centres
           const { data, error } = await supabase
             .from('voting_centers')
@@ -95,6 +97,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           if (error) throw error;
           const list: CenterRow[] = (data || []).map((c: any) => ({ id: String(c.id), name: c.name }));
           setCenters(list);
+          console.log('[Analyse croisée] Centres fallback chargés:', list.length);
         }
 
         // 3) Préparer centres pour la zone "Commune" depuis une élection Locale
@@ -355,7 +358,10 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           isMobile: window.innerWidth < 768,
           filteredCentersCount: filteredCenters.length,
           localElectionCentersCount: localElectionCenters.length,
-          legislativeElectionCentersCount: legislativeElectionCenters.length
+          legislativeElectionCentersCount: legislativeElectionCenters.length,
+          centersList: centers.map(c => ({ id: c.id, name: c.name })),
+          filteredCentersList: filteredCenters.map(c => ({ id: c.id, name: c.name })),
+          selectedCenterInFiltered: filteredCenters.find(c => c.id === selectedCenterId)
         });
 
         // Vérifier d'abord que le centre existe dans voting_centers
@@ -409,19 +415,126 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
         // Requête simple et sûre: filtrer uniquement par center_id (UUID)
         const idStr = String(selectedCenterId).trim();
-        const { data: bureauData, error: bureauError } = await supabase
+        
+        // Essayer d'abord avec center_id
+        let { data: bureauData, error: bureauError } = await supabase
           .from('voting_bureaux')
           .select('id, name, center_id')
-          .eq('center_id', idStr as any)
+          .eq('center_id', idStr)
           .order('name');
+        
+        console.log('[Analyse croisée] Requête initiale pour bureaux:', {
+          idStr,
+          bureauData: bureauData?.map(b => ({ id: b.id, name: b.name, center_id: b.center_id })),
+          bureauError,
+          count: bureauData?.length || 0
+        });
+
+        // Note: voting_center_id n'existe pas dans la table voting_bureaux, seul center_id est utilisé
+
+        // Si toujours aucun résultat, essayer de chercher par nom de centre
+        if ((!bureauData || bureauData.length === 0) && bureauError === null && selectedCenterName) {
+          console.log('[Analyse croisée] Recherche par nom de centre dans voting_centers');
+          const { data: centerData, error: centerError } = await supabase
+            .from('voting_centers')
+            .select('id, name')
+            .ilike('name', `%${selectedCenterName}%`)
+            .limit(1);
+          
+          console.log('[Analyse croisée] Résultat recherche par nom:', { centerData, centerError });
+          
+          if (centerData && centerData.length > 0) {
+            const foundCenterId = centerData[0].id;
+            console.log('[Analyse croisée] Centre trouvé par nom, recherche bureaux avec ID:', foundCenterId);
+            const finalQuery = await supabase
+              .from('voting_bureaux')
+              .select('id, name, center_id')
+              .eq('center_id', foundCenterId)
+              .order('name');
+            
+            console.log('[Analyse croisée] Requête finale pour bureaux:', { 
+              finalQuery,
+              data: finalQuery.data,
+              error: finalQuery.error,
+              count: finalQuery.data?.length || 0
+            });
+            
+            bureauData = finalQuery.data;
+            bureauError = finalQuery.error;
+          }
+        }
 
         if (!bureauError && Array.isArray(bureauData) && bureauData.length > 0) {
           const list: BureauRow[] = bureauData.map((b: any) => ({ id: String(b.id), name: b.name }));
           setBureaux(list);
+          console.log('[Analyse croisée] Bureaux trouvés:', list.length);
           return;
         }
 
-        // Si aucun bureau trouvé, retourner liste vide
+        // Si aucun bureau trouvé, faire une requête de diagnostic
+        console.log('[Analyse croisée] Aucun bureau trouvé pour le centre:', selectedCenterId, selectedCenterName);
+        
+        // Diagnostic: vérifier tous les bureaux disponibles
+        try {
+          console.log('[Analyse croisée] Test de connexion Supabase...');
+          
+          // Test 1: Requête simple sans filtre
+          const { data: allBureaux, error: allBureauxError } = await supabase
+            .from('voting_bureaux')
+            .select('*')
+            .limit(10);
+          
+          console.log('[Analyse croisée] Diagnostic - Premiers 10 bureaux:', {
+            allBureaux: allBureaux?.map(b => ({ id: b.id, name: b.name, center_id: b.center_id })),
+            allBureauxError,
+            count: allBureaux?.length || 0,
+            rawData: allBureaux
+          });
+          
+          // Test 2: Requête avec filtre spécifique sur le centre sélectionné
+          const { data: filteredBureaux, error: filteredError } = await supabase
+            .from('voting_bureaux')
+            .select('*')
+            .eq('center_id', selectedCenterId)
+            .limit(5);
+          
+          console.log('[Analyse croisée] Diagnostic - Bureaux filtrés par center_id:', {
+            filteredBureaux: filteredBureaux?.map(b => ({ id: b.id, name: b.name, center_id: b.center_id })),
+            filteredError,
+            count: filteredBureaux?.length || 0,
+            selectedCenterId,
+            rawFilteredData: filteredBureaux
+          });
+          
+          // Vérifier s'il y a des bureaux avec le même center_id mais format différent
+          // Note: ilike avec UUID peut causer une erreur 404, utiliser eq à la place
+          const { data: similarBureaux, error: similarError } = await supabase
+            .from('voting_bureaux')
+            .select('id, name, center_id')
+            .eq('center_id', selectedCenterId)
+            .limit(5);
+          
+          console.log('[Analyse croisée] Diagnostic - Bureaux avec center_id similaire:', {
+            similarBureaux: similarBureaux?.map(b => ({ id: b.id, name: b.name, center_id: b.center_id })),
+            similarError,
+            count: similarBureaux?.length || 0
+          });
+          
+          // Test 3: Vérifier la structure de la table avec une requête simple
+          const { data: structureTest, error: structureError } = await supabase
+            .from('voting_bureaux')
+            .select('count(*)')
+            .single();
+          
+          console.log('[Analyse croisée] Diagnostic - Nombre total de bureaux:', {
+            structureTest,
+            structureError,
+            totalCount: structureTest?.count || 'Non disponible'
+          });
+        } catch (diagError) {
+          console.log('[Analyse croisée] Erreur diagnostic:', diagError);
+        }
+        
         setBureaux([]);
       } catch (_) {
         setBureaux([]);
