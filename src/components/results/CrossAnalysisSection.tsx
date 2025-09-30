@@ -326,7 +326,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
             const { data: centerByName, error: centerByNameError } = await supabase
               .from('voting_centers')
               .select('id, name')
-              .ilike('name', selectedCenterName)
+              .ilike('name', `%${selectedCenterName}%`)
               .limit(1);
             
             console.log('[Analyse croisée] Centre trouvé par nom:', { centerByName, centerByNameError });
@@ -452,7 +452,7 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           const { data: nameIlikeData, error: nameIlikeError } = await supabase
             .from('voting_bureaux')
             .select('id, name, voting_centers!inner(id, name)')
-            .ilike('voting_centers.name', selectedCenterName)
+            .ilike('voting_centers.name', `%${selectedCenterName}%`)
             .order('name');
 
           console.log('[Analyse croisée] Méthode 7 - recherche par nom ilike:', { nameIlikeData, nameIlikeError, selectedCenterName });
