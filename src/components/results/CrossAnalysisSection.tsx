@@ -485,6 +485,24 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
         }
 
 
+        // Méthode 4b: Fallback via vue d'agrégats (bureau_results_summary)
+        try {
+          const { data: brs, error: brsErr } = await supabase
+            .from('bureau_results_summary')
+            .select('bureau_id, bureau_name, center_id, center_name, election_id')
+            .eq('election_id', selectionElectionId)
+            .or(`center_id.eq.${selectedCenterId},center_name.ilike.%${selectedCenterName || ''}%`)
+            .order('bureau_name');
+          if (!brsErr && Array.isArray(brs) && brs.length > 0) {
+            const list: BureauRow[] = brs.map((b: any) => ({ id: String(b.bureau_id), name: b.bureau_name }));
+            setBureaux(list);
+            console.log('[Analyse croisée] Bureaux via bureau_results_summary:', list);
+            return;
+          }
+        } catch (e) {
+          console.log('[Analyse croisée] Fallback brs erreur:', e);
+        }
+
         // Méthode 5: Explorer la structure de la table voting_bureaux
         const { data: allBureaux, error: allBureauxError } = await supabase
           .from('voting_bureaux')
@@ -780,15 +798,20 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
               <div className="space-y-2 order-4">
                 <Label>Bureau</Label>
-                <Select value={selectedBureauId} onValueChange={(v) => { const vv = String(v || ''); setSelectedBureauId(vv); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!selectedCenterId || bureaux.length === 0 || loadingBureaux}>
+                <Select value={selectedBureauId} onValueChange={(v) => { const vv = String(v || ''); setSelectedBureauId(vv); /* ne pas réinitialiser selectedCandidateIds */ }} disabled={!selectedCenterId || loadingBureaux}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={
                       loadingBureaux ? 'Chargement...' :
                       !selectedCenterId ? 'Choisir un centre' : 
-                      (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau trouvé')
+                      (bureaux.length ? 'Sélectionner un bureau' : 'Recherche des bureaux…')
                     } />
                   </SelectTrigger>
                   <SelectContent className="z-[100]" position="popper">
+                    {(!loadingBureaux && selectedCenterId && bureaux.length === 0) && (
+                      <div className="px-2 py-1 text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded mx-2 my-1">
+                        Aucun bureau trouvé pour ce centre
+                      </div>
+                    )}
                     {bureaux.map((b) => (
                       <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                     ))}
