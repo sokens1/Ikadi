@@ -418,30 +418,69 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
               <div className="space-y-2">
                 <Label>{zoneType ? `Centre (${zoneType === 'departement' ? '6 max' : '10 max'})` : 'Centre'}</Label>
-                <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); setSelectedCandidateIds([]); }} disabled={!zoneType || filteredCenters.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d’abord'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredCenters.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Mobile natif */}
+                <select
+                  className="block sm:hidden w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white disabled:bg-gray-100"
+                  value={selectedCenterId}
+                  disabled={!zoneType}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSelectedCenterId(v);
+                    setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || '');
+                    setSelectedBureauId('');
+                    setSelectedCandidateIds([]);
+                  }}
+                >
+                  <option value="" disabled>{zoneType ? 'Sélectionner un centre' : 'Choisir la zone d’abord'}</option>
+                  {filteredCenters.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                {/* Desktop shadcn */}
+                <div className="hidden sm:block">
+                  <Select value={selectedCenterId} onValueChange={(v) => { setSelectedCenterId(v); setSelectedCenterName(filteredCenters.find(c => c.id === v)?.name || ''); setSelectedBureauId(''); setSelectedCandidateIds([]); }} disabled={!zoneType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={zoneType ? 'Sélectionner un centre' : 'Choisir la zone d’abord'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredCenters.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Bureau</Label>
-                <Select value={selectedBureauId} onValueChange={(v) => { setSelectedBureauId(v); setSelectedCandidateIds([]); }} disabled={!selectedCenterId || bureaux.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={!selectedCenterId ? 'Choisir un centre' : (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bureaux.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Mobile natif */}
+                <select
+                  className="block sm:hidden w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white disabled:bg-gray-100"
+                  value={String(selectedBureauId)}
+                  disabled={!selectedCenterId}
+                  onChange={(e) => {
+                    setSelectedBureauId(e.target.value);
+                    setSelectedCandidateIds([]);
+                  }}
+                >
+                  <option value="" disabled>{!selectedCenterId ? 'Choisir un centre' : (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau')}</option>
+                  {bureaux.map((b) => (
+                    <option key={String(b.id)} value={String(b.id)}>{b.name}</option>
+                  ))}
+                </select>
+                {/* Desktop shadcn */}
+                <div className="hidden sm:block">
+                  <Select value={selectedBureauId as any} onValueChange={(v) => { setSelectedBureauId(v); setSelectedCandidateIds([]); }} disabled={!selectedCenterId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={!selectedCenterId ? 'Choisir un centre' : (bureaux.length ? 'Sélectionner un bureau' : 'Aucun bureau')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bureaux.map((b) => (
+                        <SelectItem key={String(b.id)} value={String(b.id)}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
