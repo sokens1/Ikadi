@@ -301,6 +301,13 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
           legislativeElectionCentersCount: legislativeElectionCenters.length
         });
 
+        // Méthode 0: Vérifier d'abord s'il y a des bureaux dans la table
+        const { data: allBureauxCount, error: countError } = await supabase
+          .from('voting_bureaux')
+          .select('id', { count: 'exact' });
+
+        console.log('[Analyse croisée] Nombre total de bureaux dans la table:', { allBureauxCount, countError });
+
         // Vérifier d'abord que le centre existe dans voting_centers
         const { data: centerCheck, error: centerCheckError } = await supabase
           .from('voting_centers')
@@ -312,6 +319,40 @@ const CrossAnalysisSection: React.FC<CrossAnalysisSectionProps> = ({ electionId 
 
         if (centerCheckError || !centerCheck) {
           console.log('[Analyse croisée] Centre non trouvé dans voting_centers:', selectedCenterId);
+          
+          // Essayer de trouver le centre par nom si l'ID ne fonctionne pas
+          if (selectedCenterName) {
+            console.log('[Analyse croisée] Tentative de recherche du centre par nom:', selectedCenterName);
+            const { data: centerByName, error: centerByNameError } = await supabase
+              .from('voting_centers')
+              .select('id, name')
+              .ilike('name', selectedCenterName)
+              .limit(1);
+            
+            console.log('[Analyse croisée] Centre trouvé par nom:', { centerByName, centerByNameError });
+            
+            if (centerByName && centerByName.length > 0) {
+              console.log('[Analyse croisée] Utilisation du centre trouvé par nom:', centerByName[0]);
+              // Mettre à jour l'ID du centre pour les recherches suivantes
+              const foundCenterId = centerByName[0].id;
+              // Recharger les bureaux avec le bon ID
+              const { data: bureauData, error: bureauError } = await supabase
+                .from('voting_bureaux')
+                .select('id, name, center_id, voting_center_id')
+                .or(`center_id.eq.${foundCenterId},voting_center_id.eq.${foundCenterId}`)
+                .order('name');
+              
+              console.log('[Analyse croisée] Bureaux avec centre corrigé:', { bureauData, bureauError, foundCenterId });
+              
+              if (!bureauError && Array.isArray(bureauData) && bureauData.length > 0) {
+                const list: BureauRow[] = bureauData.map((b: any) => ({ id: String(b.id), name: b.name }));
+                setBureaux(list);
+                console.log('[Analyse croisée] Bureaux trouvés avec centre corrigé:', list);
+                return;
+              }
+            }
+          }
+          
           setBureaux([]);
           return;
         }
