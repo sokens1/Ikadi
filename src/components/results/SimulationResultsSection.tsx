@@ -24,6 +24,7 @@ interface CandidateResult {
 }
 
 interface BureauData {
+  candidate_votes: any;
   id: string;
   name: string;
   center_name: string;
@@ -143,6 +144,10 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
             total_voters: 0,
             is_validated: false
           }));
+
+        console.log('Total bureaux for election:', allBureaux?.length);
+        console.log('Validated bureaux count:', bureauMap.size);
+        console.log('Pending bureaux count:', pendingBureauxList.length);
 
         setPendingBureaux(pendingBureauxList);
 
@@ -311,7 +316,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
             <Calculator className="h-5 w-5" />
             Simulation des résultats globaux
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={resetToDefaults}>
+          <Button variant="outline" size="sm" onClick={resetToDefaults} disabled={pendingBureaux.length === 0}>
             Réinitialiser
           </Button>
         </div>
@@ -327,9 +332,9 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                    <BarChart3 className="h-4 w-4 text-blue-600" />
                    <span className="text-sm font-medium text-blue-800">Bureaux déjà dépouillés</span>
                  </div>
-                 <div className="text-2xl font-bold text-blue-900">{simulationStats.totalValidatedBureaux}</div>
+                 <div className="text-2xl font-bold text-blue-900">{simulationStats?.totalValidatedBureaux ?? 0}</div>
                  <div className="text-xs text-blue-600">
-                   <div>{simulationStats.totalValidatedVoters.toLocaleString()} votants • {validatedBureaux.reduce((sum, bureau) => sum + bureau.registered_voters, 0).toLocaleString()} inscrits</div>
+                   <div>{(simulationStats?.totalValidatedVoters ?? 0).toLocaleString()} votants • {(validatedBureaux.reduce((sum, bureau) => sum + bureau.registered_voters, 0) ?? 0).toLocaleString()} inscrits</div>
                  </div>
                 </div>
               
@@ -338,9 +343,9 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                   <Users className="h-4 w-4 text-orange-600" />
                   <span className="text-sm font-medium text-orange-800">Bureaux restants</span>
                 </div>
-                <div className="text-2xl font-bold text-orange-900">{simulationStats.totalPendingBureaux}</div>
+                <div className="text-2xl font-bold text-orange-900">{simulationStats?.totalPendingBureaux ?? 0}</div>
                 <div className="text-xs text-orange-600">
-                  {pendingBureaux.reduce((sum, bureau) => sum + bureau.registered_voters, 0).toLocaleString()} inscrits
+                  {(pendingBureaux.reduce((sum, bureau) => sum + bureau.registered_voters, 0) ?? 0).toLocaleString()} inscrits
                 </div>
               </div>
             </div>
@@ -433,13 +438,15 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
 
           {/* Section droite - Contrôles de simulation */}
           <div className="space-y-6">
-            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <div className={`bg-yellow-50 p-4 rounded-lg border border-yellow-200 ${pendingBureaux.length === 0 ? 'opacity-50' : ''}`}>
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <Vote className="h-4 w-4" />
                 Paramètres de simulation
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                Ajustez ces paramètres pour simuler différents scénarios sur les bureaux non encore validés.
+                {pendingBureaux.length > 0 
+                  ? 'Ajustez ces paramètres pour simuler différents scénarios sur les bureaux non encore validés.'
+                  : 'Tous les bureaux ayant été dépouillés, la simulation est désactivée.'}
               </p>
 
               {/* Taux de participation global */}
@@ -457,6 +464,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                     max={100}
                     step={1}
                     className="w-full"
+                    disabled={pendingBureaux.length === 0}
                   />
                 </div>
               </div>
@@ -476,42 +484,12 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                     max={100}
                     step={1}
                     className="w-full"
+                    disabled={pendingBureaux.length === 0}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Distribution des candidats */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Distribution des voix</h3>
-              <p className="text-sm text-gray-600">
-                Répartissez les voix entre les candidats (doit totaliser 100%)
-              </p>
-              
-              {candidates.map((candidate) => (
-                <div key={candidate.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm font-medium">{candidate.name}</Label>
-                    <span className="text-sm font-bold">
-                      {simulationParams.candidateDistribution[candidate.id] || 0}%
-                    </span>
-                  </div>
-                  <Slider
-                    value={[simulationParams.candidateDistribution[candidate.id] || 0]}
-                    onValueChange={(value) => handleCandidateDistributionChange(candidate.id, value[0])}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
-                </div>
-              ))}
-              
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="text-sm text-gray-600">
-                  Total: {Object.values(simulationParams.candidateDistribution).reduce((sum, val) => sum + val, 0).toFixed(1)}%
-                </div>
-              </div>
-            </div>
 
             {/* Résumé des paramètres */}
             <div className="bg-blue-50 p-4 rounded-lg">
