@@ -11,6 +11,7 @@ import { fetchElectionById, fetchAllElections } from '../api/elections';
 import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCenterSummaryByCandidate, fetchBureauSummaryByCandidate } from '../api/results';
 import { toast } from 'sonner';
 import SEOHead from '@/components/SEOHead';
+import CrossAnalysisSection from '@/components/results/CrossAnalysisSection';
 
 // Icone WhatsApp (SVG minimal)
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -924,38 +925,74 @@ const ElectionResults: React.FC = () => {
 
   // Générer les meta tags dynamiques pour le partage
   const generateSEOData = () => {
+    const normalizeCandidateName = (name?: string) => {
+      if (!name) return name;
+      let fixed = name;
+      
+      // Normaliser les espaces
+      fixed = fixed.replace(/\s+/g, ' ').trim();
+      
+      // Corrections spécifiques pour LEBOMO
+      if (/LEBOMO/i.test(fixed)) {
+        // Remplacer Albert par Arnauld (priorité haute)
+        fixed = fixed.replace(/\bAlbert\b/gi, 'Arnauld');
+        // Remplacer Arnaud par Arnauld
+        fixed = fixed.replace(/\bArnaud\b/gi, 'Arnauld');
+        // Remplacer Claubert par Clobert
+        fixed = fixed.replace(/\bClaubert\b/gi, 'Clobert');
+        
+        // Forcer la correction pour LEBOMO spécifiquement
+        const parts = fixed.split(' ');
+        if (parts.length >= 3 && /^(LEBOMO)$/i.test(parts[0])) {
+          parts[1] = 'Arnauld';
+          parts[2] = 'Clobert';
+          fixed = parts.join(' ');
+        }
+      } else {
+        // Corrections générales pour tous les autres candidats
+        fixed = fixed.replace(/\bAlbert\b/gi, 'Arnauld');
+        fixed = fixed.replace(/\bArnaud\b/gi, 'Arnauld');
+        fixed = fixed.replace(/\bClaubert\b/gi, 'Clobert');
+      }
+      
+      return fixed;
+    };
     if (!results?.election) {
       return {
         title: 'Résultats d\'élection | o\'Hitu',
         description: 'Consultez les résultats électoraux en temps réel sur o\'Hitu - République Gabonaise',
-        image: 'https://ohitu.gabon.ga/images/resultat_election.jpg'
+        image: 'https://www.ohitu.com/images/resultat_election.jpg?v=3'
       };
     }
 
     const election = results.election;
     const winner = results.candidates.find(c => c.rank === 1);
-    const participation = results.participation_rate ? `${results.participation_rate.toFixed(1)}%` : 'En cours';
+    const winnerName = normalizeCandidateName(winner?.candidate_name);
+    const abstentionVal = typeof results.participation_rate === 'number' ? (100 - results.participation_rate) : undefined;
+    const participation = abstentionVal !== undefined ? `${abstentionVal.toFixed(1)}%` : 'En cours';
 
     // Titre optimisé pour WhatsApp
-    const title = `Résultats des Élections Locales et Législatives Moanda, 1 Arr.`;
+    const title = winnerName
+      ? `${winnerName} en tête | Résultats Élections Moanda (1er Arr.)`
+      : `Résultats des Élections Locales et Législatives Moanda, 1er Arr.`;
 
     // Description optimisée pour le partage
     let description = `🗳️ Résultats des Élections Locales et Législatives Moanda, 1 Arr.\n\n`;
 
     if (winner) {
-      description += `🏆 ${winner.candidate_name} en tête\n`;
+      description += `🏆 ${winnerName || winner.candidate_name} en tête\n`;
       description += `📊 ${winner.total_votes.toLocaleString()} voix (${winner.percentage.toFixed(1)}%)\n`;
     }
 
-    description += `📈 Participation: ${participation}\n`;
+    description += `📉 Abstention: ${participation}\n`;
     description += `📱 Suivez les résultats en temps réel sur o'Hitu\n`;
     description += `🌍 République Gabonaise`;
 
     return {
       title,
       description,
-      image: 'https://ohitu.gabon.ga/images/resultat_election.jpg',
-      url: `https://ohitu.gabon.ga/election/${electionId}/results`
+      image: 'https://www.ohitu.com/images/resultat_election.jpg?v=3',
+      url: `https://www.ohitu.com/election/${electionId}/results?v=3`
     };
   };
 
@@ -981,7 +1018,7 @@ const ElectionResults: React.FC = () => {
           "publisher": {
             "@type": "GovernmentOrganization",
             "name": "o'Hitu",
-            "url": "https://ohitu.gabon.ga"
+            "url": "https://www.ohitu.com"
           },
           "mainEntity": {
             "@type": "Election",
@@ -1076,7 +1113,7 @@ const ElectionResults: React.FC = () => {
           <div className="absolute inset-0 bg-blue-800/20" />
 
 
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-14 xl:py-20 relative">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 xl:py-14 relative">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 xl:gap-16 items-center">
               {/* Colonne gauche: contenu */}
               <div className="order-2 lg:order-1">
@@ -1130,15 +1167,9 @@ const ElectionResults: React.FC = () => {
                     {new Date(results.election?.election_date || '').toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </span>
 
-                  {/* Texte d'information sur les résultats provisoires - En miniature avec astérisque */}
-                  <div className="text-center mt-2">
-                    <p className="text-xs text-gray-500">
-                      * Résultats provisoires (à confirmer par le Ministère de l'Intérieur).
-                    </p>
-                  </div>
-                  {/* Copyright mobile sous le texte provisoire */}
-                  <div className="sm:hidden w-full text-center mt-2 text-gray-600 text-[10px]">
-                    © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
+                  {/* Texte d'information sur les résultats provisoires */}
+                  <div className="w-full mt-2">
+                    <p className="text-xs text-gray-500">* Résultats provisoires (à confirmer par le Ministère de l'Intérieur).</p>
                   </div>
                   {results.election?.localisation && (
                     <span className="flex items-center gap-1.5 sm:gap-2 text-gray-700 bg-white rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border text-xs sm:text-sm w-full sm:w-auto justify-center">
@@ -1157,10 +1188,11 @@ const ElectionResults: React.FC = () => {
                 </div>
               </div>
             </div>
-            {/* Copyright desktop centré en bas de la section héro */}
-            <div className="hidden lg:block absolute bottom-12 left-0 right-0 text-center text-gray-500 text-xs z-20">
+            {/* Copyright aligné à gauche, léger décalage à droite et police légèrement agrandie */}
+            <div className="mt-3 sm:mt-2 lg:mt-2 pl-1 sm:pl-2 text-gray-600 text-[11px] leading-none text-left">
               © 2025 Équipe de Campagne LEBOMO Arnauld Clobert
             </div>
+            {/* Supprimé: copyright dupliqué en desktop */}
           </div>
         </section>
 
@@ -1186,11 +1218,11 @@ const ElectionResults: React.FC = () => {
                 animated={true}
               />
               <MetricCard
-                title="Taux de participation"
-                value={results.participation_rate ? results.participation_rate : 0}
+                title="Taux d'abstention"
+                value={typeof results.participation_rate === 'number' ? 100 - results.participation_rate : 0}
                 icon={<div className="w-8 h-8 bg-white rounded-full flex items-center justify-center"><span className="text-blue-600 font-bold text-lg">%</span></div>}
-                color="bg-gradient-to-br from-purple-500 to-purple-600"
-                subtitle="Pourcentage de participation"
+                color="bg-gradient-to-br from-red-500 to-red-600"
+                subtitle="Pourcentage d'abstention"
                 animated={true}
                 showDecimals={true}
               />
@@ -1751,7 +1783,7 @@ const ElectionResults: React.FC = () => {
                             className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
                           >
                             <option value="center">Centre</option>
-                            <option value="participation">Participation</option>
+                            <option value="participation">Abstention</option>
                             <option value="score">Score</option>
                             <option value="votes">Voix</option>
                           </select>
@@ -1787,7 +1819,7 @@ const ElectionResults: React.FC = () => {
                                 <div className="grid grid-cols-3 gap-2 sm:gap-3 text-xs sm:text-sm">
                                   <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Voix</div><div className="font-semibold text-xs sm:text-sm">{row.candidate_votes}</div></div>
                                   <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Score</div><div className="font-semibold text-xs sm:text-sm">{typeof row.candidate_percentage === 'number' ? `${Math.min(Math.max(row.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</div></div>
-                                  <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Participation</div><div className="font-semibold text-xs sm:text-sm">{typeof row.candidate_participation_pct === 'number' ? `${Math.min(Math.max(row.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</div></div>
+                                  <div className="bg-white rounded px-2 sm:px-3 py-2 border text-center"><div className="text-[10px] sm:text-[11px] uppercase text-gov-gray">Abstention</div><div className="font-semibold text-xs sm:text-sm">{typeof row.candidate_participation_pct === 'number' ? `${(100 - Math.min(Math.max(row.candidate_participation_pct, 0), 100)).toFixed(2)}%` : '-'}</div></div>
                                 </div>
                               </summary>
                               <div className="px-0 sm:px-2 py-3">
@@ -1798,7 +1830,7 @@ const ElectionResults: React.FC = () => {
                                         <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm">Bureau</th>
                                         <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Voix</th>
                                         <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Score</th>
-                                        <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Participation</th>
+                                        <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Abstention</th>
                                       </tr>
                                     </thead>
                                     <tbody className="text-xs sm:text-sm">
@@ -1807,7 +1839,7 @@ const ElectionResults: React.FC = () => {
                                           <td className="px-2 sm:px-3 py-2 border">{b.bureau_name}</td>
                                           <td className="px-2 sm:px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
                                           <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</td>
-                                          <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</td>
+                                          <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.candidate_participation_pct, 0), 100)).toFixed(2)}%` : '-'}</td>
                                         </tr>
                                       ))}
                                       {getSortedCandidateBureaux().filter(b => b.center_id === row.center_id).length === 0 && (
@@ -1846,7 +1878,7 @@ const ElectionResults: React.FC = () => {
                                 <th className="text-left px-2 sm:px-3 py-2 border text-xs sm:text-sm whitespace-nowrap">Bureau</th>
                                 <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Voix</th>
                                 <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Score</th>
-                                <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Participation</th>
+                                <th className="text-right px-2 sm:px-3 py-2 border text-xs sm:text-sm">Abstention</th>
                               </tr>
                             </thead>
                             <tbody className="text-xs sm:text-sm">
@@ -1856,7 +1888,7 @@ const ElectionResults: React.FC = () => {
                                   <td className="px-2 sm:px-3 py-2 border whitespace-nowrap">{b.bureau_name}</td>
                                   <td className="px-2 sm:px-3 py-2 border text-right">{b.candidate_votes ?? '-'}</td>
                                   <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_percentage === 'number' ? `${Math.min(Math.max(b.candidate_percentage, 0), 100).toFixed(2)}%` : '-'}</td>
-                                  <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${Math.min(Math.max(b.candidate_participation_pct, 0), 100).toFixed(2)}%` : '-'}</td>
+                                  <td className="px-2 sm:px-3 py-2 border text-right">{typeof b.candidate_participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.candidate_participation_pct, 0), 100)).toFixed(2)}%` : '-'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1939,7 +1971,7 @@ const ElectionResults: React.FC = () => {
                         className="px-1.5 sm:px-2 lg:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-auto"
                       >
                         <option value="center">Centre</option>
-                        <option value="participation">Participation</option>
+                        <option value="participation">Abstention</option>
                         {/* <option value="score">Score</option> */}
                         <option value="votes">Votes</option>
                       </select>
@@ -2002,8 +2034,14 @@ const ElectionResults: React.FC = () => {
                          <div className="font-bold text-blue-600 text-sm sm:text-lg">{typeof c.score_pct === 'number' ? `${Math.min(Math.max(c.score_pct,0),100).toFixed(1)}%` : '-'}</div>
                        </div> */}
                             <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 border border-gray-200 shadow-sm text-center group-hover:shadow-md transition-shadow">
-                              <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Participation</div>
-                              <div className="font-bold text-green-600 text-xs sm:text-sm lg:text-lg">{typeof c.participation_pct === 'number' ? `${Math.min(Math.max(c.participation_pct, 0), 100).toFixed(2)}%` : '-'}</div>
+                              <div className="text-[8px] sm:text-[9px] lg:text-[11px] uppercase text-gray-500 font-medium mb-0.5 sm:mb-1">Abstention</div>
+                              <div className={`font-bold text-xs sm:text-sm lg:text-lg ${typeof c.participation_pct === 'number'
+                                ? ((100 - c.participation_pct) >= 49.51
+                                  ? 'text-red-600'
+                                  : (((100 - c.participation_pct) > 20.5 && (100 - c.participation_pct) <= 49.5) ? 'text-yellow-600' : 'text-green-600'))
+                                : 'text-green-600'}`}>
+                                {typeof c.participation_pct === 'number' ? `${(100 - Math.min(Math.max(c.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
+                              </div>
                             </div>
                           </div>
                         </summary>
@@ -2043,7 +2081,7 @@ const ElectionResults: React.FC = () => {
                                   <th className="text-right px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">
                                     <div className="flex items-center justify-end gap-1 sm:gap-1.5 lg:gap-2">
                                       <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4" />
-                                      <span className="hidden sm:inline">Participation</span>
+                                      <span className="hidden sm:inline">Abstention</span>
                                       <span className="sm:hidden">Part.</span>
                                     </div>
                                   </th>
@@ -2068,11 +2106,11 @@ const ElectionResults: React.FC = () => {
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_voters?.toLocaleString() ?? '-'}</td>
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right font-semibold text-gray-700 text-[10px] sm:text-xs lg:text-sm">{b.total_expressed_votes?.toLocaleString() ?? '-'}</td>
                                     <td className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 text-right">
-                                      <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
-                                        typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                                          'bg-red-100 text-red-800'
+                                      <span className={`px-1 sm:px-1.5 lg:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${typeof b.participation_pct === 'number' && (100 - b.participation_pct) >= 49.51 ? 'bg-red-100 text-red-800' :
+                                        typeof b.participation_pct === 'number' && ((100 - b.participation_pct) > 20.5 && (100 - b.participation_pct) <= 49.5) ? 'bg-yellow-100 text-yellow-800' :
+                                          'bg-green-100 text-green-800'
                                         }`}>
-                                        {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : '-'}
+                                        {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : '-'}
                                       </span>
                                     </td>
                                     {/* <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
@@ -2157,7 +2195,7 @@ const ElectionResults: React.FC = () => {
                           <th className="text-right px-2 py-2 font-semibold text-[9px] sm:text-xs whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
                               <TrendingUp className="w-2 h-2" />
-                              <span>Participation</span>
+                              <span>Abstention</span>
                             </div>
                           </th>
                           {/* <th className="text-right px-3 sm:px-6 py-3 sm:py-4 font-semibold text-xs sm:text-sm">
@@ -2193,11 +2231,11 @@ const ElectionResults: React.FC = () => {
                               <span className="font-bold text-blue-600">{b.total_expressed_votes?.toLocaleString?.() || b.total_expressed_votes}</span>
                             </td>
                             <td className="px-2 py-2 text-right text-[8px] sm:text-xs">
-                              <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${typeof b.participation_pct === 'number' && b.participation_pct >= 70 ? 'bg-green-100 text-green-800' :
-                                typeof b.participation_pct === 'number' && b.participation_pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
+                              <span className={`px-1 py-0.5 rounded-full text-[8px] font-bold ${typeof b.participation_pct === 'number' && (100 - b.participation_pct) >= 49.51 ? 'bg-red-100 text-red-800' :
+                                typeof b.participation_pct === 'number' && ((100 - b.participation_pct) > 20.5 && (100 - b.participation_pct) <= 49.5) ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-green-100 text-green-800'
                                 }`}>
-                                {typeof b.participation_pct === 'number' ? `${Math.min(Math.max(b.participation_pct, 0), 100).toFixed(2)}%` : (b.participation_pct || '-')}
+                                {typeof b.participation_pct === 'number' ? `${(100 - Math.min(Math.max(b.participation_pct, 0), 100)).toFixed(2)}%` : (b.participation_pct || '-')}
                               </span>
                             </td>
                             {/* <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
@@ -2291,8 +2329,13 @@ const ElectionResults: React.FC = () => {
           )}
         </section>
 
-        {/* Section de navigation vers autres élections */}
-        {availableElections.length > 1 && (
+        {/* Nouvelle section : Analyse croisée */}
+        {results?.election?.id && (
+          <CrossAnalysisSection electionId={String(results.election.id)} />
+        )}
+
+        {/* Section de navigation vers autre élection */}
+        {getAlternativeElection() && (
           <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-6 sm:mb-8">

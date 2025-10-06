@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://ohitu.gabon.ga/sitemap.xml
+Sitemap: https://www.ohitu.com/sitemap.xml
 
 # Crawl-delay for better server performance
 Crawl-delay: 1
@@ -23,4 +23,4 @@ Allow: /results
 Allow: /campaign
 
 # Host declaration
-Host: https://ohitu.gabon.ga
+Host: https://www.ohitu.com

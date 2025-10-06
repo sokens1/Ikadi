@@ -15,13 +15,13 @@ const SEOHead: React.FC<SEOHeadProps> = ({
   title = "o'Hitu | République Gabonaise",
   description = "o'Hitu - Suivez les résultats en temps réel, découvrez les candidats et participez au processus démocratique en toute transparence.",
   keywords = "élections, Gabon, vote, résultats électoraux, démocratie, transparence, République Gabonaise, o'Hitu, candidats, bureaux de vote",
-  image = 'https://ohitu.gabon.ga/og-image.jpg',
-  url = 'https://ohitu.gabon.ga/',
+  image = 'https://www.ohitu.com/og-image.jpg',
+  url = 'https://www.ohitu.com/',
   type = 'website',
   structuredData
 }) => {
   const fullTitle = title.includes("o'Hitu") ? title : `${title} | o'Hitu`;
-  const fullUrl = url.startsWith('http') ? url : `https://ohitu.gabon.ga${url}`;
+  const fullUrl = url.startsWith('http') ? url : `https://www.ohitu.com${url}`;
 
   return (
     <Helmet>

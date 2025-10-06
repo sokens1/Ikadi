@@ -278,7 +278,7 @@ const PublicHomePage = () => {
     "@type": "WebSite",
     "name": "o'Hitu",
     "description": "o'Hitu - République Gabonaise",
-    "url": "https://ohitu.gabon.ga/",
+    "url": "https://www.ohitu.com/",
     "publisher": {
       "@type": "GovernmentOrganization",
       "name": "République Gabonaise",
@@ -290,7 +290,7 @@ const PublicHomePage = () => {
     },
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://ohitu.gabon.ga/search?q={search_term_string}",
+      "target": "https://www.ohitu.com/search?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   };
