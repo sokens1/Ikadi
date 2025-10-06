@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, TrendingUp, Calendar, MapPin, Menu, X, Facebook, Link as LinkIcon, Trophy, Medal, Crown, Share2, Heart, Star, Vote, BarChart3, Building, Target, AlertCircle, CheckCircle, Clock, Eye, Filter, Globe, Home, Info, Layers, PieChart, Search, Settings, Shield, TrendingDown, User, Users2, Zap, RotateCcw, ArrowRightLeft, LayoutGrid, Table as TableIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Users, TrendingUp, Calendar, MapPin, Menu, X, Facebook, Link as LinkIcon, Trophy, Medal, Crown, Share2, Heart, Star, Vote, BarChart3, Building, Target, AlertCircle, CheckCircle, Clock, Eye, Filter, Globe, Home, Info, Layers, PieChart, Search, Settings, Shield, TrendingDown, User, Users2, Zap, RotateCcw, ArrowRightLeft, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { fetchElectionById, fetchAllElections } from '../api/elections';
 import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCenterSummaryByCandidate, fetchBureauSummaryByCandidate } from '../api/results';
@@ -2291,59 +2291,91 @@ const ElectionResults: React.FC = () => {
           )}
         </section>
 
-        {/* Section de navigation vers autre élection */}
-        {getAlternativeElection() && (
+        {/* Section de navigation vers autres élections */}
+        {availableElections.length > 1 && (
           <section className="py-6 sm:py-8 lg:py-12 bg-gray-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-center">
-                {(() => {
-                  const alt = getAlternativeElection()!;
-                  const altTitle = (alt.title || '').toLowerCase();
-                  const isAltLegislative = ['législative', 'législatives', 'legislative'].some(k => altTitle.includes(k));
-                  const currentType = isAltLegislative ? 'Législative' : 'Locale';
-                  const currentColor = isAltLegislative ? '#A51C30' : '#116917';
-                  const currentBgColor = isAltLegislative ? 'bg-[#A51C30]/10' : 'bg-[#116917]/10';
-                  const currentBorderColor = isAltLegislative ? 'border-[#A51C30]/30' : 'border-[#116917]/30';
-                  const currentTextColor = isAltLegislative ? 'text-[#A51C30]' : 'text-[#116917]';
-
-                  return (
-                    <div className={`max-w-md w-full ${currentBgColor} ${currentBorderColor} border-2 rounded-xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300`}>
-                      <div className="text-center">
-                        <div className="flex items-center justify-center mb-2 sm:mb-3">
-                          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mr-2 sm:mr-3`} style={{ backgroundColor: currentColor }}>
-                            <ArrowRightLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                          </div>
-                          <h3 className={`text-sm sm:text-base font-semibold ${currentTextColor}`}>
-                            Autres élections disponibles
-                          </h3>
-                        </div>
-                        <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
-                          Consultez les résultats des élections {currentType.toLowerCase()}s
-                        </p>
-                        <Button
-                          onClick={() => handleElectionSwitch(alt.id)}
-                          disabled={electionsLoading}
-                          className={`w-full text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg`}
-                          style={{ backgroundColor: currentColor }}
-                          size="lg"
-                        >
-                          {electionsLoading ? (
-                            <div className="flex items-center justify-center">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              <span>Chargement...</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-center">
-                              <span>Voir Élections {currentType}s</span>
-                              <ArrowRightLeft className="w-4 h-4 ml-2" />
-                            </div>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })()}
+              <div className="text-center mb-6 sm:mb-8">
+                <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <ArrowRightLeft className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                    Autres élections disponibles
+                  </h2>
+                </div>
+                <p className="text-gray-600 text-sm sm:text-base">
+                  Consultez les résultats des autres élections
+                </p>
               </div>
+              
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8">
+                <div className="flex gap-4 sm:gap-6 px-4 sm:px-6 lg:px-8 min-w-max">
+                  {availableElections
+                    .filter(election => election.id !== electionId)
+                    .sort((a, b) => new Date(b.election_date).getTime() - new Date(a.election_date).getTime())
+                    .map((election) => {
+                    const title = election.title?.toLowerCase() || '';
+                    const description = election.description?.toLowerCase() || '';
+                    const localisation = election.localisation?.toLowerCase() || '';
+                    
+                    const isLocal = ['locale', 'locales', 'local', 'municipale', 'municipales'].some(keyword =>
+                      title.includes(keyword) || description.includes(keyword) || localisation.includes(keyword)
+                    );
+                    
+                    const isLegislative = ['législative', 'législatives', 'legislative'].some(keyword =>
+                      title.includes(keyword) || description.includes(keyword) || localisation.includes(keyword)
+                    );
+                    
+                    const bgColor = isLocal ? 'bg-[#116917]' : isLegislative ? 'bg-[#A51C30]' : 'bg-blue-600';
+                    const borderColor = isLocal ? 'border-[#116917]' : isLegislative ? 'border-[#A51C30]' : 'border-blue-600';
+                    const hoverBgColor = isLocal ? 'hover:bg-[#116917]' : isLegislative ? 'hover:bg-[#A51C30]' : 'hover:bg-blue-600';
+                    const hoverBorderColor = isLocal ? 'hover:border-[#116917]' : isLegislative ? 'hover:border-[#A51C30]' : 'hover:border-blue-600';
+                    
+                    const typeLabel = isLocal ? 'Élections Locales' : isLegislative ? 'Élections Législatives' : 'Élection';
+                    const typeDescription = isLocal ? 'Élection des conseils municipaux' : isLegislative ? 'Élection des députés' : 'Élection générale';
+                    
+                    return (
+                      <div
+                        key={election.id}
+                        className={`bg-white rounded-lg border-2 ${borderColor} ${hoverBorderColor} p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 flex-shrink-0 w-64 sm:w-72`}
+                        onClick={() => handleElectionSwitch(election.id)}
+                      >
+                        <div className="text-center">
+                          <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full flex items-center justify-center ${bgColor}`}>
+                            <Vote className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                          </div>
+                          <h3 className="text-sm sm:text-base font-bold text-gray-800 mb-1 sm:mb-2 leading-tight">
+                            {election.title}
+                          </h3>
+                          {election.localisation && (
+                            <p className="text-xs text-gray-500 mb-3 sm:mb-4">
+                              {election.localisation}
+                            </p>
+                          )}
+                          <Button
+                            className={`w-full text-white font-semibold py-2 sm:py-3 px-3 sm:px-4 rounded-lg transition-all duration-300 ${bgColor} ${hoverBgColor}`}
+                            size="sm"
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="text-xs sm:text-sm">Voir les résultats</span>
+                              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </div>
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                    })}
+                </div>
+              </div>
+              
+              {availableElections.filter(election => election.id !== electionId).length === 0 && (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <Vote className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Aucune autre élection disponible</h3>
+                  <p className="text-gray-600 text-sm">Cette élection est la seule disponible pour le moment.</p>
+                </div>
+              )}
             </div>
           </section>
         )}
