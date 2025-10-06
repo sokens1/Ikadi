@@ -2308,7 +2308,7 @@ const ElectionResults: React.FC = () => {
               </div>
               
               <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8">
-                <div className="flex gap-4 sm:gap-6 px-4 sm:px-6 lg:px-8 min-w-max">
+                <div className="flex gap-4 sm:gap-6 px-4 sm:px-6 lg:px-8 w-full justify-center">
                   {availableElections
                     .filter(election => election.id !== electionId)
                     .sort((a, b) => new Date(b.election_date).getTime() - new Date(a.election_date).getTime())

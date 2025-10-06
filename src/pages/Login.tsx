@@ -138,7 +138,7 @@ const Login = () => {
                  <p className="text-blue-100 text-sm">Les élections seront bientôt disponibles.</p>
                </div>
              ) : (
-               <div className="max-h-96 overflow-y-auto space-y-3 lg:space-y-4 pr-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+               <div className="max-h-96 overflow-y-auto overflow-x-hidden space-y-3 lg:space-y-4 pr-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
                  {elections
                    .sort((a, b) => new Date(b.election_date).getTime() - new Date(a.election_date).getTime())
                    .map((election) => {
@@ -259,7 +259,7 @@ const Login = () => {
                 <p className="text-blue-100 text-xs">Les élections seront bientôt disponibles.</p>
               </div>
             ) : (
-              <div className="max-h-80 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+              <div className="max-h-80 overflow-y-auto overflow-x-hidden space-y-3 pr-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
                 {elections
                   .sort((a, b) => new Date(b.election_date).getTime() - new Date(a.election_date).getTime())
                   .map((election) => {
