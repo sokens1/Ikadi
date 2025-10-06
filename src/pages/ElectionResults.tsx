@@ -12,6 +12,7 @@ import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCent
 import { toast } from 'sonner';
 import SEOHead from '@/components/SEOHead';
 import CrossAnalysisSection from '@/components/results/CrossAnalysisSection';
+import SimulationResultsSection from '@/components/results/SimulationResultsSection';
 
 // Icone WhatsApp (SVG minimal)
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -310,33 +311,8 @@ const ElectionResults: React.FC = () => {
             console.log('🔍 ✅ Nombre total récupéré depuis elections:', totalBureauxCount, 'champ utilisé:', Object.keys(electionData).find(key => electionData[key] === nbBureaux));
           } else {
             console.log('🔍 ❌ Aucun champ nb_bureaux trouvé dans elections. Champs disponibles:', Object.keys(electionData));
-
-            // Méthode spéciale : essayer de déduire depuis le titre ou la description
-            const title = electionData.title || '';
-            const description = electionData.description || '';
-            const titleLower = title.toLowerCase();
-            const descLower = description.toLowerCase();
-
-            const isLocalElection = titleLower.includes('locale') || titleLower.includes('municipale') ||
-              descLower.includes('locale') || descLower.includes('municipale');
-            const isLegislativeElection = titleLower.includes('législative') || titleLower.includes('legislative') ||
-              titleLower.includes('législatives') || titleLower.includes('legislatives') ||
-              descLower.includes('législative') || descLower.includes('legislative') ||
-              descLower.includes('législatives') || descLower.includes('legislatives');
-
-            console.log('🔍 Analyse du titre:', title, 'isLocal:', isLocalElection, 'isLegislative:', isLegislativeElection);
-
-            if (isLocalElection) {
-              // Pour les élections locales, utiliser 29 comme estimation réaliste
-              totalBureauxCount = 29;
-              isEstimated = false;
-              console.log('🔍 ✅ Estimation pour élection locale:', totalBureauxCount);
-            } else if (isLegislativeElection) {
-              // Pour les élections législatives, utiliser 35 comme estimation réaliste
-              totalBureauxCount = 35;
-              isEstimated = false;
-              console.log('🔍 ✅ Estimation pour élection législative:', totalBureauxCount);
-            }
+            // Au lieu d'estimer, utiliser la méthode directe
+            console.log('🔍 Passage directement à la méthode 2 (base de données réelle)');
           }
         } else {
           console.log('🔍 ❌ Erreur lors de la récupération de l\'élection:', electionError);
@@ -345,31 +321,10 @@ const ElectionResults: React.FC = () => {
         console.log('🔍 Erreur méthode 1:', error);
       }
 
-      // Méthode 2: Si la méthode 1 échoue, essayer la méthode directe
+      // Méthode 2: Récupération directe depuis la base via election_centers (MÉTHODE PRINCIPALE)
       if (totalBureauxCount === 0) {
         try {
-          console.log('🔍 Méthode 2: Récupération directe depuis voting_bureaux...');
-          const response = await supabase
-            .from('voting_bureaux')
-            .select('id, election_id, center_id')
-            .eq('election_id', electionId);
-
-          if (!response.error && response.data) {
-            totalBureauxCount = response.data.length;
-            isEstimated = false;
-            console.log('🔍 ✅ Nombre total récupéré depuis voting_bureaux:', totalBureauxCount);
-          } else {
-            console.log('🔍 ❌ Erreur méthode 2:', response.error);
-          }
-        } catch (error) {
-          console.log('🔍 Erreur méthode 2:', error);
-        }
-      }
-
-      // Méthode 3: Si les méthodes précédentes échouent, essayer via election_centers
-      if (totalBureauxCount === 0) {
-        try {
-          console.log('🔍 Méthode 3: Récupération via election_centers...');
+          console.log('🔍 Méthode 2: Récupération via election_centers + voting_bureaux...');
 
           const { data: electionCenters, error: ecError } = await supabase
             .from('election_centers')
@@ -381,24 +336,53 @@ const ElectionResults: React.FC = () => {
             console.log('🔍 centerIds trouvés:', centerIds);
 
             // Récupérer les bureaux de ces centres
-            const { data: bureauxDataFallback, error: bureauxErrorFallback } = await supabase
+            const { data: bureauxData, error: bureauxError } = await supabase
               .from('voting_bureaux')
               .select('id, center_id')
               .in('center_id', centerIds);
 
-            if (!bureauxErrorFallback && bureauxDataFallback) {
-              totalBureauxCount = bureauxDataFallback.length;
+            if (!bureauxError && bureauxData) {
+              totalBureauxCount = bureauxData.length;
               isEstimated = false;
-              console.log('🔍 ✅ Nombre total récupéré via election_centers:', totalBureauxCount);
+              console.log('🔍 ✅ Nombre total récupéré via election_centers:', totalBureauxCount, 'bureaux');
             } else {
-              console.log('🔍 ❌ Erreur méthode 3:', bureauxErrorFallback);
+              console.log('🔍 ❌ Erreur méthode 2:', bureauxError);
             }
           } else {
             console.log('🔍 ❌ Aucun centre trouvé pour cette élection:', ecError);
           }
         } catch (error) {
+          console.log('🔍 Erreur méthode 2:', error);
+        }
+      }
+
+      // Méthode 3: Dernière tentative avec requête directe (si les autres méthodes échouent)
+      if (totalBureauxCount === 0) {
+        try {
+          console.log('🔍 Méthode 3: Récupération directe depuis voting_bureaux...');
+          const response = await supabase
+            .from('voting_bureaux')
+            .select('id, election_id, center_id')
+            .eq('election_id', electionId);
+
+          if (!response.error && response.data) {
+            totalBureauxCount = response.data.length;
+            isEstimated = false;
+            console.log('🔍 ✅ Nombre total récupéré depuis voting_bureaux:', totalBureauxCount);
+          } else {
+            console.log('🔍 ❌ Erreur méthode 3:', response.error);
+          }
+        } catch (error) {
           console.log('🔍 Erreur méthode 3:', error);
         }
+      }
+
+      // Méthode 4: Estimation seulement si vraiment nécessaire (supprimer l'estimation automatique)
+      if (totalBureauxCount === 0) {
+        console.log('🔍 Aucune donnée trouvée dans la base. Utilisation d\'une estimation par défaut.');
+        // Ne plus utiliser d'estimation automatique - laisser à 0
+        totalBureauxCount = 0;
+        isEstimated = false;
       }
 
       // Vérifier le résultat final
@@ -416,6 +400,8 @@ const ElectionResults: React.FC = () => {
 
       console.log('🔍 avecResultats:', avecResultats);
       console.log('🔍 bureauRows.length:', bureauRows.length);
+      console.log('🔍 Élection ID:', electionId);
+      console.log('🔍 Bureaux avec données:', bureauRows.filter(b => b.total_voters > 0).map(b => ({ id: b.id, name: b.name, voters: b.total_voters })));
 
       setTotalBureaux(totalBureauxCount);
       setBureauxAvecResultats(avecResultats);
@@ -2332,6 +2318,11 @@ const ElectionResults: React.FC = () => {
         {/* Nouvelle section : Analyse croisée */}
         {results?.election?.id && (
           <CrossAnalysisSection electionId={String(results.election.id)} />
+        )}
+
+        {/* Section de simulation des résultats globaux */}
+        {results?.election?.id && (
+          <SimulationResultsSection electionId={String(results.election.id)} />
         )}
 
         {/* Section de navigation vers autre élection */}
