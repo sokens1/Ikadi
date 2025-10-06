@@ -51,17 +51,39 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     candidateDistribution: {}
   });
   const [loading, setLoading] = useState(false);
-  const [simulatedResults, setSimulatedResults] = useState<CandidateResult[]>([]);
+  const [electionData, setElectionData] = useState<any>(null);
 
   // Charger les données initiales
   useEffect(() => {
     const loadData = async () => {
       if (!electionId) return;
-      
+
       try {
         setLoading(true);
-        
-        // 1. Charger les candidats de l'élection
+
+        // 1. Récupérer les données de l'élection pour vérifier la date de création
+        const { data: electionInfo, error: electionError } = await supabase
+          .from('elections')
+          .select('created_at, title, status')
+          .eq('id', electionId)
+          .single();
+
+        if (electionError) throw electionError;
+
+        setElectionData(electionInfo);
+
+        // Vérifier si la date de création est postérieure au 01/10/2025
+        const creationDate = new Date(electionInfo.created_at);
+        const cutoffDate = new Date('2025-10-01');
+
+        // Si la date de création est antérieure au 01/10/2025, ne pas charger les données de simulation
+        if (creationDate < cutoffDate) {
+          console.log('Simulation désactivée : élection créée avant le 01/10/2025');
+          setLoading(false);
+          return;
+        }
+
+        // 2. Charger les candidats de l'élection
         const { data: candidatesData, error: candidatesError } = await supabase
           .from('election_candidates')
           .select('candidate_id, candidates!inner(id, name, party)')
@@ -201,19 +223,16 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
 
     // 2. Calculer les votes simulés pour les bureaux non validés
     const simulatedVotes: Record<string, number> = { ...validatedVotes };
-    let totalSimulatedVoters = totalValidatedVoters;
 
     pendingBureaux.forEach(bureau => {
-      const simulatedVoters = Math.round(
+      const simulatedVotersInBureau = Math.round(
         (bureau.registered_voters * simulationParams.globalParticipation / 100) * 
         (simulationParams.suffrageExprime / 100)
       );
-      
-      totalSimulatedVoters += simulatedVoters;
 
       candidates.forEach(candidate => {
         const candidatePercentage = simulationParams.candidateDistribution[candidate.id] || 0;
-        const votes = Math.round((simulatedVoters * candidatePercentage) / 100);
+        const votes = Math.round((simulatedVotersInBureau * candidatePercentage) / 100);
         simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + votes;
       });
     });
@@ -306,6 +325,11 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
         </CardContent>
       </Card>
     );
+  }
+
+  // Si la simulation est désactivée à cause de la date de création
+  if (electionData && new Date(electionData.created_at) < new Date('2025-10-01')) {
+    return null;
   }
 
   return (
@@ -491,16 +515,6 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
             </div>
 
 
-            {/* Résumé des paramètres */}
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">Résumé de la simulation</h4>
-              <div className="space-y-1 text-sm">
-                <div>Participation: {simulationParams.globalParticipation}%</div>
-                <div>Suffrage exprimé: {simulationParams.suffrageExprime}%</div>
-                <div>Bureaux validés: {validatedBureaux.length}</div>
-                <div>Bureaux simulés: {pendingBureaux.length}</div>
-              </div>
-            </div>
           </div>
         </div>
       </CardContent>
