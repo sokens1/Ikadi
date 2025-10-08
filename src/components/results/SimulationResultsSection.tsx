@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Calculator, BarChart3, TrendingUp, Users, Vote } from 'lucide-react';
+import { Calculator, BarChart3, TrendingUp, Users, Vote, MapPin, Building2 } from 'lucide-react';
 
 interface SimulationResultsSectionProps {
   electionId: string;
@@ -34,7 +35,7 @@ interface BureauData {
 }
 
 interface SimulationParams {
-  globalParticipation: number;
+  globalAbstention: number;
   suffrageExprime: number;
   candidateDistribution: Record<string, number>;
 }
@@ -46,12 +47,22 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
   const [validatedBureaux, setValidatedBureaux] = useState<BureauData[]>([]);
   const [pendingBureaux, setPendingBureaux] = useState<BureauData[]>([]);
   const [simulationParams, setSimulationParams] = useState<SimulationParams>({
-    globalParticipation: 65,
+    globalAbstention: 35,
     suffrageExprime: 85,
     candidateDistribution: {}
   });
   const [loading, setLoading] = useState(false);
   const [electionData, setElectionData] = useState<any>(null);
+  const [realAbstentionRate, setRealAbstentionRate] = useState<number | null>(null);
+  
+  // États pour simulation par bureau
+  const [selectedCenter, setSelectedCenter] = useState<string>('');
+  const [selectedBureau, setSelectedBureau] = useState<string>('');
+  const [bureauSimulationParams, setBureauSimulationParams] = useState<SimulationParams>({
+    globalAbstention: 35,
+    suffrageExprime: 85,
+    candidateDistribution: {}
+  });
 
   // Charger les données initiales
   useEffect(() => {
@@ -64,7 +75,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
         // 1. Récupérer les données de l'élection pour vérifier la date de création
         const { data: electionInfo, error: electionError } = await supabase
           .from('elections')
-          .select('created_at, title, status')
+          .select('created_at, title, status, nb_electeurs')
           .eq('id', electionId)
           .single();
 
@@ -102,44 +113,48 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
 
         setCandidates(candidatesList);
 
-        // 2. Charger les bureaux validés avec leurs résultats
-        const { data: validatedData, error: validatedError } = await supabase
-          .from('bureau_candidate_results_summary')
-          .select(`
-            bureau_id,
-            center_id,
-            candidate_id,
-            candidate_name,
-            candidate_votes,
-            voting_bureaux!inner(id, name, registered_voters),
-            voting_centers!inner(id, name)
-          `)
+        // 2. Charger les bureaux avec résultats (comme ElectionResults)
+        const { data: bureauSummary, error: bureauSummaryError } = await supabase
+          .from('bureau_results_summary')
+          .select('*')
           .eq('election_id', electionId);
 
-        if (validatedError) throw validatedError;
+        if (bureauSummaryError) throw bureauSummaryError;
 
-        // Grouper par bureau
-        const bureauMap = new Map();
-        (validatedData || []).forEach((row: any) => {
-          const bureauId = row.bureau_id;
-          if (!bureauMap.has(bureauId)) {
-            bureauMap.set(bureauId, {
-              id: bureauId,
-              name: row.voting_bureaux?.name || 'Bureau',
-              center_name: row.voting_centers?.name || 'Centre',
-              registered_voters: row.voting_bureaux?.registered_voters || 0,
-              total_voters: 0,
-              is_validated: true,
-              candidate_votes: {}
-            });
-          }
-          
-          const bureau = bureauMap.get(bureauId);
-          bureau.candidate_votes[row.candidate_id] = row.candidate_votes;
-          bureau.total_voters += row.candidate_votes;
-        });
+        console.log('📊 [Simulation] Bureaux récupérés:', bureauSummary?.length);
 
-        setValidatedBureaux(Array.from(bureauMap.values()));
+        // Transformer en format compatible
+        const validatedBureauxArray = (bureauSummary || []).map((bureau: any) => ({
+          id: bureau.bureau_id,
+          name: bureau.bureau_name || 'Bureau',
+          center_name: bureau.center_name || 'Centre',
+          registered_voters: Number(bureau.total_registered) || 0,
+          total_voters: Number(bureau.total_voters) || 0,
+          is_validated: true,
+          candidate_votes: {} // On n'a pas besoin des détails par candidat pour le calcul d'abstention
+        }));
+
+        // 2.5. Charger les résultats par candidat pour les bureaux validés
+        const { data: candidateResults, error: candidateResultsError } = await supabase
+          .from('bureau_candidate_results_summary')
+          .select('bureau_id, candidate_id, candidate_votes')
+          .eq('election_id', electionId);
+
+        if (!candidateResultsError && candidateResults) {
+          // Ajouter les votes par candidat aux bureaux
+          validatedBureauxArray.forEach(bureau => {
+            bureau.candidate_votes = {};
+            candidateResults
+              .filter((cr: any) => cr.bureau_id === bureau.id)
+              .forEach((cr: any) => {
+                bureau.candidate_votes[cr.candidate_id] = cr.candidate_votes;
+              });
+          });
+        }
+
+        setValidatedBureaux(validatedBureauxArray);
+        
+        console.log('📊 [Simulation] Bureaux validés transformés:', validatedBureauxArray.length);
 
         // 3. Charger les bureaux non validés
         const { data: allBureaux, error: allBureauxError } = await supabase
@@ -155,7 +170,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
 
         if (allBureauxError) throw allBureauxError;
 
-        const validatedBureauIds = new Set(validatedBureaux.map(b => b.id));
+        const validatedBureauIds = new Set(validatedBureauxArray.map(b => b.id));
         const pendingBureauxList = (allBureaux || [])
           .filter((bureau: any) => !validatedBureauIds.has(bureau.id))
           .map((bureau: any) => ({
@@ -168,10 +183,66 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
           }));
 
         console.log('Total bureaux for election:', allBureaux?.length);
-        console.log('Validated bureaux count:', bureauMap.size);
+        console.log('Validated bureaux count:', validatedBureauxArray.length);
         console.log('Pending bureaux count:', pendingBureauxList.length);
 
         setPendingBureaux(pendingBureauxList);
+
+        // 3.5. Calculer le taux d'abstention réel depuis les bureaux validés UNIQUEMENT
+        try {
+          console.log('📊 ========================================');
+          console.log('📊 CALCUL ABSTENTION - BUREAUX VALIDÉS UNIQUEMENT');
+          console.log('📊 ========================================');
+          console.log('📊 Nombre de bureaux validés:', validatedBureauxArray.length);
+          
+          // Afficher les détails de chaque bureau
+          validatedBureauxArray.forEach((b, idx) => {
+            console.log(`📊 Bureau ${idx + 1}:`, {
+              id: b.id,
+              name: b.name,
+              registered_voters: b.registered_voters,
+              total_voters: b.total_voters
+            });
+          });
+
+          if (validatedBureauxArray.length > 0) {
+            // Calculer le total des inscrits et votants UNIQUEMENT depuis les bureaux validés
+            const totalInscritsValidated = validatedBureauxArray.reduce((sum, b) => sum + (b.registered_voters || 0), 0);
+            const totalVotersValidated = validatedBureauxArray.reduce((sum, b) => sum + (b.total_voters || 0), 0);
+            
+            console.log('📊 ========================================');
+            console.log('📊 TOTAUX (BUREAUX VALIDÉS UNIQUEMENT):');
+            console.log('📊   Total inscrits:', totalInscritsValidated);
+            console.log('📊   Total votants:', totalVotersValidated);
+            console.log('📊 ========================================');
+            
+            // Calculer le taux basé UNIQUEMENT sur les bureaux validés
+            if (totalInscritsValidated > 0) {
+              const tauxParticipation = Number(((totalVotersValidated / totalInscritsValidated) * 100).toFixed(2));
+              const tauxAbstention = Number((100 - tauxParticipation).toFixed(2));
+              
+              console.log('✅ RÉSULTAT:');
+              console.log('✅   Taux participation:', tauxParticipation + '%');
+              console.log('✅   Taux abstention:', tauxAbstention + '%');
+              console.log('✅   Formule: (' + totalVotersValidated + ' / ' + totalInscritsValidated + ') × 100');
+              console.log('📊 ========================================');
+              
+              setRealAbstentionRate(tauxAbstention);
+              
+              // Mettre à jour les paramètres de simulation
+              setSimulationParams(prev => ({
+                ...prev,
+                globalAbstention: tauxAbstention
+              }));
+            } else {
+              console.warn('⚠️ Total inscrits des bureaux validés est 0');
+            }
+          } else {
+            console.warn('⚠️ Pas de bureaux validés pour calculer l\'abstention');
+          }
+        } catch (error) {
+          console.error('❌ Erreur calcul abstention:', error);
+        }
 
         // 4. Initialiser la distribution des candidats
         const initialDistribution: Record<string, number> = {};
@@ -205,7 +276,29 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     return (data || []).map(row => row.center_id);
   };
 
-  // Calculer les résultats simulés
+  // Liste des centres disponibles (depuis pendingBureaux uniquement)
+  const availableCenters = useMemo(() => {
+    const centersMap = new Map<string, string>();
+    pendingBureaux.forEach(bureau => {
+      centersMap.set(bureau.center_name, bureau.center_name);
+    });
+    return Array.from(centersMap.values()).sort();
+  }, [pendingBureaux]);
+
+  // Liste des bureaux du centre sélectionné (non validés uniquement)
+  const bureausByCenter = useMemo(() => {
+    if (!selectedCenter) return [];
+    return pendingBureaux
+      .filter(bureau => bureau.center_name === selectedCenter)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [pendingBureaux, selectedCenter]);
+
+  // Bureau sélectionné en détail
+  const selectedBureauData = useMemo(() => {
+    return pendingBureaux.find(b => b.id === selectedBureau);
+  }, [pendingBureaux, selectedBureau]);
+
+  // Calculer les résultats simulés GLOBAUX (toujours tous les bureaux)
   const calculateSimulatedResults = useMemo(() => {
     if (candidates.length === 0) return [];
 
@@ -221,12 +314,13 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
       });
     });
 
-    // 2. Calculer les votes simulés pour les bureaux non validés
+    // 2. Calculer les votes simulés pour TOUS les bureaux non validés
     const simulatedVotes: Record<string, number> = { ...validatedVotes };
 
     pendingBureaux.forEach(bureau => {
+      const participationRate = 100 - simulationParams.globalAbstention;
       const simulatedVotersInBureau = Math.round(
-        (bureau.registered_voters * simulationParams.globalParticipation / 100) * 
+        (bureau.registered_voters * participationRate / 100) * 
         (simulationParams.suffrageExprime / 100)
       );
 
@@ -247,6 +341,28 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     })).sort((a, b) => b.votes - a.votes);
   }, [candidates, validatedBureaux, pendingBureaux, simulationParams]);
 
+  // Calculer les résultats simulés POUR LE BUREAU SPÉCIFIQUE
+  const bureauSpecificResults = useMemo(() => {
+    if (!selectedBureauData || candidates.length === 0) return [];
+
+    const participationRate = 100 - bureauSimulationParams.globalAbstention;
+    const simulatedVotersInBureau = Math.round(
+      (selectedBureauData.registered_voters * participationRate / 100) * 
+      (bureauSimulationParams.suffrageExprime / 100)
+    );
+
+    return candidates.map(candidate => {
+      const candidatePercentage = bureauSimulationParams.candidateDistribution[candidate.id] || 0;
+      const votes = Math.round((simulatedVotersInBureau * candidatePercentage) / 100);
+      
+      return {
+        ...candidate,
+        votes,
+        percentage: candidatePercentage
+      };
+    }).sort((a, b) => b.votes - a.votes);
+  }, [selectedBureauData, candidates, bureauSimulationParams]);
+
   // Données pour le graphique en camembert
   const chartData = useMemo(() => {
     return calculateSimulatedResults.map(candidate => ({
@@ -257,26 +373,54 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     }));
   }, [calculateSimulatedResults]);
 
-  // Statistiques de simulation
+  // Statistiques de simulation GLOBALE (toujours tous les bureaux)
   const simulationStats = useMemo(() => {
     const totalValidatedVoters = validatedBureaux.reduce((sum, bureau) => sum + bureau.total_voters, 0);
+    const totalValidatedInscrits = validatedBureaux.reduce((sum, bureau) => sum + (bureau.registered_voters || 0), 0);
+    
+    // Toujours tous les bureaux restants
+    const participationRate = 100 - simulationParams.globalAbstention;
     const totalPendingVoters = pendingBureaux.reduce((sum, bureau) => 
-      sum + Math.round((bureau.registered_voters * simulationParams.globalParticipation / 100)), 0);
+      sum + Math.round((bureau.registered_voters * participationRate / 100)), 0);
+    
+    // Calculer les inscrits restants depuis le nb_electeurs de l'élection
+    const totalPendingInscrits = electionData?.nb_electeurs 
+      ? Math.max(0, electionData.nb_electeurs - totalValidatedInscrits)
+      : pendingBureaux.reduce((sum, bureau) => sum + (bureau.registered_voters || 0), 0);
     
     return {
       totalValidatedBureaux: validatedBureaux.length,
       totalPendingBureaux: pendingBureaux.length,
       totalValidatedVoters,
+      totalValidatedInscrits,
       totalPendingVoters,
-      globalParticipation: simulationParams.globalParticipation,
+      totalPendingInscrits,
+      globalAbstention: simulationParams.globalAbstention,
       suffrageExprime: simulationParams.suffrageExprime
     };
-  }, [validatedBureaux, pendingBureaux, simulationParams]);
+  }, [validatedBureaux, pendingBureaux, simulationParams, electionData]);
 
-  const handleParticipationChange = (value: number[]) => {
+  // Statistiques pour le bureau spécifique sélectionné
+  const bureauSpecificStats = useMemo(() => {
+    if (!selectedBureauData) return null;
+    
+    const participationRate = 100 - bureauSimulationParams.globalAbstention;
+    const totalVoters = Math.round((selectedBureauData.registered_voters * participationRate / 100));
+    const totalExpressed = Math.round((totalVoters * bureauSimulationParams.suffrageExprime / 100));
+    
+    return {
+      registered: selectedBureauData.registered_voters,
+      voters: totalVoters,
+      expressed: totalExpressed,
+      abstention: bureauSimulationParams.globalAbstention,
+      suffrage: bureauSimulationParams.suffrageExprime
+    };
+  }, [selectedBureauData, bureauSimulationParams]);
+
+  const handleAbstentionChange = (value: number[]) => {
     setSimulationParams(prev => ({
       ...prev,
-      globalParticipation: value[0]
+      globalAbstention: value[0]
     }));
   };
 
@@ -297,6 +441,87 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     }));
   };
 
+  // Gestionnaires pour simulation par bureau
+  const handleCenterSelect = (centerName: string) => {
+    setSelectedCenter(centerName);
+    setSelectedBureau(''); // Réinitialiser le bureau sélectionné
+  };
+
+  const handleBureauSelect = (bureauId: string) => {
+    setSelectedBureau(bureauId);
+    // Calculer la distribution moyenne depuis les bureaux validés
+    const totalVotes: Record<string, number> = {};
+    let grandTotal = 0;
+    
+    validatedBureaux.forEach(bureau => {
+      candidates.forEach(candidate => {
+        const votes = bureau.candidate_votes?.[candidate.id] || 0;
+        totalVotes[candidate.id] = (totalVotes[candidate.id] || 0) + votes;
+        grandTotal += votes;
+      });
+    });
+    
+    // Calculer les pourcentages moyens
+    const avgDistribution: Record<string, number> = {};
+    if (grandTotal > 0) {
+      candidates.forEach(candidate => {
+        avgDistribution[candidate.id] = Number(((totalVotes[candidate.id] || 0) / grandTotal * 100).toFixed(2));
+      });
+    } else {
+      // Si pas de données validées, distribution équitable
+      const equalDistribution = 100 / candidates.length;
+      candidates.forEach(candidate => {
+        avgDistribution[candidate.id] = equalDistribution;
+      });
+    }
+    
+    setBureauSimulationParams({
+      globalAbstention: realAbstentionRate !== null ? realAbstentionRate : 35,
+      suffrageExprime: 85,
+      candidateDistribution: avgDistribution
+    });
+    
+    console.log('📊 Distribution moyenne calculée depuis bureaux validés:', avgDistribution);
+  };
+
+  const handleBureauAbstentionChange = (value: number[]) => {
+    setBureauSimulationParams(prev => ({
+      ...prev,
+      globalAbstention: value[0]
+    }));
+  };
+
+  const handleBureauSuffrageChange = (value: number[]) => {
+    setBureauSimulationParams(prev => ({
+      ...prev,
+      suffrageExprime: value[0]
+    }));
+  };
+
+  const handleBureauCandidateDistributionChange = (candidateId: string, percentage: number) => {
+    setBureauSimulationParams(prev => ({
+      ...prev,
+      candidateDistribution: {
+        ...prev.candidateDistribution,
+        [candidateId]: Math.max(0, Math.min(100, percentage))
+      }
+    }));
+  };
+
+  const resetBureauSimulation = () => {
+    const equalDistribution = 100 / candidates.length;
+    const newDistribution: Record<string, number> = {};
+    candidates.forEach(candidate => {
+      newDistribution[candidate.id] = equalDistribution;
+    });
+
+    setBureauSimulationParams({
+      globalAbstention: realAbstentionRate !== null ? realAbstentionRate : 35,
+      suffrageExprime: 85,
+      candidateDistribution: newDistribution
+    });
+  };
+
   const resetToDefaults = () => {
     const equalDistribution = 100 / candidates.length;
     const newDistribution: Record<string, number> = {};
@@ -305,7 +530,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     });
 
     setSimulationParams({
-      globalParticipation: 65,
+      globalAbstention: realAbstentionRate !== null ? realAbstentionRate : 35,
       suffrageExprime: 85,
       candidateDistribution: newDistribution
     });
@@ -333,6 +558,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
   }
 
   return (
+    <>
     <Card className="gov-card">
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -358,7 +584,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                  </div>
                  <div className="text-2xl font-bold text-blue-900">{simulationStats?.totalValidatedBureaux ?? 0}</div>
                  <div className="text-xs text-blue-600">
-                   <div>{(simulationStats?.totalValidatedVoters ?? 0).toLocaleString()} votants • {(validatedBureaux.reduce((sum, bureau) => sum + bureau.registered_voters, 0) ?? 0).toLocaleString()} inscrits</div>
+                   <div>{(simulationStats?.totalValidatedVoters ?? 0).toLocaleString()} votants • {(simulationStats?.totalValidatedInscrits ?? 0).toLocaleString()} inscrits</div>
                  </div>
                 </div>
               
@@ -369,7 +595,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                 </div>
                 <div className="text-2xl font-bold text-orange-900">{simulationStats?.totalPendingBureaux ?? 0}</div>
                 <div className="text-xs text-orange-600">
-                  {(pendingBureaux.reduce((sum, bureau) => sum + bureau.registered_voters, 0) ?? 0).toLocaleString()} inscrits
+                  {(simulationStats?.totalPendingInscrits ?? 0).toLocaleString()} inscrits
                 </div>
               </div>
             </div>
@@ -462,35 +688,48 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
 
           {/* Section droite - Contrôles de simulation */}
           <div className="space-y-6">
-            <div className={`bg-yellow-50 p-4 rounded-lg border border-yellow-200 ${pendingBureaux.length === 0 ? 'opacity-50' : ''}`}>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Vote className="h-4 w-4" />
-                Paramètres de simulation
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                {pendingBureaux.length > 0 
-                  ? 'Ajustez ces paramètres pour simuler différents scénarios sur les bureaux non encore validés.'
-                  : 'Tous les bureaux ayant été dépouillés, la simulation est désactivée.'}
-              </p>
+            {!selectedBureauData && (
+              <div className={`bg-yellow-50 p-4 rounded-lg border border-yellow-200 ${pendingBureaux.length === 0 ? 'opacity-50' : ''}`}>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Vote className="h-4 w-4" />
+                  Paramètres de simulation globale
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {pendingBureaux.length > 0 
+                    ? 'Ajustez ces paramètres pour simuler différents scénarios sur tous les bureaux non encore validés.'
+                    : 'Tous les bureaux ayant été dépouillés, la simulation est désactivée.'}
+                </p>
 
-              {/* Taux de participation global */}
+              {/* Taux d'abstention */}
               <div className="space-y-3">
-                <Label>Taux de participation global</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Taux d'abstention</Label>
+                  {realAbstentionRate !== null && (
+                    <Badge className="text-xs bg-blue-600 text-white hover:bg-blue-700">
+                      Taux réel: {realAbstentionRate.toFixed(2)}%
+                    </Badge>
+                  )}
+                </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>0%</span>
-                    <span className="font-medium">{simulationParams.globalParticipation}%</span>
+                    <span className="font-medium">{simulationParams.globalAbstention.toFixed(2)}%</span>
                     <span>100%</span>
                   </div>
                   <Slider
-                    value={[simulationParams.globalParticipation]}
-                    onValueChange={handleParticipationChange}
+                    value={[simulationParams.globalAbstention]}
+                    onValueChange={handleAbstentionChange}
                     max={100}
-                    step={1}
+                    step={0.01}
                     className="w-full"
-                    disabled={pendingBureaux.length === 0}
+                    disabled={pendingBureaux.length === 0 || !!selectedBureauData}
                   />
                 </div>
+                 {realAbstentionRate !== null && (
+                   <p className="text-xs text-blue-600 font-medium">
+                     📊 Calculé depuis les {validatedBureaux.length} bureau(x) validé(s)
+                   </p>
+                 )}
               </div>
 
               {/* Suffrage exprimé */}
@@ -508,17 +747,199 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                     max={100}
                     step={1}
                     className="w-full"
-                    disabled={pendingBureaux.length === 0}
+                    disabled={pendingBureaux.length === 0 || !!selectedBureauData}
                   />
                 </div>
               </div>
-            </div>
+              </div>
+            )}
 
+            {/* Sélection Bureau spécifique */}
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Simulation d'un bureau spécifique
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Simuler un bureau précis au lieu de tous les bureaux restants
+              </p>
+
+              {/* Sélection Centre et Bureau */}
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-3 w-3" />
+                    Centre de vote
+                  </Label>
+                  <Select value={selectedCenter} onValueChange={handleCenterSelect}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Sélectionner un centre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCenters.map(center => (
+                        <SelectItem key={center} value={center}>
+                          {center}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Building2 className="h-3 w-3" />
+                    Bureau de vote
+                  </Label>
+                  <Select 
+                    value={selectedBureau} 
+                    onValueChange={handleBureauSelect}
+                    disabled={!selectedCenter}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Sélectionner un bureau" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bureausByCenter.map(bureau => (
+                        <SelectItem key={bureau.id} value={bureau.id}>
+                          {bureau.name} ({bureau.registered_voters.toLocaleString()} inscrits)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedBureauData && (
+                  <div className="mt-3 p-3 bg-white rounded border">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs font-medium text-purple-700">
+                        📍 Bureau sélectionné
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 text-xs"
+                        onClick={() => {
+                          setSelectedBureau('');
+                          setSelectedCenter('');
+                        }}
+                      >
+                        ✕ Désélectionner
+                      </Button>
+                    </div>
+                    <div className="text-sm font-medium text-gray-700">{selectedBureauData.name}</div>
+                    <div className="text-xs text-gray-500">{selectedBureauData.center_name}</div>
+                    <div className="text-xs text-gray-600 mt-1">
+                      {selectedBureauData.registered_voters.toLocaleString()} électeurs inscrits
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Paramètres de simulation pour le bureau sélectionné */}
+              {selectedBureauData && (
+                <div className="mt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-purple-900">Paramètres de simulation du bureau</h4>
+                    <Button variant="outline" size="sm" onClick={resetBureauSimulation} className="h-7 text-xs">
+                      Réinitialiser
+                    </Button>
+                  </div>
+
+                  {/* Taux d'abstention */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Taux d'abstention</Label>
+                      {realAbstentionRate !== null && (
+                        <Badge className="text-xs bg-blue-600 text-white">
+                          Taux réel: {realAbstentionRate.toFixed(2)}%
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>0%</span>
+                        <span className="font-medium">{bureauSimulationParams.globalAbstention.toFixed(2)}%</span>
+                        <span>100%</span>
+                      </div>
+                      <Slider
+                        value={[bureauSimulationParams.globalAbstention]}
+                        onValueChange={handleBureauAbstentionChange}
+                        max={100}
+                        step={0.01}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Suffrage exprimé */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Suffrage exprimé (des votants)</Label>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>0%</span>
+                        <span className="font-medium">{bureauSimulationParams.suffrageExprime}%</span>
+                        <span>100%</span>
+                      </div>
+                      <Slider
+                        value={[bureauSimulationParams.suffrageExprime]}
+                        onValueChange={handleBureauSuffrageChange}
+                        max={100}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Résultats simulés du bureau */}
+                  {bureauSpecificStats && (
+                    <div className="mt-4 space-y-3">
+                      <h4 className="text-sm font-semibold text-purple-900">Résultats simulés pour ce bureau</h4>
+                      
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-white p-2 rounded border text-center">
+                          <div className="text-lg font-bold text-purple-900">
+                            {bureauSpecificStats.registered.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-600">Inscrits</div>
+                        </div>
+                        <div className="bg-white p-2 rounded border text-center">
+                          <div className="text-lg font-bold text-green-900">
+                            {bureauSpecificStats.voters.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-600">Votants</div>
+                        </div>
+                      </div>
+
+                      {/* Classement */}
+                      <div className="space-y-2">
+                        {bureauSpecificResults.map((candidate, index) => (
+                          <div key={candidate.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                            <div className="flex items-center gap-2">
+                              <Badge className="text-white text-xs" style={{ backgroundColor: candidate.color }}>
+                                #{index + 1}
+                              </Badge>
+                              <span className="text-xs font-medium">{candidate.name}</span>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-bold">{candidate.votes.toLocaleString()}</div>
+                              <div className="text-xs text-gray-600">{candidate.percentage.toFixed(1)}%</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
           </div>
         </div>
       </CardContent>
     </Card>
+
+  </>
   );
 };
 
