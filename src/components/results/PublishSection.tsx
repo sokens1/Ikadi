@@ -72,6 +72,8 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           .single();
         if (electionErr) throw electionErr;
         const totalInscritsElection = electionData?.nb_electeurs || 0;
+        
+        console.log('📊 [PublishSection] Total inscrits depuis elections.nb_electeurs:', totalInscritsElection);
 
         // Restreindre aux centres liés à l'élection via election_centers
         const { data: ecRows, error: ecCentersErr } = await supabase
@@ -122,14 +124,14 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           party: row.candidates.party || 'Indépendant'
         }));
 
-        // 4) Récupérer libellés bureaux/centres
+        // 4) Récupérer libellés bureaux/centres avec registered_voters
         const bureauIds = Array.from(new Set((filteredPvsAll || []).map(p => p.bureau_id).filter(Boolean)));
         let bureaux: any[] = [];
         let centers: any[] = [];
         if (bureauIds.length > 0) {
           const { data: bRows, error: bErr } = await supabase
             .from('voting_bureaux')
-            .select('id, name, center_id')
+            .select('id, name, center_id, registered_voters')
             .in('id', bureauIds);
           if (bErr) throw bErr;
           bureaux = bRows || [];
@@ -169,8 +171,14 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           totalExprimesPV += Number(pv.votes_expressed) || 0;
         });
 
-        // Utiliser le nombre total d'inscrits de l'élection par défaut
-        const totalInscrits = totalInscritsElection;
+        // Calculer le total des inscrits UNIQUEMENT des bureaux avec PV (validés + saisis)
+        const totalInscritsDesBureauxAvecPV = bureaux.reduce((sum, b) => sum + (Number(b.registered_voters) || 0), 0);
+        const totalInscrits = totalInscritsDesBureauxAvecPV;
+        
+        console.log('📊 [PublishSection] Total inscrits (bureaux avec PV):', totalInscrits);
+        console.log('📊 [PublishSection] Total inscrits élection (nb_electeurs):', totalInscritsElection);
+        console.log('📊 [PublishSection] Total votants:', totalVotants);
+        console.log('📊 [PublishSection] Nombre de bureaux avec PV:', bureaux.length);
 
         const candidates = Object.values(votesByCandidate).sort((a, b) => b.votes - a.votes);
         const totalVotes = candidates.reduce((s, c) => s + c.votes, 0);
@@ -205,6 +213,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         setFinalResults({
           participation: {
             totalInscrits,
+            totalInscritsElection: totalInscritsElection, // Nombre total pour affichage statique
             totalVotants,
             tauxParticipation: totalInscrits > 0 ? Number(((totalVotants / totalInscrits) * 100).toFixed(2)) : 0,
             bulletinsNuls,
@@ -499,7 +508,16 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {finalResults ? Number(finalResults.participation.totalInscrits).toLocaleString() : '0'}
+                    {finalResults ? (
+                      <>
+                        {Number(finalResults.participation.totalInscrits).toLocaleString()}
+                        {finalResults.participation.totalInscritsElection && (
+                          <span className="text-gray-500 font-normal">
+                            {' '}/{' '}{Number(finalResults.participation.totalInscritsElection).toLocaleString()}
+                          </span>
+                        )}
+                      </>
+                    ) : '0'}
                   </div>
                   <div className="text-gray-600">Inscrits</div>
                 </div>

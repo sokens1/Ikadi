@@ -43,6 +43,7 @@ interface CandidateResult {
 interface ElectionResults {
   election: ElectionData | null;
   total_voters: number;
+  total_voters_election?: number; // Nombre total d'inscrits de l'élection
   total_votes_cast: number;
   participation_rate: number;
   candidates: CandidateResult[];
@@ -574,11 +575,21 @@ const ElectionResults: React.FC = () => {
       // Calculer les totaux globaux à partir des tableaux de bureaux (plus fiable)
       const votersSum = (bureaux || []).reduce((sum: number, b: any) => sum + (Number(b.total_voters) || 0), 0);
       const expressedSum = (bureaux || []).reduce((sum: number, b: any) => sum + (Number(b.total_expressed_votes) || 0), 0);
+      
+      // Calculer le nombre d'inscrits UNIQUEMENT des bureaux avec résultats
+      const registeredInBureauxWithResults = (bureaux || []).reduce((sum: number, b: any) => sum + (Number(b.total_registered) || 0), 0);
 
       // Totaux affichés en tête
       const totalVotesCast = expressedSum; // bulletins exprimés
-      const totalRegistered = election.nb_electeurs || 0; // Utiliser le nombre d'inscrits de l'élection par défaut
+      const totalRegistered = registeredInBureauxWithResults; // Utiliser uniquement les inscrits des bureaux avec résultats
+      const totalRegisteredElection = election.nb_electeurs || 0; // Nombre total pour référence
       const participationRate = totalRegistered > 0 ? Math.min(Math.max((votersSum / totalRegistered) * 100, 0), 100) : 0;
+      
+      console.log('📊 [ElectionResults] Inscrits bureaux avec résultats:', totalRegistered);
+      console.log('📊 [ElectionResults] Inscrits total élection:', totalRegisteredElection);
+      console.log('📊 [ElectionResults] Votants:', votersSum);
+      console.log('📊 [ElectionResults] Taux participation:', participationRate.toFixed(2) + '%');
+      console.log('📊 [ElectionResults] Taux abstention:', (100 - participationRate).toFixed(2) + '%');
 
       setCenterRows(centers || []);
       setBureauRows(bureaux || []);
@@ -586,6 +597,7 @@ const ElectionResults: React.FC = () => {
       setResults({
         election,
         total_voters: totalRegistered,
+        total_voters_election: totalRegisteredElection, // Ajouter le total pour affichage
         total_votes_cast: totalVotesCast,
         participation_rate: participationRate,
         candidates: (summaryData || [])
@@ -1192,7 +1204,9 @@ const ElectionResults: React.FC = () => {
                 value={results.total_voters}
                 icon={<Users className="w-8 h-8" />}
                 color="bg-gradient-to-br from-blue-500 to-blue-600"
-                subtitle="Citoyens éligibles au vote"
+                subtitle={results.total_voters_election 
+                  ? `Bureaux dépouillés / Total: ${results.total_voters_election.toLocaleString()}`
+                  : "Citoyens éligibles au vote"}
                 animated={true}
               />
               <MetricCard
