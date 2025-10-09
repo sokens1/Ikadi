@@ -31,6 +31,7 @@ interface BureauData {
   center_name: string;
   registered_voters: number;
   total_voters: number;
+  total_expressed?: number;
   is_validated: boolean;
 }
 
@@ -54,6 +55,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
   const [loading, setLoading] = useState(false);
   const [electionData, setElectionData] = useState<any>(null);
   const [realAbstentionRate, setRealAbstentionRate] = useState<number | null>(null);
+  const [realSuffrageExprime, setRealSuffrageExprime] = useState<number | null>(null);
   
   // États pour simulation par bureau
   const [selectedCenter, setSelectedCenter] = useState<string>('');
@@ -130,6 +132,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
           center_name: bureau.center_name || 'Centre',
           registered_voters: Number(bureau.total_registered) || 0,
           total_voters: Number(bureau.total_voters) || 0,
+          total_expressed: Number(bureau.total_expressed_votes) || 0,
           is_validated: true,
           candidate_votes: {} // On n'a pas besoin des détails par candidat pour le calcul d'abstention
         }));
@@ -206,36 +209,43 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
           });
 
           if (validatedBureauxArray.length > 0) {
-            // Calculer le total des inscrits et votants UNIQUEMENT depuis les bureaux validés
+            // Calculer le total des inscrits, votants et exprimés UNIQUEMENT depuis les bureaux validés
             const totalInscritsValidated = validatedBureauxArray.reduce((sum, b) => sum + (b.registered_voters || 0), 0);
             const totalVotersValidated = validatedBureauxArray.reduce((sum, b) => sum + (b.total_voters || 0), 0);
+            const totalExpressedValidated = validatedBureauxArray.reduce((sum, b) => sum + (b.total_expressed || 0), 0);
             
             console.log('📊 ========================================');
             console.log('📊 TOTAUX (BUREAUX VALIDÉS UNIQUEMENT):');
             console.log('📊   Total inscrits:', totalInscritsValidated);
             console.log('📊   Total votants:', totalVotersValidated);
+            console.log('📊   Total exprimés:', totalExpressedValidated);
             console.log('📊 ========================================');
             
-            // Calculer le taux basé UNIQUEMENT sur les bureaux validés
-            if (totalInscritsValidated > 0) {
+            // Calculer les taux basés UNIQUEMENT sur les bureaux validés
+            if (totalInscritsValidated > 0 && totalVotersValidated > 0) {
               const tauxParticipation = Number(((totalVotersValidated / totalInscritsValidated) * 100).toFixed(2));
               const tauxAbstention = Number((100 - tauxParticipation).toFixed(2));
+              const tauxSuffrageExprime = Number(((totalExpressedValidated / totalVotersValidated) * 100).toFixed(2));
               
               console.log('✅ RÉSULTAT:');
               console.log('✅   Taux participation:', tauxParticipation + '%');
               console.log('✅   Taux abstention:', tauxAbstention + '%');
-              console.log('✅   Formule: (' + totalVotersValidated + ' / ' + totalInscritsValidated + ') × 100');
+              console.log('✅   Taux suffrage exprimé:', tauxSuffrageExprime + '%');
+              console.log('✅   Formule abstention: (' + totalVotersValidated + ' / ' + totalInscritsValidated + ') × 100');
+              console.log('✅   Formule suffrage: (' + totalExpressedValidated + ' / ' + totalVotersValidated + ') × 100');
               console.log('📊 ========================================');
               
               setRealAbstentionRate(tauxAbstention);
+              setRealSuffrageExprime(tauxSuffrageExprime);
               
               // Mettre à jour les paramètres de simulation
               setSimulationParams(prev => ({
                 ...prev,
-                globalAbstention: tauxAbstention
+                globalAbstention: tauxAbstention,
+                suffrageExprime: tauxSuffrageExprime
               }));
             } else {
-              console.warn('⚠️ Total inscrits des bureaux validés est 0');
+              console.warn('⚠️ Total inscrits ou votants des bureaux validés est 0');
             }
           } else {
             console.warn('⚠️ Pas de bureaux validés pour calculer l\'abstention');
@@ -244,11 +254,32 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
           console.error('❌ Erreur calcul abstention:', error);
         }
 
-        // 4. Initialiser la distribution des candidats
-        const initialDistribution: Record<string, number> = {};
-        candidatesList.forEach(candidate => {
-          initialDistribution[candidate.id] = 100 / candidatesList.length;
+        // 4. Initialiser la distribution des candidats avec les pourcentages réels des bureaux validés
+        const totalVotesByCandidate: Record<string, number> = {};
+        let grandTotalVotes = 0;
+        
+        validatedBureauxArray.forEach(bureau => {
+          candidatesList.forEach(candidate => {
+            const votes = bureau.candidate_votes?.[candidate.id] || 0;
+            totalVotesByCandidate[candidate.id] = (totalVotesByCandidate[candidate.id] || 0) + votes;
+            grandTotalVotes += votes;
+          });
         });
+        
+        const initialDistribution: Record<string, number> = {};
+        if (grandTotalVotes > 0) {
+          // Utiliser les pourcentages réels
+          candidatesList.forEach(candidate => {
+            initialDistribution[candidate.id] = Number(((totalVotesByCandidate[candidate.id] || 0) / grandTotalVotes * 100).toFixed(2));
+          });
+          console.log(' Distribution initiale (depuis bureaux validés):', initialDistribution);
+        } else {
+          // Fallback: distribution équitable
+          candidatesList.forEach(candidate => {
+            initialDistribution[candidate.id] = 100 / candidatesList.length;
+          });
+          console.log(' Distribution initiale (équitable):', initialDistribution);
+        }
 
         setSimulationParams(prev => ({
           ...prev,
@@ -314,22 +345,117 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
       });
     });
 
-    // 2. Calculer les votes simulés pour TOUS les bureaux non validés
+    // 2. Calculer les votes simulés
     const simulatedVotes: Record<string, number> = { ...validatedVotes };
 
-    pendingBureaux.forEach(bureau => {
-      const participationRate = 100 - simulationParams.globalAbstention;
-      const simulatedVotersInBureau = Math.round(
-        (bureau.registered_voters * participationRate / 100) * 
+    // A) Simuler tous les bureaux NON sélectionnés avec les paramètres globaux
+    const bureauxNonSelectionnes = selectedBureau 
+      ? pendingBureaux.filter(b => b.id !== selectedBureau)
+      : pendingBureaux;
+    
+    let totalSimulatedGlobal = 0;
+    const participationRateGlobal = 100 - simulationParams.globalAbstention;
+    
+    bureauxNonSelectionnes.forEach(bureau => {
+      const simulatedExpressedInBureau = Math.round(
+        (bureau.registered_voters * participationRateGlobal / 100) * 
         (simulationParams.suffrageExprime / 100)
       );
+      totalSimulatedGlobal += simulatedExpressedInBureau;
+    });
 
+    // Répartir les votes des bureaux non sélectionnés
+    if (totalSimulatedGlobal > 0) {
+      const exactVotesGlobal: { candidateId: string; exact: number; floor: number; remainder: number }[] = [];
+      let totalFloorGlobal = 0;
+      
       candidates.forEach(candidate => {
         const candidatePercentage = simulationParams.candidateDistribution[candidate.id] || 0;
-        const votes = Math.round((simulatedVotersInBureau * candidatePercentage) / 100);
-        simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + votes;
+        const exact = (totalSimulatedGlobal * candidatePercentage) / 100;
+        const floor = Math.floor(exact);
+        const remainder = exact - floor;
+        
+        exactVotesGlobal.push({
+          candidateId: candidate.id,
+          exact,
+          floor,
+          remainder
+        });
+        
+        totalFloorGlobal += floor;
       });
-    });
+      
+      const remainingGlobal = totalSimulatedGlobal - totalFloorGlobal;
+      const sortedGlobal = [...exactVotesGlobal].sort((a, b) => b.remainder - a.remainder);
+      
+      candidates.forEach(candidate => {
+        const voteData = exactVotesGlobal.find(v => v.candidateId === candidate.id);
+        if (!voteData) return;
+        
+        let allocatedVotes = voteData.floor;
+        const index = sortedGlobal.findIndex(v => v.candidateId === candidate.id);
+        if (index < remainingGlobal) {
+          allocatedVotes += 1;
+        }
+        
+        simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + allocatedVotes;
+      });
+    }
+
+    // B) Si un bureau spécifique est sélectionné, le simuler SÉPARÉMENT avec ses propres paramètres
+    if (selectedBureau && selectedBureauData) {
+      const participationRateBureau = 100 - bureauSimulationParams.globalAbstention;
+      const totalSimulatedBureau = Math.round(
+        (selectedBureauData.registered_voters * participationRateBureau / 100) * 
+        (bureauSimulationParams.suffrageExprime / 100)
+      );
+
+      // Répartir les votes du bureau spécifique
+      const exactVotesBureau: { candidateId: string; exact: number; floor: number; remainder: number }[] = [];
+      let totalFloorBureau = 0;
+      
+      candidates.forEach(candidate => {
+        const candidatePercentage = bureauSimulationParams.candidateDistribution[candidate.id] || 0;
+        const exact = (totalSimulatedBureau * candidatePercentage) / 100;
+        const floor = Math.floor(exact);
+        const remainder = exact - floor;
+        
+        exactVotesBureau.push({
+          candidateId: candidate.id,
+          exact,
+          floor,
+          remainder
+        });
+        
+        totalFloorBureau += floor;
+      });
+      
+      const remainingBureau = totalSimulatedBureau - totalFloorBureau;
+      const sortedBureau = [...exactVotesBureau].sort((a, b) => b.remainder - a.remainder);
+      
+      candidates.forEach(candidate => {
+        const voteData = exactVotesBureau.find(v => v.candidateId === candidate.id);
+        if (!voteData) return;
+        
+        let allocatedVotes = voteData.floor;
+        const index = sortedBureau.findIndex(v => v.candidateId === candidate.id);
+        if (index < remainingBureau) {
+          allocatedVotes += 1;
+        }
+        
+        // AJOUTER les votes du bureau spécifique
+        simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + allocatedVotes;
+      });
+      
+      console.log('📊 Mode: Bureau spécifique AJOUTÉ');
+      console.log('📊 Total simulé global:', totalSimulatedGlobal);
+      console.log('📊 Total simulé bureau:', totalSimulatedBureau);
+    } else {
+      console.log('📊 Mode: Tous les bureaux');
+      console.log('📊 Total simulé:', totalSimulatedGlobal);
+    }
+    
+    console.log('📊 Distribution finale:', simulatedVotes);
 
     // 3. Calculer les pourcentages finaux
     const totalVotes = Object.values(simulatedVotes).reduce((sum, votes) => sum + votes, 0);
@@ -339,7 +465,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
       votes: simulatedVotes[candidate.id] || 0,
       percentage: totalVotes > 0 ? (simulatedVotes[candidate.id] || 0) / totalVotes * 100 : 0
     })).sort((a, b) => b.votes - a.votes);
-  }, [candidates, validatedBureaux, pendingBureaux, simulationParams]);
+  }, [candidates, validatedBureaux, pendingBureaux, simulationParams, selectedBureau, selectedBureauData, bureauSimulationParams]);
 
   // Calculer les résultats simulés POUR LE BUREAU SPÉCIFIQUE
   const bureauSpecificResults = useMemo(() => {
@@ -373,12 +499,12 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     }));
   }, [calculateSimulatedResults]);
 
-  // Statistiques de simulation GLOBALE (toujours tous les bureaux)
+  // Statistiques de simulation (TOUJOURS GLOBALES - structure fixe)
   const simulationStats = useMemo(() => {
     const totalValidatedVoters = validatedBureaux.reduce((sum, bureau) => sum + bureau.total_voters, 0);
     const totalValidatedInscrits = validatedBureaux.reduce((sum, bureau) => sum + (bureau.registered_voters || 0), 0);
     
-    // Toujours tous les bureaux restants
+    // Toujours afficher les statistiques globales
     const participationRate = 100 - simulationParams.globalAbstention;
     const totalPendingVoters = pendingBureaux.reduce((sum, bureau) => 
       sum + Math.round((bureau.registered_voters * participationRate / 100)), 0);
@@ -400,22 +526,6 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     };
   }, [validatedBureaux, pendingBureaux, simulationParams, electionData]);
 
-  // Statistiques pour le bureau spécifique sélectionné
-  const bureauSpecificStats = useMemo(() => {
-    if (!selectedBureauData) return null;
-    
-    const participationRate = 100 - bureauSimulationParams.globalAbstention;
-    const totalVoters = Math.round((selectedBureauData.registered_voters * participationRate / 100));
-    const totalExpressed = Math.round((totalVoters * bureauSimulationParams.suffrageExprime / 100));
-    
-    return {
-      registered: selectedBureauData.registered_voters,
-      voters: totalVoters,
-      expressed: totalExpressed,
-      abstention: bureauSimulationParams.globalAbstention,
-      suffrage: bureauSimulationParams.suffrageExprime
-    };
-  }, [selectedBureauData, bureauSimulationParams]);
 
   const handleAbstentionChange = (value: number[]) => {
     setSimulationParams(prev => ({
@@ -477,7 +587,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     
     setBureauSimulationParams({
       globalAbstention: realAbstentionRate !== null ? realAbstentionRate : 35,
-      suffrageExprime: 85,
+      suffrageExprime: realSuffrageExprime !== null ? realSuffrageExprime : 85,
       candidateDistribution: avgDistribution
     });
     
@@ -509,31 +619,73 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
   };
 
   const resetBureauSimulation = () => {
-    const equalDistribution = 100 / candidates.length;
-    const newDistribution: Record<string, number> = {};
-    candidates.forEach(candidate => {
-      newDistribution[candidate.id] = equalDistribution;
+    // Calculer la distribution moyenne depuis les bureaux validés
+    const totalVotes: Record<string, number> = {};
+    let grandTotal = 0;
+    
+    validatedBureaux.forEach(bureau => {
+      candidates.forEach(candidate => {
+        const votes = bureau.candidate_votes?.[candidate.id] || 0;
+        totalVotes[candidate.id] = (totalVotes[candidate.id] || 0) + votes;
+        grandTotal += votes;
+      });
     });
+    
+    const avgDistribution: Record<string, number> = {};
+    if (grandTotal > 0) {
+      candidates.forEach(candidate => {
+        avgDistribution[candidate.id] = Number(((totalVotes[candidate.id] || 0) / grandTotal * 100).toFixed(2));
+      });
+    } else {
+      const equalDistribution = 100 / candidates.length;
+      candidates.forEach(candidate => {
+        avgDistribution[candidate.id] = equalDistribution;
+      });
+    }
 
     setBureauSimulationParams({
       globalAbstention: realAbstentionRate !== null ? realAbstentionRate : 35,
-      suffrageExprime: 85,
-      candidateDistribution: newDistribution
+      suffrageExprime: realSuffrageExprime !== null ? realSuffrageExprime : 85,
+      candidateDistribution: avgDistribution
     });
   };
 
   const resetToDefaults = () => {
-    const equalDistribution = 100 / candidates.length;
-    const newDistribution: Record<string, number> = {};
-    candidates.forEach(candidate => {
-      newDistribution[candidate.id] = equalDistribution;
+    // Calculer la distribution moyenne depuis les bureaux validés
+    const totalVotes: Record<string, number> = {};
+    let grandTotal = 0;
+    
+    validatedBureaux.forEach(bureau => {
+      candidates.forEach(candidate => {
+        const votes = bureau.candidate_votes?.[candidate.id] || 0;
+        totalVotes[candidate.id] = (totalVotes[candidate.id] || 0) + votes;
+        grandTotal += votes;
+      });
     });
+    
+    const newDistribution: Record<string, number> = {};
+    if (grandTotal > 0) {
+      candidates.forEach(candidate => {
+        newDistribution[candidate.id] = Number(((totalVotes[candidate.id] || 0) / grandTotal * 100).toFixed(2));
+      });
+    } else {
+      const equalDistribution = 100 / candidates.length;
+      candidates.forEach(candidate => {
+        newDistribution[candidate.id] = equalDistribution;
+      });
+    }
 
     setSimulationParams({
       globalAbstention: realAbstentionRate !== null ? realAbstentionRate : 35,
-      suffrageExprime: 85,
+      suffrageExprime: realSuffrageExprime !== null ? realSuffrageExprime : 85,
       candidateDistribution: newDistribution
     });
+    
+    // Réinitialiser aussi la sélection de bureau
+    setSelectedBureau('');
+    setSelectedCenter('');
+    
+    console.log('🔄 Réinitialisation avec les taux réels');
   };
 
   if (loading) {
@@ -593,9 +745,12 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                   <Users className="h-4 w-4 text-orange-600" />
                   <span className="text-sm font-medium text-orange-800">Bureaux restants</span>
                 </div>
-                <div className="text-2xl font-bold text-orange-900">{simulationStats?.totalPendingBureaux ?? 0}</div>
+                <div className="text-2xl font-bold text-orange-900">{pendingBureaux.length}</div>
                 <div className="text-xs text-orange-600">
-                  {(simulationStats?.totalPendingInscrits ?? 0).toLocaleString()} inscrits
+                  {(electionData?.nb_electeurs 
+                    ? Math.max(0, electionData.nb_electeurs - validatedBureaux.reduce((sum, b) => sum + (b.registered_voters || 0), 0))
+                    : pendingBureaux.reduce((sum, b) => sum + (b.registered_voters || 0), 0)
+                  ).toLocaleString()} inscrits
                 </div>
               </div>
             </div>
@@ -623,7 +778,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                       </Pie>
                       <Tooltip 
                         formatter={(value: number, name: string, props: any) => [
-                          `${value.toLocaleString()} voix (${props.payload.percentage.toFixed(1)}%)`, 
+                          `${value.toLocaleString()} voix (${props.payload.percentage.toFixed(2)}%)`, 
                           props.payload.name
                         ]}
                         labelFormatter={(label, payload) => {
@@ -679,7 +834,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-lg">{candidate.votes.toLocaleString()}</div>
-                    <div className="text-sm text-gray-600">{candidate.percentage.toFixed(1)}%</div>
+                    <div className="text-sm text-gray-600">{candidate.percentage.toFixed(2)}%</div>
                   </div>
                 </div>
               ))}
@@ -690,15 +845,15 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
           <div className="space-y-6">
             {!selectedBureauData && (
               <div className={`bg-yellow-50 p-4 rounded-lg border border-yellow-200 ${pendingBureaux.length === 0 ? 'opacity-50' : ''}`}>
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <Vote className="h-4 w-4" />
-                  Paramètres de simulation globale
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  {pendingBureaux.length > 0 
-                    ? 'Ajustez ces paramètres pour simuler différents scénarios sur tous les bureaux non encore validés.'
-                    : 'Tous les bureaux ayant été dépouillés, la simulation est désactivée.'}
-                </p>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Vote className="h-4 w-4" />
+                Paramètres de simulation
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                {pendingBureaux.length > 0 
+                  ? 'Ajustez ces paramètres pour simuler différents scénarios sur tous les bureaux non encore validés.'
+                  : 'Tous les bureaux ayant été dépouillés, la simulation est désactivée.'}
+              </p>
 
               {/* Taux d'abstention */}
               <div className="space-y-3">
@@ -727,29 +882,41 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                 </div>
                  {realAbstentionRate !== null && (
                    <p className="text-xs text-blue-600 font-medium">
-                     📊 Calculé depuis les {validatedBureaux.length} bureau(x) validé(s)
+                      Calculé depuis les {validatedBureaux.length} bureau(x) validé(s)
                    </p>
                  )}
               </div>
 
               {/* Suffrage exprimé */}
               <div className="space-y-3">
-                <Label>Suffrage exprimé (des votants)</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Suffrage exprimé (des votants)</Label>
+                  {realSuffrageExprime !== null && (
+                    <Badge className="text-xs bg-green-600 text-white hover:bg-green-700">
+                      Taux réel: {realSuffrageExprime.toFixed(2)}%
+                    </Badge>
+                  )}
+                </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>0%</span>
-                    <span className="font-medium">{simulationParams.suffrageExprime}%</span>
+                    <span className="font-medium">{simulationParams.suffrageExprime.toFixed(2)}%</span>
                     <span>100%</span>
                   </div>
                   <Slider
                     value={[simulationParams.suffrageExprime]}
                     onValueChange={handleSuffrageChange}
                     max={100}
-                    step={1}
+                    step={0.01}
                     className="w-full"
                     disabled={pendingBureaux.length === 0 || !!selectedBureauData}
                   />
                 </div>
+                {realSuffrageExprime !== null && (
+                  <p className="text-xs text-green-600 font-medium">
+                     Calculé depuis les {validatedBureaux.length} bureau(x) validé(s)
+                  </p>
+                )}
               </div>
               </div>
             )}
@@ -873,63 +1040,29 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
 
                   {/* Suffrage exprimé */}
                   <div className="space-y-2">
-                    <Label className="text-xs">Suffrage exprimé (des votants)</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Suffrage exprimé (des votants)</Label>
+                      {realSuffrageExprime !== null && (
+                        <Badge className="text-xs bg-green-600 text-white">
+                          Taux réel: {realSuffrageExprime.toFixed(2)}%
+                        </Badge>
+                      )}
+                    </div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span>0%</span>
-                        <span className="font-medium">{bureauSimulationParams.suffrageExprime}%</span>
+                        <span className="font-medium">{bureauSimulationParams.suffrageExprime.toFixed(2)}%</span>
                         <span>100%</span>
                       </div>
                       <Slider
                         value={[bureauSimulationParams.suffrageExprime]}
                         onValueChange={handleBureauSuffrageChange}
                         max={100}
-                        step={1}
+                        step={0.01}
                         className="w-full"
                       />
                     </div>
                   </div>
-
-                  {/* Résultats simulés du bureau */}
-                  {bureauSpecificStats && (
-                    <div className="mt-4 space-y-3">
-                      <h4 className="text-sm font-semibold text-purple-900">Résultats simulés pour ce bureau</h4>
-                      
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-white p-2 rounded border text-center">
-                          <div className="text-lg font-bold text-purple-900">
-                            {bureauSpecificStats.registered.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-gray-600">Inscrits</div>
-                        </div>
-                        <div className="bg-white p-2 rounded border text-center">
-                          <div className="text-lg font-bold text-green-900">
-                            {bureauSpecificStats.voters.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-gray-600">Votants</div>
-                        </div>
-                      </div>
-
-                      {/* Classement */}
-                      <div className="space-y-2">
-                        {bureauSpecificResults.map((candidate, index) => (
-                          <div key={candidate.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                            <div className="flex items-center gap-2">
-                              <Badge className="text-white text-xs" style={{ backgroundColor: candidate.color }}>
-                                #{index + 1}
-                              </Badge>
-                              <span className="text-xs font-medium">{candidate.name}</span>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm font-bold">{candidate.votes.toLocaleString()}</div>
-                              <div className="text-xs text-gray-600">{candidate.percentage.toFixed(1)}%</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
