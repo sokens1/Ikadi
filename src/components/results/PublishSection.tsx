@@ -51,30 +51,24 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
       if (!selectedElection) return;
       try {
         setLoading(true);
-        // 1) Récupérer PV par statut
-        const fetchPVs = async (status: string) => supabase
+        // 1) Récupérer PV par statut (validés ET publiés ensemble)
+        const { data: pvsValidated, error: pvValErr } = await supabase
           .from('procès_verbaux')
           .select('id, bureau_id, total_registered, total_voters, null_votes, votes_expressed, status, entered_at')
           .eq('election_id', selectedElection)
-          .eq('status', status);
-
-        const [{ data: pvsValidated, error: pvValErr }, { data: pvsEntered, error: pvEntErr }] = await Promise.all([
-          fetchPVs('validated'),
-          fetchPVs('entered')
-        ]);
+          .in('status', ['validated', 'published']); // Inclure les publiés
+        
+        const { data: pvsEntered, error: pvEntErr } = await supabase
+          .from('procès_verbaux')
+          .select('id, bureau_id, total_registered, total_voters, null_votes, votes_expressed, status, entered_at')
+          .eq('election_id', selectedElection)
+          .eq('status', 'entered');
+        
         if (pvValErr) throw pvValErr;
         if (pvEntErr) throw pvEntErr;
-
-        // Récupérer le nombre total d'inscrits de l'élection par défaut
-        const { data: electionData, error: electionErr } = await supabase
-          .from('elections')
-          .select('nb_electeurs')
-          .eq('id', selectedElection)
-          .single();
-        if (electionErr) throw electionErr;
-        const totalInscritsElection = electionData?.nb_electeurs || 0;
         
-        console.log('📊 [PublishSection] Total inscrits depuis elections.nb_electeurs:', totalInscritsElection);
+        console.log('📊 [PublishSection] PV validés + publiés:', pvsValidated?.length || 0);
+        console.log('📊 [PublishSection] PV saisis:', pvsEntered?.length || 0);
 
         // Restreindre aux centres liés à l'élection via election_centers
         const { data: ecRows, error: ecCentersErr } = await supabase
@@ -84,18 +78,27 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         if (ecCentersErr) throw ecCentersErr;
         const allowedCenterIds = new Set((ecRows || []).map((r: any) => r.center_id));
 
+        // Calculer le vrai total d'inscrits de TOUS les bureaux de l'élection
+        let totalInscritsElection = 0;
         let filteredValidatedPvs = pvsValidated || [];
         let filteredEnteredPvs = pvsEntered || [];
         if (allowedCenterIds.size > 0) {
           const { data: bureauRows, error: bureauErr } = await supabase
           .from('voting_bureaux')
-            .select('id, center_id')
+            .select('id, center_id, registered_voters')
             .in('center_id', Array.from(allowedCenterIds));
           if (bureauErr) throw bureauErr;
+          
+          // Calculer le total réel d'inscrits de TOUS les bureaux
+          totalInscritsElection = (bureauRows || []).reduce((sum, b) => sum + (Number(b.registered_voters) || 0), 0);
+          
           const allowedBureauIds = new Set((bureauRows || []).map((b: any) => b.id));
           filteredValidatedPvs = filteredValidatedPvs.filter((pv: any) => allowedBureauIds.has(pv.bureau_id));
           filteredEnteredPvs = filteredEnteredPvs.filter((pv: any) => allowedBureauIds.has(pv.bureau_id));
         }
+        
+        console.log('📊 [PublishSection] Total inscrits calculé depuis TOUS les bureaux:', totalInscritsElection);
+        
         const filteredPvsAll = [...filteredValidatedPvs, ...filteredEnteredPvs];
         setNonValidatedCount(filteredEnteredPvs.length);
 
@@ -125,7 +128,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           party: row.candidates.party || 'Indépendant'
         }));
 
-        // 4) Récupérer libellés bureaux/centres avec registered_voters
+        // 4) Récupérer libellés bureaux/centres
         const bureauIds = Array.from(new Set((filteredPvsAll || []).map(p => p.bureau_id).filter(Boolean)));
         let bureaux: any[] = [];
         let centers: any[] = [];
@@ -166,18 +169,20 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             votesByCandidate[cid].votes += r.votes || 0;
           });
 
+        // Calculer le total des inscrits UNIQUEMENT des bureaux avec PV (validés + saisis)
+        const totalInscritsDesBureauxAvecPV = bureaux.reduce((sum, b) => sum + (Number(b.registered_voters) || 0), 0);
+
         (filteredPvsAll || []).forEach((pv: any) => {
           totalVotants += Number(pv.total_voters) || 0;
           bulletinsNuls += Number(pv.null_votes) || 0;
           totalExprimesPV += Number(pv.votes_expressed) || 0;
         });
 
-        // Calculer le total des inscrits UNIQUEMENT des bureaux avec PV (validés + saisis)
-        const totalInscritsDesBureauxAvecPV = bureaux.reduce((sum, b) => sum + (Number(b.registered_voters) || 0), 0);
+        // Pour le calcul du taux : utiliser les inscrits des bureaux avec PV
         const totalInscrits = totalInscritsDesBureauxAvecPV;
         
         console.log('📊 [PublishSection] Total inscrits (bureaux avec PV):', totalInscrits);
-        console.log('📊 [PublishSection] Total inscrits élection (nb_electeurs):', totalInscritsElection);
+        console.log('📊 [PublishSection] Total inscrits élection (TOUS bureaux - calculé):', totalInscritsElection);
         console.log('📊 [PublishSection] Total votants:', totalVotants);
         console.log('📊 [PublishSection] Nombre de bureaux avec PV:', bureaux.length);
 
@@ -247,15 +252,33 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         });
         setDetailedResults(detailed);
 
-        // 6) Chargement des breakdowns par centre et bureau (vues SQL)
+        // 6) Construire les breakdowns par centre et bureau manuellement depuis les PV validés/publiés
         try {
-          const [{ data: centersSum }, { data: bureauxSum }] = await Promise.all([
-            supabase.from('center_results_summary').select('*').eq('election_id', selectedElection),
-            supabase.from('bureau_results_summary').select('*').eq('election_id', selectedElection)
-          ]);
-          setCenterBreakdown(centersSum || []);
+          console.log('📊 [PublishSection] Construction breakdown - PV validés/publiés:', filteredValidatedPvs.length);
+          console.log('📊 [PublishSection] Construction breakdown - PV saisis:', filteredEnteredPvs.length);
+          console.log('📊 [PublishSection] Bureaux map size:', bureauMap.size);
+          console.log('📊 [PublishSection] Centres map size:', centerMap.size);
+          
+          // Construire les données par bureau (TOUS les PV : validés + publiés)
+          const bureauxBreakdownData = (filteredValidatedPvs || []).map((pv: any) => {
+            const b = bureauMap.get(pv.bureau_id);
+            const c = b ? centerMap.get(b.center_id) : undefined;
+            return {
+              election_id: selectedElection,
+              bureau_id: pv.bureau_id,
+              bureau_name: b?.name || 'Bureau',
+              center_id: b?.center_id,
+              center_name: c?.name || 'Centre',
+              total_registered: Number(b?.registered_voters) || 0,
+              total_voters: Number(pv.total_voters) || 0,
+              total_null_votes: Number(pv.null_votes) || 0,
+              total_expressed_votes: Number(pv.votes_expressed) || 0,
+              participation_pct: Number(b?.registered_voters) > 0 ? (Number(pv.total_voters) / Number(b.registered_voters)) * 100 : 0
+            };
+          });
+
           // Tri croissant par nom de bureau (ou id si pas de nom)
-          const sortedBureaux = (bureauxSum || []).slice().sort((a: any, b: any) => {
+          const sortedBureaux = bureauxBreakdownData.sort((a: any, b: any) => {
             const ax = String(a.bureau_name ?? a.bureau_id ?? '').trim();
             const bx = String(b.bureau_name ?? b.bureau_id ?? '').trim();
             const anx = Number(ax); const bnx = Number(bx);
@@ -263,6 +286,32 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             return ax.localeCompare(bx, 'fr', { numeric: true, sensitivity: 'base' });
           });
           setBureauBreakdown(sortedBureaux);
+
+          // Agréger par centre
+          const centerAggMap = new Map();
+          bureauxBreakdownData.forEach((b: any) => {
+            const key = String(b.center_id || '');
+            const prev = centerAggMap.get(key) || {
+              election_id: selectedElection,
+              center_id: b.center_id,
+              center_name: b.center_name,
+              total_registered: 0,
+              total_voters: 0,
+              total_null_votes: 0,
+              total_expressed_votes: 0
+            };
+            prev.total_registered += b.total_registered;
+            prev.total_voters += b.total_voters;
+            prev.total_null_votes += b.total_null_votes;
+            prev.total_expressed_votes += b.total_expressed_votes;
+            prev.participation_pct = prev.total_registered > 0 ? (prev.total_voters / prev.total_registered) * 100 : 0;
+            centerAggMap.set(key, prev);
+          });
+
+          setCenterBreakdown(Array.from(centerAggMap.values()));
+          
+          console.log('📊 [PublishSection] Bureaux breakdown construits:', sortedBureaux.length);
+          console.log('📊 [PublishSection] Centres breakdown construits:', centerAggMap.size);
           // Construire les lignes non validées (jaunes)
           const enteredByBureau = (filteredEnteredPvs || []).map((pv: any) => {
             const b = bureauMap.get(pv.bureau_id);
@@ -279,17 +328,17 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
             };
           });
           setNonValidatedByBureau(enteredByBureau);
-          // Agréger par centre pour la section centre
-          const centerAggMap = new Map<string, { center_id: string; center_name: string; total_voters: number; total_null_votes: number; total_expressed_votes: number }>();
+          // Agréger par centre pour la section centre (PV saisis non validés)
+          const centerAggMapEntered = new Map<string, { center_id: string; center_name: string; total_voters: number; total_null_votes: number; total_expressed_votes: number }>();
           for (const row of enteredByBureau) {
             const key = String(row.center_id || '');
-            const prev = centerAggMap.get(key) || { center_id: row.center_id, center_name: row.center_name, total_voters: 0, total_null_votes: 0, total_expressed_votes: 0 };
+            const prev = centerAggMapEntered.get(key) || { center_id: row.center_id, center_name: row.center_name, total_voters: 0, total_null_votes: 0, total_expressed_votes: 0 };
             prev.total_voters += row.total_voters;
             prev.total_null_votes += row.total_null_votes;
             prev.total_expressed_votes += row.total_expressed_votes;
-            centerAggMap.set(key, prev);
+            centerAggMapEntered.set(key, prev);
           }
-          setNonValidatedByCenter(Array.from(centerAggMap.values()));
+          setNonValidatedByCenter(Array.from(centerAggMapEntered.values()));
         } catch (_) {
           setCenterBreakdown([]);
           setBureauBreakdown([]);
@@ -423,20 +472,48 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
 
   const handlePublish = async () => {
     try {
-      const { error } = await supabase
+      console.log('🚀 [Publication] Début de la publication...');
+      
+      // 1. Mettre à jour l'élection
+      const { error: electionError } = await supabase
         .from('elections')
         .update({ is_published: true, published_at: new Date().toISOString() })
         .eq('id', selectedElection);
-      if (error) {
-        console.error('Erreur publication:', error);
-        toast.error('Échec de la publication');
+      
+      if (electionError) {
+        console.error('❌ [Publication] Erreur publication élection:', electionError);
+        toast.error('Échec de la publication de l\'élection');
         return;
       }
+      
+      console.log('✅ [Publication] Élection mise à jour');
+
+      // 2. Changer le statut de TOUS les PV validés en 'published'
+      const { data: updatedPVs, error: pvError } = await supabase
+        .from('procès_verbaux')
+        .update({ status: 'published' })
+        .eq('election_id', selectedElection)
+        .eq('status', 'validated')
+        .select('id, bureau_id, status');
+      
+      if (pvError) {
+        console.error('❌ [Publication] Erreur publication PV:', pvError);
+        toast.error('Échec de la publication des PV');
+        return;
+      }
+
+      console.log('✅ [Publication] PV mis à jour:', updatedPVs);
+      console.log('✅ [Publication] Nombre de PV publiés:', updatedPVs?.length || 0);
+
       setShowPublishConfirm(false);
-      const count = finalResults?.validatedBureaux || 0;
-      toast.success(`Résultats publiés: ${count} résultats de bureau ont été pris en compte.`);
+      const count = updatedPVs?.length || finalResults?.validatedBureaux || 0;
+      toast.success(`Résultats publiés : ${count} PV ont été publiés publiquement.`);
+      
+      // Recharger les données pour afficher les PV publiés
+      console.log('🔄 [Publication] Rechargement des données...');
+      await loadFinalResults();
     } catch (e) {
-      console.error(e);
+      console.error('❌ [Publication] Erreur:', e);
       toast.error('Échec de la publication');
     }
   };
@@ -765,7 +842,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
         </DialogContent>
       </Dialog>
 
-      {/* Section de simulation des résultats */}
+      {/* Section de simulation */}
       {selectedElection && (
         <div className="mt-6">
           <SimulationResultsSection electionId={selectedElection} />
