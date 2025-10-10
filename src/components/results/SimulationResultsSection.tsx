@@ -116,42 +116,68 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
 
         setCandidates(candidatesList);
 
-        // 2. Charger les bureaux avec résultats (comme ElectionResults)
-        const { data: bureauSummary, error: bureauSummaryError } = await supabase
-          .from('bureau_results_summary')
-          .select('*')
-          .eq('election_id', electionId);
+        // 2. Charger les PV validés ET publiés directement
+        const { data: pvsValidatedAndPublished, error: pvsError } = await supabase
+          .from('procès_verbaux')
+          .select(`
+            id,
+            bureau_id,
+            total_registered,
+            total_voters,
+            votes_expressed,
+            null_votes,
+            status,
+            voting_bureaux!inner(id, name, center_id, registered_voters)
+          `)
+          .eq('election_id', electionId)
+          .in('status', ['validated', 'published']);
 
-        if (bureauSummaryError) throw bureauSummaryError;
+        if (pvsError) throw pvsError;
 
-        console.log('📊 [Simulation] Bureaux récupérés:', bureauSummary?.length);
+        console.log('📊 [Simulation] PV validés + publiés récupérés:', pvsValidatedAndPublished?.length);
+
+        // Récupérer les noms des centres
+        const centerIds = [...new Set((pvsValidatedAndPublished || []).map((pv: any) => pv.voting_bureaux?.center_id).filter(Boolean))];
+        const { data: centersData } = await supabase
+          .from('voting_centers')
+          .select('id, name')
+          .in('id', centerIds);
+        
+        const centerNamesMap = new Map((centersData || []).map((c: any) => [c.id, c.name]));
 
         // Transformer en format compatible
-        const validatedBureauxArray = (bureauSummary || []).map((bureau: any) => ({
-          id: bureau.bureau_id,
-          name: bureau.bureau_name || 'Bureau',
-          center_name: bureau.center_name || 'Centre',
-          registered_voters: Number(bureau.total_registered) || 0,
-          total_voters: Number(bureau.total_voters) || 0,
-          total_expressed: Number(bureau.total_expressed_votes) || 0,
+        const validatedBureauxArray = (pvsValidatedAndPublished || []).map((pv: any) => ({
+          id: pv.bureau_id,
+          name: pv.voting_bureaux?.name || 'Bureau',
+          center_name: centerNamesMap.get(pv.voting_bureaux?.center_id) || 'Centre',
+          registered_voters: Number(pv.total_registered) || Number(pv.voting_bureaux?.registered_voters) || 0,
+          total_voters: Number(pv.total_voters) || 0,
+          total_expressed: Number(pv.votes_expressed) || 0,
           is_validated: true,
-          candidate_votes: {} // On n'a pas besoin des détails par candidat pour le calcul d'abstention
+          candidate_votes: {} // On va remplir après
         }));
 
-        // 2.5. Charger les résultats par candidat pour les bureaux validés
+        // 2.5. Charger les résultats par candidat pour ces PV
+        const pvIds = (pvsValidatedAndPublished || []).map(pv => pv.id);
         const { data: candidateResults, error: candidateResultsError } = await supabase
-          .from('bureau_candidate_results_summary')
-          .select('bureau_id, candidate_id, candidate_votes')
-          .eq('election_id', electionId);
+          .from('candidate_results')
+          .select('pv_id, candidate_id, votes')
+          .in('pv_id', pvIds);
+
+        console.log('📊 [Simulation] Résultats candidats récupérés:', candidateResults?.length);
+        console.log('📊 [Simulation] PV IDs:', pvIds);
 
         if (!candidateResultsError && candidateResults) {
+          // Créer un mapping pv_id -> bureau_id
+          const pvToBureauMap = new Map((pvsValidatedAndPublished || []).map((pv: any) => [pv.id, pv.bureau_id]));
+          
           // Ajouter les votes par candidat aux bureaux
           validatedBureauxArray.forEach(bureau => {
             bureau.candidate_votes = {};
             candidateResults
-              .filter((cr: any) => cr.bureau_id === bureau.id)
+              .filter((cr: any) => pvToBureauMap.get(cr.pv_id) === bureau.id)
               .forEach((cr: any) => {
-                bureau.candidate_votes[cr.candidate_id] = cr.candidate_votes;
+                bureau.candidate_votes[cr.candidate_id] = Number(cr.votes) || 0;
               });
           });
         }
@@ -276,9 +302,9 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
           console.log(' Distribution initiale (depuis bureaux validés):', initialDistribution);
         } else {
           // Fallback: distribution équitable
-          candidatesList.forEach(candidate => {
-            initialDistribution[candidate.id] = 100 / candidatesList.length;
-          });
+        candidatesList.forEach(candidate => {
+          initialDistribution[candidate.id] = 100 / candidatesList.length;
+        });
           console.log(' Distribution initiale (équitable):', initialDistribution);
         }
 
@@ -308,27 +334,49 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     return (data || []).map(row => row.center_id);
   };
 
-  // Liste des centres disponibles (depuis pendingBureaux uniquement)
+  // Liste TOUS les centres (validés + non validés)
   const availableCenters = useMemo(() => {
     const centersMap = new Map<string, string>();
+    
+    // Ajouter les centres des bureaux validés
+    validatedBureaux.forEach(bureau => {
+      centersMap.set(bureau.center_name, bureau.center_name);
+    });
+    
+    // Ajouter les centres des bureaux non validés
     pendingBureaux.forEach(bureau => {
       centersMap.set(bureau.center_name, bureau.center_name);
     });
+    
     return Array.from(centersMap.values()).sort();
-  }, [pendingBureaux]);
+  }, [pendingBureaux, validatedBureaux]);
 
-  // Liste des bureaux du centre sélectionné (non validés uniquement)
+  // Liste TOUS les bureaux du centre sélectionné (validés + non validés)
   const bureausByCenter = useMemo(() => {
     if (!selectedCenter) return [];
-    return pendingBureaux
-      .filter(bureau => bureau.center_name === selectedCenter)
+    
+    // Combiner bureaux validés et non validés du même centre
+    const validesduCentre = validatedBureaux.filter(b => b.center_name === selectedCenter);
+    const nonValidesduCentre = pendingBureaux.filter(b => b.center_name === selectedCenter);
+    
+    return [...validesduCentre, ...nonValidesduCentre]
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [pendingBureaux, selectedCenter]);
+  }, [pendingBureaux, validatedBureaux, selectedCenter]);
 
   // Bureau sélectionné en détail
   const selectedBureauData = useMemo(() => {
-    return pendingBureaux.find(b => b.id === selectedBureau);
-  }, [pendingBureaux, selectedBureau]);
+    // Chercher d'abord dans les bureaux non validés
+    const pendingBureau = pendingBureaux.find(b => b.id === selectedBureau);
+    if (pendingBureau) return pendingBureau;
+    
+    // Sinon dans les bureaux validés (mais ils ne pourront pas être simulés)
+    return validatedBureaux.find(b => b.id === selectedBureau);
+  }, [pendingBureaux, validatedBureaux, selectedBureau]);
+
+  // Vérifier si un bureau est validé (publié)
+  const isBureauValidated = (bureauId: string) => {
+    return validatedBureaux.some(b => b.id === bureauId);
+  };
 
   // Calculer les résultats simulés GLOBAUX (toujours tous les bureaux)
   const calculateSimulatedResults = useMemo(() => {
@@ -376,7 +424,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     if (totalSimulatedGlobal > 0) {
       const exactVotesGlobal: { candidateId: string; exact: number; floor: number; remainder: number }[] = [];
       let totalFloorGlobal = 0;
-      
+
       candidates.forEach(candidate => {
         const candidatePercentage = simulationParams.candidateDistribution[candidate.id] || 0;
         const exact = (totalSimulatedGlobal * candidatePercentage) / 100;
@@ -568,8 +616,15 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
   };
 
   const handleBureauSelect = (bureauId: string) => {
+    // Vérifier si le bureau est déjà validé
+    if (isBureauValidated(bureauId)) {
+      console.log('⚠️ Bureau déjà publié, sélection pour affichage uniquement');
+      setSelectedBureau(bureauId);
+      return;
+    }
+    
     // Sauvegarder les paramètres du bureau actuel s'il y en a un
-    if (selectedBureau && bureauSimulationParams) {
+    if (selectedBureau && bureauSimulationParams && !isBureauValidated(selectedBureau)) {
       setSimulatedBureaux(prev => {
         const newMap = new Map(prev);
         newMap.set(selectedBureau, { ...bureauSimulationParams });
@@ -604,7 +659,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
           avgDistribution[candidate.id] = Number(((totalVotes[candidate.id] || 0) / grandTotal * 100).toFixed(2));
         });
       } else {
-        const equalDistribution = 100 / candidates.length;
+    const equalDistribution = 100 / candidates.length;
         candidates.forEach(candidate => {
           avgDistribution[candidate.id] = equalDistribution;
         });
@@ -732,9 +787,9 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
       });
     } else {
       const equalDistribution = 100 / candidates.length;
-      candidates.forEach(candidate => {
-        newDistribution[candidate.id] = equalDistribution;
-      });
+    candidates.forEach(candidate => {
+      newDistribution[candidate.id] = equalDistribution;
+    });
     }
 
     setSimulationParams({
@@ -882,7 +937,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
             {/* Résultats détaillés */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Classement simulé</h3>
+              <h3 className="text-lg font-semibold">Classement simulé</h3>
                 {simulatedBureaux.size > 0 && (
                   <Badge className="text-xs bg-purple-600 text-white">
                     {simulatedBureaux.size} bureau(x) personnalisé(s)
@@ -914,7 +969,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
           {/* Section droite - Contrôles de simulation */}
           <div className="space-y-6">
             {!selectedBureauData && (
-              <div className={`bg-yellow-50 p-4 rounded-lg border border-yellow-200 ${pendingBureaux.length === 0 ? 'opacity-50' : ''}`}>
+            <div className={`bg-yellow-50 p-4 rounded-lg border border-yellow-200 ${pendingBureaux.length === 0 ? 'opacity-50' : ''}`}>
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <Vote className="h-4 w-4" />
                 Paramètres de simulation
@@ -960,7 +1015,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
               {/* Suffrage exprimé */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label>Suffrage exprimé (des votants)</Label>
+                <Label>Suffrage exprimé (des votants)</Label>
                   {realSuffrageExprime !== null && (
                     <Badge className="text-xs bg-green-600 text-white hover:bg-green-700">
                       Taux réel: {realSuffrageExprime.toFixed(2)}%
@@ -988,7 +1043,7 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                   </p>
                 )}
               </div>
-              </div>
+            </div>
             )}
 
             {/* Sélection Bureau spécifique */}
@@ -1044,11 +1099,27 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                     </SelectTrigger>
                   <SelectContent>
                     {bureausByCenter.map(bureau => {
+                      const isValidated = isBureauValidated(bureau.id);
                       const isSimulated = simulatedBureaux.has(bureau.id);
+                      
                       return (
-                        <SelectItem key={bureau.id} value={bureau.id}>
-                          {bureau.name} ({bureau.registered_voters.toLocaleString()} inscrits)
-                          {isSimulated && ' ✓'}
+                        <SelectItem 
+                          key={bureau.id} 
+                          value={bureau.id}
+                          disabled={isValidated}
+                          className={
+                            isValidated 
+                              ? 'bg-green-50 text-green-800 opacity-60' 
+                              : isSimulated 
+                                ? 'bg-yellow-50 text-yellow-900'
+                                : ''
+                          }
+                        >
+                          <span className="flex items-center gap-2">
+                            {isValidated && <span className="text-green-600">✓ Publié</span>}
+                            {!isValidated && isSimulated && <span className="text-yellow-600">⚡ Simulé</span>}
+                            <span>{bureau.name} ({bureau.registered_voters.toLocaleString()} inscrits)</span>
+                          </span>
                         </SelectItem>
                       );
                     })}
@@ -1057,13 +1128,13 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                 </div>
 
                 {selectedBureauData && (
-                  <div className="mt-3 p-3 bg-white rounded border">
+                  <div className={`mt-3 p-3 rounded border ${isBureauValidated(selectedBureau) ? 'bg-green-50 border-green-300' : 'bg-white'}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-xs font-medium text-purple-700">
-                        📍 Bureau en cours d'édition
+                      <div className={`text-xs font-medium ${isBureauValidated(selectedBureau) ? 'text-green-700' : 'text-purple-700'}`}>
+                        {isBureauValidated(selectedBureau) ? '✓ Bureau publié (lecture seule)' : '📍 Bureau en cours d\'édition'}
                       </div>
                       <div className="flex gap-2">
-                        {simulatedBureaux.has(selectedBureau) && (
+                        {!isBureauValidated(selectedBureau) && simulatedBureaux.has(selectedBureau) && (
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -1099,17 +1170,22 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                     <div className="text-xs text-gray-600 mt-1">
                       {selectedBureauData.registered_voters.toLocaleString()} électeurs inscrits
                     </div>
-                    {simulatedBureaux.has(selectedBureau) && (
-                      <Badge variant="outline" className="text-xs mt-2 bg-green-50 text-green-700 border-green-300">
-                        ✓ Bureau déjà simulé
+                    {!isBureauValidated(selectedBureau) && simulatedBureaux.has(selectedBureau) && (
+                      <Badge variant="outline" className="text-xs mt-2 bg-yellow-50 text-yellow-700 border-yellow-300">
+                        ⚡ Bureau simulé
                       </Badge>
+                    )}
+                    {isBureauValidated(selectedBureau) && (
+                      <div className="text-xs mt-2 text-green-700">
+                        Ce bureau a déjà été dépouillé et ne peut pas être simulé
+                      </div>
                     )}
                   </div>
                 )}
               </div>
 
               {/* Paramètres de simulation pour le bureau sélectionné */}
-              {selectedBureauData && (
+              {selectedBureauData && !isBureauValidated(selectedBureau) && (
                 <div className="mt-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-semibold text-purple-900">Paramètres de simulation du bureau</h4>
