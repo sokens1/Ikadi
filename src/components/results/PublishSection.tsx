@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
+import SimulationResultsSection from './SimulationResultsSection';
 
 interface PublishSectionProps {
   selectedElection: string;
@@ -763,6 +764,13 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Section de simulation des résultats */}
+      {selectedElection && (
+        <div className="mt-6">
+          <SimulationResultsSection electionId={selectedElection} />
+        </div>
+      )}
     </div>
   );
 };

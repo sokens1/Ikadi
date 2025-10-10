@@ -12,7 +12,6 @@ import { fetchElectionSummary, fetchCenterSummary, fetchBureauSummary, fetchCent
 import { toast } from 'sonner';
 import SEOHead from '@/components/SEOHead';
 import CrossAnalysisSection from '@/components/results/CrossAnalysisSection';
-import SimulationResultsSection from '@/components/results/SimulationResultsSection';
 
 // Icone WhatsApp (SVG minimal)
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -2332,11 +2331,6 @@ const ElectionResults: React.FC = () => {
         {/* Nouvelle section : Analyse croisée */}
         {results?.election?.id && (
           <CrossAnalysisSection electionId={String(results.election.id)} />
-        )}
-
-        {/* Section de simulation des résultats globaux */}
-        {results?.election?.id && (
-          <SimulationResultsSection electionId={String(results.election.id)} />
         )}
 
         {/* Section de navigation vers autre élection */}
