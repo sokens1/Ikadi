@@ -63,10 +63,10 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           .select('id, bureau_id, total_registered, total_voters, null_votes, votes_expressed, status, entered_at')
           .eq('election_id', selectedElection)
           .eq('status', 'entered');
-        
+
         if (pvValErr) throw pvValErr;
         if (pvEntErr) throw pvEntErr;
-        
+
         console.log('📊 [PublishSection] PV validés + publiés:', pvsValidated?.length || 0);
         console.log('📊 [PublishSection] PV saisis:', pvsEntered?.length || 0);
 
