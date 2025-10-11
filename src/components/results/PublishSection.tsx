@@ -259,7 +259,7 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
           console.log('📊 [PublishSection] Bureaux map size:', bureauMap.size);
           console.log('📊 [PublishSection] Centres map size:', centerMap.size);
           
-          // Construire les données par bureau (TOUS les PV : validés + publiés)
+          // Construire les données par bureau (UNIQUEMENT validés + publiés - lignes vertes)
           const bureauxBreakdownData = (filteredValidatedPvs || []).map((pv: any) => {
             const b = bureauMap.get(pv.bureau_id);
             const c = b ? centerMap.get(b.center_id) : undefined;
@@ -310,9 +310,10 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
 
           setCenterBreakdown(Array.from(centerAggMap.values()));
           
-          console.log('📊 [PublishSection] Bureaux breakdown construits:', sortedBureaux.length);
-          console.log('📊 [PublishSection] Centres breakdown construits:', centerAggMap.size);
-          // Construire les lignes non validées (jaunes)
+          console.log('📊 [PublishSection] Bureaux breakdown construits (validés/publiés):', sortedBureaux.length);
+          console.log('📊 [PublishSection] Centres breakdown construits (validés/publiés):', centerAggMap.size);
+          
+          // Construire les lignes pour les PV saisis (non validés) - affichés en jaune
           const enteredByBureau = (filteredEnteredPvs || []).map((pv: any) => {
             const b = bureauMap.get(pv.bureau_id);
             const c = b ? centerMap.get(b.center_id) : undefined;
@@ -322,23 +323,36 @@ const PublishSection: React.FC<PublishSectionProps> = ({ selectedElection }) => 
               center_name: c?.name || 'Centre',
               bureau_id: pv.bureau_id,
               bureau_name: b?.name || 'Bureau',
+              total_registered: Number(b?.registered_voters) || 0,
               total_voters: Number(pv.total_voters) || 0,
               total_null_votes: Number(pv.null_votes) || 0,
               total_expressed_votes: Number(pv.votes_expressed) || 0
             };
           });
           setNonValidatedByBureau(enteredByBureau);
-          // Agréger par centre pour la section centre (PV saisis non validés)
-          const centerAggMapEntered = new Map<string, { center_id: string; center_name: string; total_voters: number; total_null_votes: number; total_expressed_votes: number }>();
-          for (const row of enteredByBureau) {
-            const key = String(row.center_id || '');
-            const prev = centerAggMapEntered.get(key) || { center_id: row.center_id, center_name: row.center_name, total_voters: 0, total_null_votes: 0, total_expressed_votes: 0 };
-            prev.total_voters += row.total_voters;
-            prev.total_null_votes += row.total_null_votes;
-            prev.total_expressed_votes += row.total_expressed_votes;
+          
+          // Agréger par centre pour les PV saisis
+          const centerAggMapEntered = new Map();
+          enteredByBureau.forEach((b: any) => {
+            const key = String(b.center_id || '');
+            const prev = centerAggMapEntered.get(key) || {
+              center_id: b.center_id,
+              center_name: b.center_name,
+              total_registered: 0,
+              total_voters: 0,
+              total_null_votes: 0,
+              total_expressed_votes: 0
+            };
+            prev.total_registered += b.total_registered;
+            prev.total_voters += b.total_voters;
+            prev.total_null_votes += b.total_null_votes;
+            prev.total_expressed_votes += b.total_expressed_votes;
             centerAggMapEntered.set(key, prev);
-          }
+          });
           setNonValidatedByCenter(Array.from(centerAggMapEntered.values()));
+          
+          console.log('📊 [PublishSection] Bureaux saisis (non validés):', enteredByBureau.length);
+          console.log('📊 [PublishSection] Centres avec PV saisis:', centerAggMapEntered.size);
         } catch (_) {
           setCenterBreakdown([]);
           setBureauBreakdown([]);
