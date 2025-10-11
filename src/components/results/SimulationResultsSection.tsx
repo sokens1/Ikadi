@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Calculator, BarChart3, TrendingUp, Users, Vote, MapPin, Building2 } from 'lucide-react';
+import { Calculator, BarChart3, TrendingUp, Users, Vote, MapPin, Building2, Trophy } from 'lucide-react';
 
 interface SimulationResultsSectionProps {
   electionId: string;
@@ -39,6 +39,8 @@ interface SimulationParams {
   globalAbstention: number;
   suffrageExprime: number;
   candidateDistribution: Record<string, number>;
+  targetCandidateId?: string;
+  targetCandidateScore?: number;
 }
 
 const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -56,6 +58,10 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
   const [electionData, setElectionData] = useState<any>(null);
   const [realAbstentionRate, setRealAbstentionRate] = useState<number | null>(null);
   const [realSuffrageExprime, setRealSuffrageExprime] = useState<number | null>(null);
+  
+  // États pour simulation par candidat
+  const [selectedCandidateForScore, setSelectedCandidateForScore] = useState<string>('');
+  const [targetCandidateScore, setTargetCandidateScore] = useState<number>(50);
   
   // États pour simulation par bureau
   const [selectedCenter, setSelectedCenter] = useState<string>('');
@@ -382,19 +388,24 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
   const calculateSimulatedResults = useMemo(() => {
     if (candidates.length === 0) return [];
 
-    // 1. Calculer les résultats validés
+    // 1. Calculer les résultats validés (bureaux dépouillés)
     const validatedVotes: Record<string, number> = {};
     let totalValidatedVoters = 0;
+    let totalValidatedExpressed = 0;
 
     validatedBureaux.forEach(bureau => {
       totalValidatedVoters += bureau.total_voters;
+      totalValidatedExpressed += bureau.total_expressed || 0;
       candidates.forEach(candidate => {
         const votes = bureau.candidate_votes?.[candidate.id] || 0;
         validatedVotes[candidate.id] = (validatedVotes[candidate.id] || 0) + votes;
       });
     });
 
-    // 2. Calculer les votes simulés
+    console.log('📊 [Calcul Simulation] Votes des bureaux dépouillés:', validatedVotes);
+    console.log('📊 [Calcul Simulation] Total exprimés dépouillés:', totalValidatedExpressed);
+
+    // 2. Initialiser les votes simulés avec les votes validés
     const simulatedVotes: Record<string, number> = { ...validatedVotes };
 
     // Sauvegarder les paramètres du bureau actuel dans la Map
@@ -422,40 +433,106 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
 
     // Répartir les votes des bureaux non sélectionnés
     if (totalSimulatedGlobal > 0) {
-      const exactVotesGlobal: { candidateId: string; exact: number; floor: number; remainder: number }[] = [];
-      let totalFloorGlobal = 0;
-
-      candidates.forEach(candidate => {
-        const candidatePercentage = simulationParams.candidateDistribution[candidate.id] || 0;
-        const exact = (totalSimulatedGlobal * candidatePercentage) / 100;
-        const floor = Math.floor(exact);
-        const remainder = exact - floor;
+      // Si un candidat est sélectionné pour un score cible, calculer sa distribution
+      if (selectedCandidateForScore && targetCandidateScore > 0) {
+        // Calculer le total final attendu (bureaux dépouillés + bureaux avec paramètres globaux)
+        // Note: On n'inclut pas les bureaux spécifiques car ils ont leurs propres paramètres
+        const totalExpectedVotes = totalValidatedExpressed + totalSimulatedGlobal;
         
-        exactVotesGlobal.push({
-          candidateId: candidate.id,
-          exact,
-          floor,
-          remainder
+        // Calculer combien de votes le candidat doit avoir AU TOTAL (sur dépouillés + globaux) pour atteindre le score cible
+        const targetTotalVotes = Math.round((totalExpectedVotes * targetCandidateScore) / 100);
+        
+        // Soustraire les votes déjà obtenus par le candidat dans les bureaux dépouillés
+        const votesAlreadyObtained = validatedVotes[selectedCandidateForScore] || 0;
+        const votesToSimulate = Math.max(0, targetTotalVotes - votesAlreadyObtained);
+        
+        // Vérifier que les votes à simuler ne dépassent pas le total disponible
+        const actualSimulatedVotes = Math.min(votesToSimulate, totalSimulatedGlobal);
+        const remainingVotes = totalSimulatedGlobal - actualSimulatedVotes;
+        const otherCandidates = candidates.filter(c => c.id !== selectedCandidateForScore);
+        
+        console.log('📊 [Score Cible] Total attendu (dépouillés + globaux):', totalExpectedVotes);
+        console.log('📊 [Score Cible] Votes cible total (pour atteindre ' + targetCandidateScore + '%):', targetTotalVotes);
+        console.log('📊 [Score Cible] Votes déjà obtenus (bureaux dépouillés):', votesAlreadyObtained);
+        console.log('📊 [Score Cible] Votes à simuler (bureaux non dépouillés):', actualSimulatedVotes);
+        console.log('📊 [Score Cible] Votes restants (pour autres candidats):', remainingVotes);
+        
+        // Donner le score cible au candidat sélectionné
+        simulatedVotes[selectedCandidateForScore] = (simulatedVotes[selectedCandidateForScore] || 0) + actualSimulatedVotes;
+        
+        // Distribuer le reste équitablement aux autres candidats
+        if (otherCandidates.length > 0) {
+          const exactVotesGlobal: { candidateId: string; exact: number; floor: number; remainder: number }[] = [];
+          let totalFloorGlobal = 0;
+
+          otherCandidates.forEach(candidate => {
+            const exact = remainingVotes / otherCandidates.length;
+            const floor = Math.floor(exact);
+            const remainder = exact - floor;
+            
+            exactVotesGlobal.push({
+              candidateId: candidate.id,
+              exact,
+              floor,
+              remainder
+            });
+            
+            totalFloorGlobal += floor;
+          });
+          
+          const remainingGlobalVotes = remainingVotes - totalFloorGlobal;
+          const sortedGlobal = [...exactVotesGlobal].sort((a, b) => b.remainder - a.remainder);
+          
+          otherCandidates.forEach(candidate => {
+            const voteData = exactVotesGlobal.find(v => v.candidateId === candidate.id);
+            if (!voteData) return;
+            
+            let allocatedVotes = voteData.floor;
+            const index = sortedGlobal.findIndex(v => v.candidateId === candidate.id);
+            if (index < remainingGlobalVotes) {
+              allocatedVotes += 1;
+            }
+            
+            simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + allocatedVotes;
+          });
+        }
+      } else {
+        // Distribution normale selon candidateDistribution
+        const exactVotesGlobal: { candidateId: string; exact: number; floor: number; remainder: number }[] = [];
+        let totalFloorGlobal = 0;
+
+        candidates.forEach(candidate => {
+          const candidatePercentage = simulationParams.candidateDistribution[candidate.id] || 0;
+          const exact = (totalSimulatedGlobal * candidatePercentage) / 100;
+          const floor = Math.floor(exact);
+          const remainder = exact - floor;
+          
+          exactVotesGlobal.push({
+            candidateId: candidate.id,
+            exact,
+            floor,
+            remainder
+          });
+          
+          totalFloorGlobal += floor;
         });
         
-        totalFloorGlobal += floor;
-      });
-      
-      const remainingGlobal = totalSimulatedGlobal - totalFloorGlobal;
-      const sortedGlobal = [...exactVotesGlobal].sort((a, b) => b.remainder - a.remainder);
-      
-      candidates.forEach(candidate => {
-        const voteData = exactVotesGlobal.find(v => v.candidateId === candidate.id);
-        if (!voteData) return;
+        const remainingGlobal = totalSimulatedGlobal - totalFloorGlobal;
+        const sortedGlobal = [...exactVotesGlobal].sort((a, b) => b.remainder - a.remainder);
         
-        let allocatedVotes = voteData.floor;
-        const index = sortedGlobal.findIndex(v => v.candidateId === candidate.id);
-        if (index < remainingGlobal) {
-          allocatedVotes += 1;
-        }
-        
-        simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + allocatedVotes;
-      });
+        candidates.forEach(candidate => {
+          const voteData = exactVotesGlobal.find(v => v.candidateId === candidate.id);
+          if (!voteData) return;
+          
+          let allocatedVotes = voteData.floor;
+          const index = sortedGlobal.findIndex(v => v.candidateId === candidate.id);
+          if (index < remainingGlobal) {
+            allocatedVotes += 1;
+          }
+          
+          simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + allocatedVotes;
+        });
+      }
     }
 
     // C) Simuler tous les bureaux avec simulations spécifiques
@@ -472,58 +549,99 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
       totalSimulatedSpecifiques += totalSimulatedBureau;
 
       // Répartir les votes du bureau spécifique
-      const exactVotesBureau: { candidateId: string; exact: number; floor: number; remainder: number }[] = [];
-      let totalFloorBureau = 0;
-      
-      candidates.forEach(candidate => {
-        const candidatePercentage = params.candidateDistribution[candidate.id] || 0;
-        const exact = (totalSimulatedBureau * candidatePercentage) / 100;
-        const floor = Math.floor(exact);
-        const remainder = exact - floor;
+      // Si un score cible est défini pour un candidat dans ce bureau
+      if (params.targetCandidateId && params.targetCandidateScore) {
+        const targetVotesBureau = Math.round((totalSimulatedBureau * params.targetCandidateScore) / 100);
+        const remainingVotesBureau = totalSimulatedBureau - targetVotesBureau;
+        const otherCandidatesBureau = candidates.filter(c => c.id !== params.targetCandidateId);
         
-        exactVotesBureau.push({
-          candidateId: candidate.id,
-          exact,
-          floor,
-          remainder
+        // Donner le score cible au candidat
+        simulatedVotes[params.targetCandidateId] = (simulatedVotes[params.targetCandidateId] || 0) + targetVotesBureau;
+        
+        // Distribuer le reste équitablement
+        if (otherCandidatesBureau.length > 0 && remainingVotesBureau > 0) {
+          const exactVotesBureau: { candidateId: string; exact: number; floor: number; remainder: number }[] = [];
+          let totalFloorBureau = 0;
+
+          otherCandidatesBureau.forEach(candidate => {
+            const exact = remainingVotesBureau / otherCandidatesBureau.length;
+            const floor = Math.floor(exact);
+            const remainder = exact - floor;
+            exactVotesBureau.push({ candidateId: candidate.id, exact, floor, remainder });
+            totalFloorBureau += floor;
+          });
+          
+          const remainingBureau = remainingVotesBureau - totalFloorBureau;
+          const sortedBureau = [...exactVotesBureau].sort((a, b) => b.remainder - a.remainder);
+          
+          otherCandidatesBureau.forEach(candidate => {
+            const voteData = exactVotesBureau.find(v => v.candidateId === candidate.id);
+            if (!voteData) return;
+            let allocatedVotes = voteData.floor;
+            const index = sortedBureau.findIndex(v => v.candidateId === candidate.id);
+            if (index < remainingBureau) allocatedVotes += 1;
+            simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + allocatedVotes;
+          });
+        }
+      } else {
+        // Distribution normale selon candidateDistribution
+        const exactVotesBureau: { candidateId: string; exact: number; floor: number; remainder: number }[] = [];
+        let totalFloorBureau = 0;
+        
+        candidates.forEach(candidate => {
+          const candidatePercentage = params.candidateDistribution[candidate.id] || 0;
+          const exact = (totalSimulatedBureau * candidatePercentage) / 100;
+          const floor = Math.floor(exact);
+          const remainder = exact - floor;
+          
+          exactVotesBureau.push({
+            candidateId: candidate.id,
+            exact,
+            floor,
+            remainder
+          });
+          
+          totalFloorBureau += floor;
         });
         
-        totalFloorBureau += floor;
-      });
-      
-      const remainingBureau = totalSimulatedBureau - totalFloorBureau;
-      const sortedBureau = [...exactVotesBureau].sort((a, b) => b.remainder - a.remainder);
-      
-      candidates.forEach(candidate => {
-        const voteData = exactVotesBureau.find(v => v.candidateId === candidate.id);
-        if (!voteData) return;
+        const remainingBureau = totalSimulatedBureau - totalFloorBureau;
+        const sortedBureau = [...exactVotesBureau].sort((a, b) => b.remainder - a.remainder);
         
-        let allocatedVotes = voteData.floor;
-        const index = sortedBureau.findIndex(v => v.candidateId === candidate.id);
-        if (index < remainingBureau) {
-          allocatedVotes += 1;
-        }
-        
-        // AJOUTER les votes du bureau spécifique
-        simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + allocatedVotes;
-      });
+        candidates.forEach(candidate => {
+          const voteData = exactVotesBureau.find(v => v.candidateId === candidate.id);
+          if (!voteData) return;
+          
+          let allocatedVotes = voteData.floor;
+          const index = sortedBureau.findIndex(v => v.candidateId === candidate.id);
+          if (index < remainingBureau) {
+            allocatedVotes += 1;
+          }
+          
+          // AJOUTER les votes du bureau spécifique
+          simulatedVotes[candidate.id] = (simulatedVotes[candidate.id] || 0) + allocatedVotes;
+        });
+      }
     });
 
     console.log('📊 Bureaux avec simulation spécifique:', currentSimulatedBureaux.size);
     console.log('📊 Total simulé global:', totalSimulatedGlobal);
     console.log('📊 Total simulé spécifiques:', totalSimulatedSpecifiques);
     
-    console.log('📊 Distribution finale:', simulatedVotes);
+    console.log('📊 [Calcul Final] Votes après simulation:', simulatedVotes);
 
     // 3. Calculer les pourcentages finaux
     const totalVotes = Object.values(simulatedVotes).reduce((sum, votes) => sum + votes, 0);
+    
+    console.log('📊 [Calcul Final] Total votes (dépouillés + simulés):', totalVotes);
+    console.log('📊 [Calcul Final] Candidat ciblé:', selectedCandidateForScore);
+    console.log('📊 [Calcul Final] Score cible:', targetCandidateScore);
     
     return candidates.map(candidate => ({
       ...candidate,
       votes: simulatedVotes[candidate.id] || 0,
       percentage: totalVotes > 0 ? (simulatedVotes[candidate.id] || 0) / totalVotes * 100 : 0
     })).sort((a, b) => b.votes - a.votes);
-  }, [candidates, validatedBureaux, pendingBureaux, simulationParams, selectedBureau, selectedBureauData, bureauSimulationParams, simulatedBureaux]);
+  }, [candidates, validatedBureaux, pendingBureaux, simulationParams, selectedBureau, selectedBureauData, bureauSimulationParams, simulatedBureaux, selectedCandidateForScore, targetCandidateScore]);
 
   // Calculer les résultats simulés POUR LE BUREAU SPÉCIFIQUE
   const bureauSpecificResults = useMemo(() => {
@@ -668,7 +786,9 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
       setBureauSimulationParams({
         globalAbstention: realAbstentionRate !== null ? realAbstentionRate : 35,
         suffrageExprime: realSuffrageExprime !== null ? realSuffrageExprime : 85,
-        candidateDistribution: avgDistribution
+        candidateDistribution: avgDistribution,
+        targetCandidateId: undefined,
+        targetCandidateScore: undefined
       });
       
       console.log('📊 Nouveaux paramètres pour bureau:', bureauId);
@@ -763,7 +883,9 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     setBureauSimulationParams({
       globalAbstention: realAbstentionRate !== null ? realAbstentionRate : 35,
       suffrageExprime: realSuffrageExprime !== null ? realSuffrageExprime : 85,
-      candidateDistribution: avgDistribution
+      candidateDistribution: avgDistribution,
+      targetCandidateId: undefined,
+      targetCandidateScore: undefined
     });
   };
 
@@ -803,7 +925,11 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
     setSelectedBureau('');
     setSelectedCenter('');
     
-    console.log('🔄 Réinitialisation complète - Toutes les simulations de bureaux supprimées');
+    // Réinitialiser la simulation par candidat
+    setSelectedCandidateForScore('');
+    setTargetCandidateScore(50);
+    
+    console.log('🔄 Réinitialisation complète - Toutes les simulations supprimées');
   };
 
   if (loading) {
@@ -938,20 +1064,37 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
             <div className="space-y-3">
               <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Classement simulé</h3>
-                {simulatedBureaux.size > 0 && (
-                  <Badge className="text-xs bg-purple-600 text-white">
-                    {simulatedBureaux.size} bureau(x) personnalisé(s)
-                  </Badge>
-                )}
+                <div className="flex gap-2">
+                  {selectedCandidateForScore && (
+                    <Badge className="text-xs bg-blue-600 text-white">
+                      <Trophy className="h-3 w-3 inline mr-1" />
+                      Score cible actif
+                    </Badge>
+                  )}
+                  {simulatedBureaux.size > 0 && (
+                    <Badge className="text-xs bg-purple-600 text-white">
+                      {simulatedBureaux.size} bureau(x) personnalisé(s)
+                    </Badge>
+                  )}
+                </div>
               </div>
               {calculateSimulatedResults.map((candidate, index) => (
-                <div key={candidate.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={candidate.id} className={`flex items-center justify-between p-3 rounded-lg ${
+                  candidate.id === selectedCandidateForScore ? 'bg-blue-100 border-2 border-blue-400' : 'bg-gray-50'
+                }`}>
                   <div className="flex items-center gap-3">
                     <Badge className="text-white" style={{ backgroundColor: candidate.color }}>
                       #{index + 1}
                     </Badge>
                     <div>
-                      <div className="font-medium">{candidate.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{candidate.name}</span>
+                        {candidate.id === selectedCandidateForScore && (
+                          <span title="Score cible défini">
+                            <Trophy className="h-4 w-4 text-blue-600" />
+                          </span>
+                        )}
+                      </div>
                       {candidate.party && (
                         <div className="text-sm text-gray-600">{candidate.party}</div>
                       )}
@@ -1041,6 +1184,64 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                   <p className="text-xs text-green-600 font-medium">
                      Calculé depuis les {validatedBureaux.length} bureau(x) validé(s)
                   </p>
+                )}
+              </div>
+
+              {/* Simulation par score de candidat */}
+              <div className="space-y-3 pt-4 border-t border-yellow-300">
+                <div className="flex items-center gap-2 mb-2">
+                  <Trophy className="h-4 w-4" />
+                  <Label className="text-base font-semibold">Score cible d'un candidat</Label>
+                </div>
+                <p className="text-xs text-gray-600 mb-3">
+                  Définissez un score cible pour un candidat. Cette simulation s'applique uniquement aux bureaux non dépouillés.
+                </p>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Candidat à cibler</Label>
+                  <Select value={selectedCandidateForScore || 'none'} onValueChange={(value) => setSelectedCandidateForScore(value === 'none' ? '' : value)}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Sélectionner un candidat" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- Aucun (distribution par défaut) --</SelectItem>
+                      {candidates.map(candidate => (
+                        <SelectItem key={candidate.id} value={candidate.id}>
+                          {candidate.name} ({candidate.party})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Barre de score cible */}
+                {selectedCandidateForScore && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Score cible (%)</Label>
+                      <Badge className="text-xs bg-blue-600 text-white">
+                        {targetCandidateScore.toFixed(2)}%
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>0%</span>
+                        <span className="font-medium">{targetCandidateScore.toFixed(2)}%</span>
+                        <span>100%</span>
+                      </div>
+                      <Slider
+                        value={[targetCandidateScore]}
+                        onValueChange={(value) => setTargetCandidateScore(value[0])}
+                        max={100}
+                        step={0.1}
+                        className="w-full"
+                        disabled={pendingBureaux.length === 0 || !!selectedBureauData}
+                      />
+                    </div>
+                    <p className="text-xs text-blue-600 font-medium">
+                     {candidates.find(c => c.id === selectedCandidateForScore)?.name} obtiendra {targetCandidateScore.toFixed(2)}% des voix des {pendingBureaux.length} bureau(x) non dépouillé(s)
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -1244,6 +1445,81 @@ const SimulationResultsSection: React.FC<SimulationResultsSectionProps> = ({ ele
                         className="w-full"
                       />
                     </div>
+                  </div>
+
+                  {/* Simulation par score de candidat pour le bureau */}
+                  <div className="space-y-2 pt-3 border-t border-purple-300">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-3 w-3" />
+                      <Label className="text-xs font-semibold">Score cible d'un candidat</Label>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-xs">Candidat à cibler</Label>
+                      <Select 
+                        value={bureauSimulationParams.targetCandidateId || 'none'} 
+                        onValueChange={(value) => {
+                          const newValue = value === 'none' ? undefined : value;
+                          setBureauSimulationParams(prev => ({ ...prev, targetCandidateId: newValue }));
+                          setSimulatedBureaux(prev => {
+                            const newMap = new Map(prev);
+                            if (selectedBureau) {
+                              newMap.set(selectedBureau, { ...bureauSimulationParams, targetCandidateId: newValue });
+                            }
+                            return newMap;
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">-- Aucun --</SelectItem>
+                          {candidates.map(candidate => (
+                            <SelectItem key={candidate.id} value={candidate.id}>
+                              {candidate.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {bureauSimulationParams.targetCandidateId && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Score cible (%)</Label>
+                          <Badge className="text-xs bg-blue-600 text-white">
+                            {bureauSimulationParams.targetCandidateScore?.toFixed(2) || '50.00'}%
+                          </Badge>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span>0%</span>
+                            <span className="font-medium">{bureauSimulationParams.targetCandidateScore?.toFixed(2) || '50.00'}%</span>
+                            <span>100%</span>
+                          </div>
+                          <Slider
+                            value={[bureauSimulationParams.targetCandidateScore || 50]}
+                            onValueChange={(value) => {
+                              setBureauSimulationParams(prev => ({ ...prev, targetCandidateScore: value[0] }));
+                              setSimulatedBureaux(prev => {
+                                const newMap = new Map(prev);
+                                if (selectedBureau) {
+                                  newMap.set(selectedBureau, { ...bureauSimulationParams, targetCandidateScore: value[0] });
+                                }
+                                return newMap;
+                              });
+                            }}
+                            max={100}
+                            step={0.1}
+                            className="w-full"
+                          />
+                        </div>
+                        <p className="text-xs text-blue-600 font-medium">
+                          {candidates.find(c => c.id === bureauSimulationParams.targetCandidateId)?.name} obtiendra {bureauSimulationParams.targetCandidateScore?.toFixed(2) || '50.00'}% dans ce bureau
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
